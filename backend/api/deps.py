@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.security import decode_access_token
-from db.session import SessionLocal, get_db, set_tenant_context
+from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var
 from models import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -31,7 +31,10 @@ def get_current_user(
     except JWTError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 
+    # Set tenant context variable so RLS applies to the User query and subsequent queries
+    tenant_id_var.set(company_id)
     set_tenant_context(db, company_id)
+
     user = db.scalar(
         select(User).where(
             User.id == UUID(user_id),
@@ -48,10 +51,12 @@ def get_tenant_db(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Generator[Session, None, None]:
     db = SessionLocal()
+    token = tenant_id_var.set(str(current_user.company_id))
     try:
         set_tenant_context(db, str(current_user.company_id))
         yield db
     finally:
+        tenant_id_var.reset(token)
         db.close()
 
 

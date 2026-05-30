@@ -1,0 +1,65 @@
+import pytest
+import sys
+from pathlib import Path
+
+# Allow importing backend modules
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import sessionmaker
+
+from core.config import get_settings
+from db.session import tenant_context
+
+settings = get_settings()
+
+
+@pytest.fixture(scope="session")
+def db_engine():
+    # 1. Connect as the main superuser with AUTOCOMMIT enabled to run DDL statements
+    super_engine = create_engine(settings.database_url, execution_options={"isolation_level": "AUTOCOMMIT"})
+    try:
+        with super_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            
+            # Check if standard non-superuser test role exists
+            role_exists = conn.execute(
+                text("SELECT 1 FROM pg_roles WHERE rolname = 'smartonboard_test_user'")
+            ).scalar()
+            
+            if not role_exists:
+                conn.execute(text("CREATE ROLE smartonboard_test_user WITH LOGIN PASSWORD 'smartonboard'"))
+            
+            # Grant privileges on all schemas, tables, and sequences to the test user
+            conn.execute(text("GRANT USAGE ON SCHEMA public TO smartonboard_test_user"))
+            conn.execute(text("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO smartonboard_test_user"))
+            conn.execute(text("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO smartonboard_test_user"))
+            
+    except OperationalError:
+        pytest.skip(
+            "PostgreSQL database is not reachable at {}. "
+            "Please run 'docker compose up -d && alembic upgrade head' "
+            "to start the database before running RLS tests.".format(settings.database_url)
+        )
+    
+    # 2. Return the test engine configured to connect as the standard non-superuser role
+    test_db_url = settings.database_url.replace("smartonboard:smartonboard@", "smartonboard_test_user:smartonboard@")
+    return create_engine(test_db_url)
+
+
+@pytest.fixture
+def db_session(db_engine):
+    SessionTest = sessionmaker(bind=db_engine, autocommit=False, autoflush=False, expire_on_commit=False)
+    session = SessionTest()
+    
+    try:
+        yield session
+    finally:
+        session.close()
+        # Clean up database tables under RLS bypass mode so teardown has visibility to delete all records
+        with tenant_context(auth_mode="true"):
+            with db_engine.connect() as conn:
+                with conn.begin():
+                    for table in ("applications", "candidates", "jobs", "users", "companies"):
+                        conn.execute(text(f"DELETE FROM {table}"))
