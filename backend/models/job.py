@@ -1,0 +1,35 @@
+import uuid
+from datetime import date, datetime
+
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from db.base import Base
+from models.enums import JobStatus
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    department: Mapped[str] = mapped_column(String(100), nullable=False, default="General")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[JobStatus] = mapped_column(
+        Enum(JobStatus, name="job_status", values_callable=lambda x: [e.value for e in x]),
+        default=JobStatus.DRAFT,
+        nullable=False,
+        index=True,
+    )
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    company: Mapped["Company"] = relationship(back_populates="jobs")
+    applications: Mapped[list["Application"]] = relationship(back_populates="job", cascade="all, delete-orphan")
