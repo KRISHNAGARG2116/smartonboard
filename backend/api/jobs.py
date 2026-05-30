@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
-from api.deps import CurrentUser, TenantDb
+from api.deps import CurrentUser, TenantDb, RequireRecruiter
 from models import Job
 from models.enums import JobStatus
 from schemas.job import JobCreateRequest, JobResponse, JobUpdateRequest
@@ -27,7 +27,7 @@ def list_jobs(db: TenantDb, status_filter: str | None = Query(default=None, alia
 
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(body: JobCreateRequest, current_user: CurrentUser, db: TenantDb):
+def create_job(body: JobCreateRequest, current_user: RequireRecruiter, db: TenantDb):
     job = Job(
         company_id=current_user.company_id,
         title=body.title,
@@ -51,7 +51,7 @@ def get_job(job_id: uuid.UUID, db: TenantDb):
 
 
 @router.patch("/{job_id}", response_model=JobResponse)
-def update_job(job_id: uuid.UUID, body: JobUpdateRequest, db: TenantDb):
+def update_job(job_id: uuid.UUID, body: JobUpdateRequest, current_user: RequireRecruiter, db: TenantDb):
     job = db.scalar(select(Job).where(Job.id == job_id))
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
@@ -73,7 +73,7 @@ def update_job(job_id: uuid.UUID, body: JobUpdateRequest, db: TenantDb):
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_job(job_id: uuid.UUID, db: TenantDb):
+def delete_job(job_id: uuid.UUID, current_user: RequireRecruiter, db: TenantDb):
     job = db.scalar(select(Job).where(Job.id == job_id))
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")

@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from core.security import decode_access_token
 from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var
-from models import User
+from models import User, Company
+from models.enums import CompanyStatus, UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -35,15 +36,19 @@ def get_current_user(
     tenant_id_var.set(company_id)
     set_tenant_context(db, company_id)
 
+    # Validate active user AND active company status simultaneously
     user = db.scalar(
-        select(User).where(
+        select(User)
+        .join(Company, User.company_id == Company.id)
+        .where(
             User.id == UUID(user_id),
             User.company_id == UUID(company_id),
             User.is_active.is_(True),
+            Company.status == CompanyStatus.ACTIVE,
         )
     )
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or company is inactive/suspended")
     return user
 
 
@@ -51,14 +56,29 @@ def get_tenant_db(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Generator[Session, None, None]:
     db = SessionLocal()
-    token = tenant_id_var.set(str(current_user.company_id))
+    tenant_id_var.set(str(current_user.company_id))
     try:
         set_tenant_context(db, str(current_user.company_id))
         yield db
     finally:
-        tenant_id_var.reset(token)
+        tenant_id_var.set("")
         db.close()
+
+
+class RoleChecker:
+    def __init__(self, allowed_roles: list[UserRole]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: Annotated[User, Depends(get_current_user)]) -> User:
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: insufficient role privileges",
+            )
+        return current_user
 
 
 TenantDb = Annotated[Session, Depends(get_tenant_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
+RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]
