@@ -16,33 +16,45 @@ from schemas.company import CompanyResponse, CompanyUpdateRequest
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+from sqlalchemy.exc import IntegrityError
+
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
-    with tenant_context(auth_mode="true"):
-        existing = db.scalar(select(User.id).where(User.email == body.email.lower()))
-        if existing:
+    try:
+        with tenant_context(auth_mode="true"):
+            existing = db.scalar(select(User.id).where(User.email == body.email.lower()))
+            if existing:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+            slugs = set(db.scalars(select(Company.slug)).all())
+            company = Company(
+                name=body.company_name,
+                slug=unique_slug(body.company_name, slugs),
+                status=CompanyStatus.ACTIVE,
+            )
+            db.add(company)
+            db.flush()
+
+        with tenant_context(tenant_id=str(company.id)):
+            user = User(
+                company_id=company.id,
+                email=body.email.lower(),
+                password_hash=hash_password(body.password),
+                full_name=body.full_name,
+                role=UserRole.OWNER,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+    except IntegrityError as e:
+        db.rollback()
+        err_msg = str(e.orig).lower()
+        if "companies_slug_key" in err_msg or "slug" in err_msg:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Company slug already registered")
+        elif "ix_users_email" in err_msg or "users_email_key" in err_msg or "email" in err_msg:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-
-        slugs = set(db.scalars(select(Company.slug)).all())
-        company = Company(
-            name=body.company_name,
-            slug=unique_slug(body.company_name, slugs),
-            status=CompanyStatus.ACTIVE,
-        )
-        db.add(company)
-        db.flush()
-
-    with tenant_context(tenant_id=str(company.id)):
-        user = User(
-            company_id=company.id,
-            email=body.email.lower(),
-            password_hash=hash_password(body.password),
-            full_name=body.full_name,
-            role=UserRole.OWNER,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        else:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Uniqueness constraint violation during registration")
 
     token = create_access_token(
         str(user.id),
