@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -27,6 +27,10 @@ from db.session import SessionLocal, engine
 from pipeline import onboard_employee, process_candidate
 from agents.screening_agent import screen_resume_text as _screen_text
 
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from core.limiter import limiter
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +44,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SmartOnboard API", version="2.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,15 +96,19 @@ def health_check():
     }
 
 
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
 @app.post("/api/onboard")
-async def onboard(request: OnboardRequest):
+@limiter.limit("5/minute")
+async def onboard(request: Request, body: OnboardRequest):
     try:
         result = onboard_employee(
-            name=request.name,
-            role=request.role,
-            department=request.department,
-            start_date=request.start_date,
-            email=request.email,
+            name=body.name,
+            role=body.role,
+            department=body.department,
+            start_date=body.start_date,
+            email=body.email,
         )
         return {
             "success": True,
@@ -115,12 +125,13 @@ async def onboard(request: OnboardRequest):
 
 
 @app.post("/api/screen")
-async def screen_text(request: ScreenRequest):
+@limiter.limit("5/minute")
+async def screen_text(request: Request, body: ScreenRequest):
     try:
         result = _screen_text(
-            resume_text=request.resume_text,
-            job_role=request.job_role,
-            job_description=request.job_description or "",
+            resume_text=body.resume_text,
+            job_role=body.job_role,
+            job_description=body.job_description or "",
         )
         return {"success": True, "analysis": result}
     except Exception as e:
@@ -128,16 +139,26 @@ async def screen_text(request: ScreenRequest):
 
 
 @app.post("/api/screen/upload")
+@limiter.limit("5/minute")
 async def screen_upload(
+    request: Request,
     file: UploadFile = File(...),
     job_role: str = Form(...),
     job_description: str = Form(""),
 ):
+    # 1. Early Content-Length check
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
+
     try:
         import io
         from pypdf import PdfReader
 
         content = await file.read()
+        # 2. Strict read length check
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
 
         if file.filename and file.filename.lower().endswith(".pdf"):
             reader = PdfReader(io.BytesIO(content))
@@ -161,7 +182,9 @@ async def screen_upload(
 
 
 @app.post("/api/recruit")
+@limiter.limit("5/minute")
 async def recruit(
+    request: Request,
     file: UploadFile = File(...),
     job_role: str = Form(...),
     department: str = Form("Engineering"),
@@ -169,8 +192,16 @@ async def recruit(
     job_description: str = Form(""),
 ):
     """Full recruitment pipeline: parse PDF -> screen -> score -> decide -> communicate -> onboard if HIRE."""
+    # 1. Early Content-Length check
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
+
     try:
         pdf_bytes = await file.read()
+        # 2. Strict read length check
+        if len(pdf_bytes) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
 
         if not pdf_bytes:
             raise HTTPException(status_code=400, detail="Empty file uploaded")

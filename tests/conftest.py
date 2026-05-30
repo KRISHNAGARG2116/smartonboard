@@ -11,8 +11,12 @@ from sqlalchemy.orm import sessionmaker
 
 from core.config import get_settings
 from db.session import tenant_context
+from core.limiter import limiter
 
 settings = get_settings()
+
+# Disable rate limiting globally for all unit/integration tests by default
+limiter.enabled = False
 
 
 @pytest.fixture(scope="session")

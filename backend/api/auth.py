@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ from models import Company, User
 from models.enums import CompanyStatus, UserRole
 from schemas.auth import AuthResponse, LoginRequest, RegisterRequest, UserResponse
 from schemas.company import CompanyResponse, CompanyUpdateRequest
+from core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,7 +20,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 from sqlalchemy.exc import IntegrityError
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
+@limiter.limit("5/minute")
+def register(request: Request, body: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         with tenant_context(auth_mode="true"):
             existing = db.scalar(select(User.id).where(User.email == body.email.lower()))
@@ -73,7 +75,8 @@ def register(body: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(body: LoginRequest, db: Annotated[Session, Depends(get_db)]):
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     dummy_hash = "$2b$12$L7p.yF7T24Q.8Wk7Qz9.4ux7R6j8q9b0n1o2p3q4r5s6t7u8v9w0x"
 
     with tenant_context(auth_mode="true"):
@@ -112,7 +115,8 @@ def login(body: LoginRequest, db: Annotated[Session, Depends(get_db)]):
 
 
 @router.get("/me", response_model=UserResponse)
-def me(current_user: CurrentUser):
+@limiter.limit("100/minute")
+def me(request: Request, current_user: CurrentUser):
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
