@@ -23,9 +23,18 @@ if not os.getenv("GROQ_API_KEY"):
     )
 
 from api.router import v1_router
-from db.session import SessionLocal, engine
+from db.session import SessionLocal, engine, tenant_id_var
 from pipeline import onboard_employee, process_candidate
 from agents.screening_agent import screen_resume_text as _screen_text
+
+from core.malware import scan_file_for_malware
+from core.signature import validate_file_signature, extract_text_from_file_bytes
+from core.storage import LocalStorageService
+
+# Initialize secure storage abstraction layer
+STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent / "storage"
+storage_service = LocalStorageService(STORAGE_BASE_DIR)
+
 
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
@@ -34,6 +43,10 @@ from core.limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Verify ClamAV daemon connection on startup
+    from core.malware import verify_clamav_connection
+    verify_clamav_connection()
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -152,19 +165,49 @@ async def screen_upload(
         raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
 
     try:
-        import io
-        from pypdf import PdfReader
-
         content = await file.read()
         # 2. Strict read length check
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
 
-        if file.filename and file.filename.lower().endswith(".pdf"):
-            reader = PdfReader(io.BytesIO(content))
-            resume_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-        else:
-            resume_text = content.decode("utf-8", errors="ignore")
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+        # 3. Quarantine Phase
+        quarantine_path = storage_service.save_quarantine(content, file.filename or "file.dat")
+
+        try:
+            # 4. Malware Dynamic & Static Scan
+            try:
+                scan_file_for_malware(content)
+            except ValueError as val_err:
+                print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}': {val_err}")
+                raise HTTPException(status_code=400, detail=str(val_err))
+            except RuntimeError as run_err:
+                print(f"SECURITY EVENT: Malware scanner failure in production: {run_err}")
+                raise HTTPException(status_code=500, detail="Security scanning service failure")
+
+            # 5. File Signature Verification
+            try:
+                validate_file_signature(content, file.filename or "")
+            except ValueError as sig_err:
+                print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
+                raise HTTPException(status_code=400, detail=str(sig_err))
+
+            # 6. Promotion Phase
+            tenant_id = tenant_id_var.get() or "unauthenticated"
+            permanent_path = storage_service.promote_file(quarantine_path, tenant_id)
+
+        except Exception:
+            # Clean up quarantine if any step fails
+            storage_service.delete_file(quarantine_path)
+            raise
+
+        # 7. Safe Extraction Phase
+        try:
+            resume_text = extract_text_from_file_bytes(content, file.filename or "")
+        except ValueError as val_err:
+            raise HTTPException(status_code=400, detail=str(val_err))
 
         if not resume_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from file")
@@ -205,6 +248,36 @@ async def recruit(
 
         if not pdf_bytes:
             raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+        # 3. Quarantine Phase
+        quarantine_path = storage_service.save_quarantine(pdf_bytes, file.filename or "file.dat")
+
+        try:
+            # 4. Malware Dynamic & Static Scan
+            try:
+                scan_file_for_malware(pdf_bytes)
+            except ValueError as val_err:
+                print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}': {val_err}")
+                raise HTTPException(status_code=400, detail=str(val_err))
+            except RuntimeError as run_err:
+                print(f"SECURITY EVENT: Malware scanner failure in production: {run_err}")
+                raise HTTPException(status_code=500, detail="Security scanning service failure")
+
+            # 5. File Signature Verification
+            try:
+                validate_file_signature(pdf_bytes, file.filename or "")
+            except ValueError as sig_err:
+                print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
+                raise HTTPException(status_code=400, detail=str(sig_err))
+
+            # 6. Promotion Phase
+            tenant_id = tenant_id_var.get() or "unauthenticated"
+            permanent_path = storage_service.promote_file(quarantine_path, tenant_id)
+
+        except Exception:
+            # Clean up quarantine if any step fails
+            storage_service.delete_file(quarantine_path)
+            raise
 
         result = process_candidate(
             pdf_bytes=pdf_bytes,

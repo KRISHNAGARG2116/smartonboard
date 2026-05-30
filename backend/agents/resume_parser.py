@@ -9,9 +9,28 @@ def resume_parser_agent(pdf_bytes: bytes) -> dict:
 
     llm = ChatGroq(model_name="llama-3.3-70b-versatile")
 
-    print("\n Resume Parser: Extracting text from PDF")
-    reader = PdfReader(io.BytesIO(pdf_bytes))
-    resume_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    print("\n Resume Parser: Extracting text from document bytes")
+    import puremagic
+    ext = ".txt"
+    try:
+        matches = puremagic.magic_string(pdf_bytes)
+        if matches:
+            matches.sort(key=lambda x: x.confidence, reverse=True)
+            matched_ext = matches[0].extension.lower()
+            if matched_ext == ".zip":
+                ext = ".docx"
+            elif matched_ext in {".pdf", ".docx"}:
+                ext = matched_ext
+    except Exception:
+        pass
+        
+    try:
+        from core.signature import extract_text_from_file_bytes
+        resume_text = extract_text_from_file_bytes(pdf_bytes, f"resume{ext}")
+    except Exception as exc:
+        print(f"Error extracting text in resume parser: {exc}")
+        resume_text = ""
+
 
     result = llm.invoke(
         f"""Extract information from this resume and return ONLY a JSON object with these exact keys:
