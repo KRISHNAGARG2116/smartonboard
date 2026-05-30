@@ -32,3 +32,4 @@ class User(Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="users")
+    sessions: Mapped[list["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")

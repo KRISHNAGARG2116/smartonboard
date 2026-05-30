@@ -31,7 +31,26 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+from typing import Optional
+
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: Optional[str] = None
     user: UserResponse
+
+
+class SessionResponse(BaseModel):
+    id: uuid.UUID
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: datetime
+    last_active: datetime
+    is_revoked: bool
+
+    model_config = {"from_attributes": True}
+
+
+class RevokeSessionRequest(BaseModel):
+    session_id: uuid.UUID
+

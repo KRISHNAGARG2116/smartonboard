@@ -27,8 +27,30 @@ def get_current_user(
         payload = decode_access_token(credentials.credentials)
         user_id = payload.get("sub")
         company_id = payload.get("company_id")
-        if not user_id or not company_id:
+        jti = payload.get("jti")
+        session_id = payload.get("session_id")
+        if not user_id or not company_id or not jti:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            
+        # Check if access token is blacklisted
+        from models.session import RevokedToken, UserSession
+        from datetime import datetime, timezone
+        from uuid import UUID
+        
+        revoked = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
+        if revoked:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+            
+        # Check and update session activity
+        if session_id:
+            session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
+            if not session or session.is_revoked or session.expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has expired or is revoked")
+            
+            # Update last_active
+            session.last_active = datetime.now(timezone.utc)
+            db.add(session)
+            db.commit()
     except JWTError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 

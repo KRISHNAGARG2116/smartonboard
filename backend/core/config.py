@@ -28,7 +28,8 @@ class Settings:
         self.jwt_secret_key = secret
 
         self.jwt_algorithm = "HS256"
-        self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+        self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+        self.refresh_token_expire_days = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
         # Enforce Groq key presence in production
         if is_production and not os.getenv("GROQ_API_KEY"):
