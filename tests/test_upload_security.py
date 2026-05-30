@@ -39,8 +39,13 @@ def test_valid_pdf_accepted(api_client):
 
 
 def test_valid_docx_accepted(api_client):
-    """Verify that a valid DOCX signature is successfully accepted."""
-    valid_docx_data = b"PK\x03\x04\n"
+    """Verify that a valid DOCX signature and structure is successfully accepted."""
+    import zipfile
+    docx_io = io.BytesIO()
+    with zipfile.ZipFile(docx_io, "w") as z:
+        z.writestr("word/document.xml", "<w:document><w:body><w:p><w:r><w:t>Resume</w:t></w:r></w:p></w:body></w:document>")
+    valid_docx_data = docx_io.getvalue()
+    
     files = {"file": ("resume.docx", valid_docx_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     data = {"job_role": "Software Engineer"}
 
@@ -119,3 +124,22 @@ def test_verify_clamav_connection_development_warning():
         
         # Should complete without raising SystemExit or any exception
         verify_clamav_connection()
+
+
+def test_generic_zip_renamed_docx_rejected(api_client):
+    """Verify that a generic ZIP archive renamed to .docx is structurally rejected."""
+    import zipfile
+    
+    # Generate generic ZIP containing non-DOCX files
+    zip_io = io.BytesIO()
+    with zipfile.ZipFile(zip_io, "w") as z:
+        z.writestr("image.png", b"fake binary image bytes")
+    generic_zip_data = zip_io.getvalue()
+    
+    files = {"file": ("malicious.docx", generic_zip_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    data = {"job_role": "Software Engineer"}
+    
+    response = api_client.post("/api/screen/upload", files=files, data=data)
+    assert response.status_code == 400
+    assert "invalid docx" in response.json()["detail"].lower()
+

@@ -6,20 +6,30 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".zip"}
 
 def validate_file_signature(content: bytes, filename: str) -> str:
     """Validate file bytes against allowed magic headers. Returns matched extension or raises ValueError."""
+    matches = None
     try:
         matches = puremagic.magic_string(content)
-        if matches:
-            # Sort matches by confidence descending
-            matches.sort(key=lambda x: x.confidence, reverse=True)
-            matched_ext = matches[0].extension.lower()
-            
-            # DOCX is packaged as a ZIP, so puremagic might match it as .zip or .docx
-            if matched_ext == ".zip" and filename.lower().endswith(".docx"):
-                return ".docx"
-            elif matched_ext in ALLOWED_EXTENSIONS:
-                return matched_ext
     except Exception:
         pass
+
+    if matches:
+        # Sort matches by confidence descending
+        matches.sort(key=lambda x: x.confidence, reverse=True)
+        matched_ext = matches[0].extension.lower()
+        
+        # DOCX is packaged as a ZIP, so puremagic might match it as .zip or .docx
+        if matched_ext in {".zip", ".docx"} and filename.lower().endswith(".docx"):
+            import zipfile
+            import io
+            try:
+                with zipfile.ZipFile(io.BytesIO(content)) as z:
+                    if "word/document.xml" not in z.namelist():
+                        raise ValueError("Invalid DOCX structure. Missing word/document.xml.")
+            except Exception as exc:
+                raise ValueError(f"Invalid DOCX file structure: {exc}")
+            return ".docx"
+        elif matched_ext in ALLOWED_EXTENSIONS:
+            return matched_ext
 
     # Fallback to plain text validation (TXT files have no magic binary header)
     try:
