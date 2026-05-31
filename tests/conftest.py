@@ -1,9 +1,13 @@
+import os
 import pytest
 import sys
 from pathlib import Path
 
 # Allow importing backend modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
+
+# Force fallback storage mode during tests if native pgvector not available/tested
+os.environ["USE_PGVECTOR"] = "false"
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
@@ -67,6 +71,6 @@ def db_session(db_engine):
             with db_engine.connect() as conn:
                 with conn.begin():
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', false)"))
-                    for table in ("offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
+                    for table in ("candidate_embeddings", "offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
                         conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))

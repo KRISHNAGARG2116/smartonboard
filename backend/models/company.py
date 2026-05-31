@@ -36,3 +36,4 @@ class Company(Base):
     interviews: Mapped[list["Interview"]] = relationship("Interview", back_populates="company", cascade="all, delete-orphan")
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="company", cascade="all, delete-orphan")
     offers: Mapped[list["Offer"]] = relationship("Offer", back_populates="company", cascade="all, delete-orphan")
+    candidate_embeddings: Mapped[list["CandidateEmbedding"]] = relationship("CandidateEmbedding", back_populates="company", cascade="all, delete-orphan")

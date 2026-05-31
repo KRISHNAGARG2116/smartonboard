@@ -9,6 +9,7 @@ from models.note import CandidateNote
 from models.interview import Interview
 from models.scorecard import Scorecard
 from models.offer import Offer
+from models.candidate_embedding import CandidateEmbedding
 
 __all__ = [
     "Company",
@@ -22,5 +23,6 @@ __all__ = [
     "CandidateNote",
     "Interview",
     "Scorecard",
-    "Offer"
+    "Offer",
+    "CandidateEmbedding"
 ]
