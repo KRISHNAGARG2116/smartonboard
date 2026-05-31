@@ -8,10 +8,11 @@ from fastapi.testclient import TestClient
 
 from server import app
 from db.session import get_db, tenant_context
-from models import Company, User, AuditLog
+from models import Company, User, AuditLog, InterviewSlot
 from models.company_sso import CompanySSOSettings
 from models.calendar_credentials import CalendarCredentials
 from models.scheduling_link import SchedulingLink
+
 from models.enums import UserRole, CompanyStatus
 from core.vault import SecretVaultService
 
@@ -654,4 +655,403 @@ def test_provider_capability_declarations():
     assert outlook.supports_delta_sync is True
     assert outlook.supports_free_busy is True
     assert outlook.supports_push_renewal is True
+
+
+def test_create_scheduling_link(api_client, db_session):
+    """Verify that recruiters can create scheduling links and only token_hash is persisted."""
+    # 1. Setup Company and Recruiter User
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Link Gen Corp", slug="link-gen-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(
+            company_id=comp.id,
+            email="recruiter_link@corp.com",
+            full_name="Recruiter L",
+            password_hash="dummy",
+            role=UserRole.RECRUITER
+        )
+        db_session.add(user)
+        db_session.commit()
+
+    # Configure SAML Settings so ACS works
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(
+            company_id=comp.id,
+            sso_provider="saml2",
+            idp_entity_id="http://mock-okta.com/issuer",
+            idp_sso_url="http://mock-okta.com/sso"
+        )
+        db_session.add(sso)
+        db_session.commit()
+
+    # Get Bearer token
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({
+        "assertion_id": assertion_id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "saml_roles": [],
+        "signature": "valid_signature"
+    })
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={"company_slug": comp.slug, "saml_response": saml_payload})
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Pre-seed a dummy job, candidate, and interview for RLS boundaries
+    with tenant_context(auth_mode="true"):
+        db_session.execute(
+            text("INSERT INTO jobs (id, company_id, title, department, description, status) VALUES (:id, :c_id, 'Developer', 'Eng', 'Code', 'open')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        job_id = db_session.scalar(text("SELECT id FROM jobs LIMIT 1"))
+        
+        db_session.execute(
+            text("INSERT INTO candidates (id, company_id, email, full_name) VALUES (:id, :c_id, 'cand_link@test.com', 'Candidate L')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        cand_id = db_session.scalar(text("SELECT id FROM candidates LIMIT 1"))
+        
+        db_session.execute(
+            text("INSERT INTO applications (id, company_id, job_id, candidate_id, status) VALUES (:id, :c_id, :j_id, :cand_id, 'screening')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id), "j_id": str(job_id), "cand_id": str(cand_id)}
+        )
+        app_id = db_session.scalar(text("SELECT id FROM applications LIMIT 1"))
+        
+        interview_id = uuid.uuid4()
+        db_session.execute(
+            text("INSERT INTO interviews (id, company_id, application_id, interviewer_id, title, stage, scheduled_at, duration_minutes, is_cancelled) VALUES (:id, :c_id, :app_id, :interviewer_id, 'Coding Panel', 'interview', :scheduled_at, 45, false)"),
+            {"id": str(interview_id), "c_id": str(comp.id), "app_id": str(app_id), "interviewer_id": str(user.id), "scheduled_at": datetime.now(timezone.utc)}
+        )
+        db_session.commit()
+
+    # 2. Call link creation endpoint
+    link_resp = api_client.post("/api/v1/schedule/links", json={
+        "interview_id": str(interview_id),
+        "expires_in_days": 3,
+        "one_time_use": True
+    }, headers=headers)
+    assert link_resp.status_code == 201
+    
+    data = link_resp.json()
+    assert data["link_id"] is not None
+    assert data["raw_token"] is not None
+    assert "/schedule/" in data["booking_url"]
+
+    # 3. Assert raw token does NOT exist in DB (only the hashed token_hash is saved)
+    with tenant_context(auth_mode="true"):
+        db_link = db_session.scalar(select(SchedulingLink).where(SchedulingLink.interview_id == interview_id))
+        assert db_link is not None
+        assert db_link.token_hash == hashlib.sha256(data["raw_token"].encode("utf-8")).hexdigest()
+        assert data["raw_token"] not in str(db_link.__dict__)
+
+
+def test_get_availability_expired_link(api_client, db_session):
+    """Verify that accessing an expired link returns HTTP 410 Gone and logs schedule.link_expired audit trail."""
+    # 1. Setup Company, User, Interview, and an Expired link
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Expired Link Corp", slug="expired-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(company_id=comp.id, email="rec_exp@corp.com", full_name="Rec Exp", password_hash="dummy", role=UserRole.RECRUITER)
+        db_session.add(user)
+        db_session.commit()
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(company_id=comp.id, idp_entity_id="http://mock-okta.com/issuer", idp_sso_url="http://mock-okta.com/sso")
+        db_session.add(sso)
+        db_session.commit()
+
+    # Get Bearer token
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({"assertion_id": assertion_id, "email": user.email, "full_name": user.full_name, "saml_roles": [], "signature": "valid_signature"})
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={"company_slug": comp.slug, "saml_response": saml_payload})
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Pre-seed candidate details
+    with tenant_context(auth_mode="true"):
+        db_session.execute(
+            text("INSERT INTO jobs (id, company_id, title, department, description, status) VALUES (:id, :c_id, 'Developer', 'Eng', 'Code', 'open')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        job_id = db_session.scalar(text("SELECT id FROM jobs LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO candidates (id, company_id, email, full_name) VALUES (:id, :c_id, 'cand_exp@test.com', 'Candidate E')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        cand_id = db_session.scalar(text("SELECT id FROM candidates LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO applications (id, company_id, job_id, candidate_id, status) VALUES (:id, :c_id, :j_id, :cand_id, 'screening')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id), "j_id": str(job_id), "cand_id": str(cand_id)}
+        )
+        app_id = db_session.scalar(text("SELECT id FROM applications LIMIT 1"))
+        interview_id = uuid.uuid4()
+        db_session.execute(
+            text("INSERT INTO interviews (id, company_id, application_id, interviewer_id, title, stage, scheduled_at, duration_minutes, is_cancelled) VALUES (:id, :c_id, :app_id, :interviewer_id, 'Coding Panel', 'interview', :scheduled_at, 45, false)"),
+            {"id": str(interview_id), "c_id": str(comp.id), "app_id": str(app_id), "interviewer_id": str(user.id), "scheduled_at": datetime.now(timezone.utc)}
+        )
+        db_session.commit()
+
+    # Pre-seed expired scheduling link
+    raw_token = "expired_raw_token_998877"
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    with tenant_context(auth_mode="true"):
+        link = SchedulingLink(
+            company_id=comp.id,
+            interview_id=interview_id,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            one_time_use=True
+        )
+        db_session.add(link)
+        db_session.commit()
+
+    # 2. Get availability using expired link -> HTTP 410 Gone
+    avail_resp = api_client.get(f"/api/v1/schedule/{raw_token}/availability", headers=headers)
+    assert avail_resp.status_code == 410
+    assert "expired" in avail_resp.json()["detail"].lower()
+
+    # 3. Assert schedule.link_expired audit trail logged
+    with tenant_context(auth_mode="true"):
+        expired_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "schedule.link_expired", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert expired_log is not None
+        assert expired_log.metadata_json["interview_id"] == str(interview_id)
+
+
+def test_self_scheduling_and_overlap_concurrency(api_client, db_session):
+    """Verify dynamic availability slots calculation, successful booking, and EXCLUDE overlapping constraint blocks."""
+    # 1. Setup Company, User, Interview, and Active link
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Overlap Corp", slug="overlap-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(company_id=comp.id, email="rec_ov@corp.com", full_name="Rec Ov", password_hash="dummy", role=UserRole.RECRUITER)
+        db_session.add(user)
+        db_session.commit()
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(company_id=comp.id, idp_entity_id="http://mock-okta.com/issuer", idp_sso_url="http://mock-okta.com/sso")
+        db_session.add(sso)
+        db_session.commit()
+
+    # Get Bearer token
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({"assertion_id": assertion_id, "email": user.email, "full_name": user.full_name, "saml_roles": [], "signature": "valid_signature"})
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={"company_slug": comp.slug, "saml_response": saml_payload})
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(
+            text("INSERT INTO jobs (id, company_id, title, department, description, status) VALUES (:id, :c_id, 'Developer', 'Eng', 'Code', 'open')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        job_id = db_session.scalar(text("SELECT id FROM jobs LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO candidates (id, company_id, email, full_name) VALUES (:id, :c_id, 'cand_ov@test.com', 'Candidate O')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        cand_id = db_session.scalar(text("SELECT id FROM candidates LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO applications (id, company_id, job_id, candidate_id, status) VALUES (:id, :c_id, :j_id, :cand_id, 'screening')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id), "j_id": str(job_id), "cand_id": str(cand_id)}
+        )
+        app_id = db_session.scalar(text("SELECT id FROM applications LIMIT 1"))
+        interview_id = uuid.uuid4()
+        db_session.execute(
+            text("INSERT INTO interviews (id, company_id, application_id, interviewer_id, title, stage, scheduled_at, duration_minutes, is_cancelled) VALUES (:id, :c_id, :app_id, :interviewer_id, 'Coding Panel', 'interview', :scheduled_at, 45, false)"),
+            {"id": str(interview_id), "c_id": str(comp.id), "app_id": str(app_id), "interviewer_id": str(user.id), "scheduled_at": datetime.now(timezone.utc)}
+        )
+        db_session.commit()
+
+    # Pre-seed active scheduling link
+    raw_token = "active_raw_token_555"
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    with tenant_context(auth_mode="true"):
+        link = SchedulingLink(
+            company_id=comp.id,
+            interview_id=interview_id,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=3),
+            one_time_use=False
+        )
+        db_session.add(link)
+        db_session.commit()
+
+    # Seed calendar credentials so availability lookup returns mock slots
+    vault = SecretVaultService()
+    with tenant_context(auth_mode="true"):
+        cred = CalendarCredentials(
+            company_id=comp.id,
+            user_id=user.id,
+            provider="google",
+            account_email=user.email,
+            encrypted_access_token=vault.encrypt_secret("access"),
+            encrypted_refresh_token=vault.encrypt_secret("refresh"),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
+            status="active"
+        )
+        db_session.add(cred)
+        db_session.commit()
+
+    # 2. Get Availability Slots Grid
+    avail_resp = api_client.get(f"/api/v1/schedule/{raw_token}/availability", headers=headers)
+    assert avail_resp.status_code == 200
+    avail_data = avail_resp.json()
+    assert len(avail_data["available_slots"]) > 0
+    selected_slot = avail_data["available_slots"][0]
+
+    # 3. Successful Booking Execution
+    book_resp = api_client.post(f"/api/v1/schedule/{raw_token}/book", json={
+        "start_time": selected_slot["start_time"],
+        "candidate_notes": "First Slot"
+    }, headers=headers)
+    assert book_resp.status_code == 201
+    book_data = book_resp.json()
+    assert book_data["status"] == "confirmed"
+    assert book_data["booking_token"] is not None
+
+    # Assert slot confirmed in DB and booking_token_hash stored
+    with tenant_context(auth_mode="true"):
+        db_slot = db_session.scalar(select(InterviewSlot).where(InterviewSlot.interview_id == interview_id))
+        assert db_slot is not None
+        assert db_slot.status == "confirmed"
+        assert db_slot.booking_token_hash == hashlib.sha256(book_data["booking_token"].encode("utf-8")).hexdigest()
+
+        # Assert schedule.slot_booked and schedule.reminder_sent audit logs
+        booked_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "schedule.slot_booked", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert booked_log is not None
+        assert booked_log.metadata_json["slot_id"] == str(db_slot.id)
+
+    # 4. Attempt to book an overlapping time block -> Blocked by overlap check or database EXCLUDE constraint -> HTTP 409
+    book_resp_fail = api_client.post(f"/api/v1/schedule/{raw_token}/book", json={
+        "start_time": selected_slot["start_time"],
+        "candidate_notes": "Overlap Attempt"
+    }, headers=headers)
+    assert book_resp_fail.status_code == 409
+
+
+def test_booking_ownership_validation_cancel_reschedule(api_client, db_session):
+    """Verify that cancellation and rescheduling require candidate booking token validation, and logs rescheduled/cancelled events."""
+    # 1. Setup Company, User, Interview, and confirmed Booking slot
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Auth Slot Corp", slug="auth-slot-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(company_id=comp.id, email="rec_auth@corp.com", full_name="Rec Auth", password_hash="dummy", role=UserRole.RECRUITER)
+        db_session.add(user)
+        db_session.commit()
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(company_id=comp.id, idp_entity_id="http://mock-okta.com/issuer", idp_sso_url="http://mock-okta.com/sso")
+        db_session.add(sso)
+        db_session.commit()
+
+    # Get Bearer token
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({"assertion_id": assertion_id, "email": user.email, "full_name": user.full_name, "saml_roles": [], "signature": "valid_signature"})
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={"company_slug": comp.slug, "saml_response": saml_payload})
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(
+            text("INSERT INTO jobs (id, company_id, title, department, description, status) VALUES (:id, :c_id, 'Developer', 'Eng', 'Code', 'open')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        job_id = db_session.scalar(text("SELECT id FROM jobs LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO candidates (id, company_id, email, full_name) VALUES (:id, :c_id, 'cand_auth@test.com', 'Candidate A')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id)}
+        )
+        cand_id = db_session.scalar(text("SELECT id FROM candidates LIMIT 1"))
+        db_session.execute(
+            text("INSERT INTO applications (id, company_id, job_id, candidate_id, status) VALUES (:id, :c_id, :j_id, :cand_id, 'screening')"),
+            {"id": str(uuid.uuid4()), "c_id": str(comp.id), "j_id": str(job_id), "cand_id": str(cand_id)}
+        )
+        app_id = db_session.scalar(text("SELECT id FROM applications LIMIT 1"))
+        interview_id = uuid.uuid4()
+        db_session.execute(
+            text("INSERT INTO interviews (id, company_id, application_id, interviewer_id, title, stage, scheduled_at, duration_minutes, is_cancelled) VALUES (:id, :c_id, :app_id, :interviewer_id, 'Coding Panel', 'interview', :scheduled_at, 45, false)"),
+            {"id": str(interview_id), "c_id": str(comp.id), "app_id": str(app_id), "interviewer_id": str(user.id), "scheduled_at": datetime.now(timezone.utc)}
+        )
+        db_session.commit()
+
+    # Pre-seed a confirmed booking slot with hash
+    raw_booking_token = "my_candidate_secret_booking_token"
+    booking_token_hash = hashlib.sha256(raw_booking_token.encode("utf-8")).hexdigest()
+    start_time = datetime.now(timezone.utc) + timedelta(days=2)
+    end_time = start_time + timedelta(minutes=45)
+
+    with tenant_context(auth_mode="true"):
+        slot = InterviewSlot(
+            company_id=comp.id,
+            interview_id=interview_id,
+            start_time=start_time,
+            end_time=end_time,
+            status="confirmed",
+            booking_token_hash=booking_token_hash
+        )
+        db_session.add(slot)
+        db_session.commit()
+        slot_id = str(slot.id)
+
+    # 2. Reschedule Attempt: Missing Ownership Token -> HTTP 401 Unauthorized
+    resched_fail = api_client.post(f"/api/v1/schedule/bookings/{slot_id}/reschedule", json={
+        "new_start_time": (start_time + timedelta(hours=2)).isoformat()
+    }, headers=headers)
+    assert resched_fail.status_code == 401
+
+    # Reschedule Attempt: Invalid Token -> HTTP 403 Forbidden
+    resched_invalid = api_client.post(f"/api/v1/schedule/bookings/{slot_id}/reschedule", json={
+        "new_start_time": (start_time + timedelta(hours=2)).isoformat()
+    }, headers={"X-Booking-Token": "wrong_token", **headers})
+    assert resched_invalid.status_code == 403
+
+    # Reschedule Attempt: Success with Valid Token
+    new_start_time = start_time + timedelta(hours=2)
+    resched_success = api_client.post(f"/api/v1/schedule/bookings/{slot_id}/reschedule", json={
+        "new_start_time": new_start_time.isoformat()
+    }, headers={"X-Booking-Token": raw_booking_token, **headers})
+    assert resched_success.status_code == 200
+    
+    # Assert reschedule audit logged
+    with tenant_context(auth_mode="true"):
+        resched_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "schedule.rescheduled", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert resched_log is not None
+        assert resched_log.metadata_json["slot_id"] == slot_id
+
+    # 3. Cancellation Attempt: Success with Valid Token
+    cancel_success = api_client.post(f"/api/v1/schedule/bookings/{slot_id}/cancel", json={
+        "reason": "Health conflict"
+    }, headers={"X-Booking-Token": raw_booking_token, **headers})
+    assert cancel_success.status_code == 200
+
+    # Assert cancel audit logged
+    with tenant_context(auth_mode="true"):
+        cancel_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "schedule.slot_cancelled", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert cancel_log is not None
+        assert cancel_log.metadata_json["slot_id"] == slot_id
+
 

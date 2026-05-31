@@ -22,6 +22,7 @@ class InterviewSlot(Base):
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     external_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), server_default="pending", default="pending", nullable=False)
+    booking_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -31,3 +32,4 @@ class InterviewSlot(Base):
     __table_args__ = (
         UniqueConstraint("interview_id", "start_time", name="uq_interview_start_time"),
     )
+
