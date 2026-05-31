@@ -41,3 +41,4 @@ class Application(Base):
     candidate_notes: Mapped[list["CandidateNote"]] = relationship("CandidateNote", back_populates="application", cascade="all, delete-orphan")
     interviews: Mapped[list["Interview"]] = relationship("Interview", back_populates="application", cascade="all, delete-orphan")
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="application", cascade="all, delete-orphan")
+    offer: Mapped["Offer"] = relationship("Offer", back_populates="application", cascade="all, delete-orphan", uselist=False)

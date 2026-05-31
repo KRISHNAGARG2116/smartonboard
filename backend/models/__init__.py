@@ -8,6 +8,7 @@ from models.audit import AuditLog
 from models.note import CandidateNote
 from models.interview import Interview
 from models.scorecard import Scorecard
+from models.offer import Offer
 
 __all__ = [
     "Company",
@@ -20,5 +21,6 @@ __all__ = [
     "AuditLog",
     "CandidateNote",
     "Interview",
-    "Scorecard"
+    "Scorecard",
+    "Offer"
 ]
