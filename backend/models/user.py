@@ -33,3 +33,6 @@ class User(Base):
 
     company: Mapped["Company"] = relationship(back_populates="users")
     sessions: Mapped[list["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    candidate_notes: Mapped[list["CandidateNote"]] = relationship("CandidateNote", back_populates="user", cascade="all, delete-orphan")
+    interviews: Mapped[list["Interview"]] = relationship("Interview", back_populates="interviewer", cascade="all, delete-orphan")
+    scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="grader", cascade="all, delete-orphan")
