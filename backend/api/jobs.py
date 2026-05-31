@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
 
 from api.deps import CurrentUser, TenantDb, RequireRecruiter
@@ -27,7 +27,12 @@ def list_jobs(db: TenantDb, status_filter: str | None = Query(default=None, alia
 
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(body: JobCreateRequest, current_user: RequireRecruiter, db: TenantDb):
+def create_job(
+    body: JobCreateRequest,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
     job = Job(
         company_id=current_user.company_id,
         title=body.title,
@@ -39,6 +44,26 @@ def create_job(body: JobCreateRequest, current_user: RequireRecruiter, db: Tenan
     db.add(job)
     db.commit()
     db.refresh(job)
+    
+    # Audit log job creation
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="job.created",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        resource_type="jobs",
+        resource_id=str(job.id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "title": job.title,
+            "department": job.department,
+            "status": job.status.value
+        }
+    )
+    
     return job
 
 
@@ -51,31 +76,94 @@ def get_job(job_id: uuid.UUID, db: TenantDb):
 
 
 @router.patch("/{job_id}", response_model=JobResponse)
-def update_job(job_id: uuid.UUID, body: JobUpdateRequest, current_user: RequireRecruiter, db: TenantDb):
+def update_job(
+    job_id: uuid.UUID,
+    body: JobUpdateRequest,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
     job = db.scalar(select(Job).where(Job.id == job_id))
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
+    old_status = job.status
+    changes = {}
     if body.title is not None:
-        job.title = body.title
+        if job.title != body.title:
+            changes["title"] = {"old": job.title, "new": body.title}
+            job.title = body.title
     if body.department is not None:
-        job.department = body.department
+        if job.department != body.department:
+            changes["department"] = {"old": job.department, "new": body.department}
+            job.department = body.department
     if body.description is not None:
-        job.description = body.description
+        if job.description != body.description:
+            changes["description"] = "edited"
+            job.description = body.description
     if body.status is not None:
-        job.status = _parse_job_status(body.status)
+        new_status = _parse_job_status(body.status)
+        if old_status != new_status:
+            changes["status"] = {"old": old_status.value, "new": new_status.value}
+            job.status = new_status
     if body.start_date is not None:
-        job.start_date = body.start_date
+        if job.start_date != body.start_date:
+            changes["start_date"] = {"old": str(job.start_date), "new": str(body.start_date)}
+            job.start_date = body.start_date
 
     db.commit()
     db.refresh(job)
+    
+    # Audit log edit or archival
+    if changes:
+        from core.audit import log_audit_event
+        action = "job.edited"
+        if "status" in changes and job.status == JobStatus.CLOSED:
+            action = "job.archived"
+            
+        log_audit_event(
+            db=db,
+            action=action,
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="jobs",
+            resource_id=str(job.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata=changes
+        )
+        
     return job
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_job(job_id: uuid.UUID, current_user: RequireRecruiter, db: TenantDb):
+def delete_job(
+    job_id: uuid.UUID,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
     job = db.scalar(select(Job).where(Job.id == job_id))
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
-    job.status = JobStatus.CLOSED
-    db.commit()
+        
+    old_status = job.status
+    if old_status != JobStatus.CLOSED:
+        job.status = JobStatus.CLOSED
+        db.commit()
+        
+        # Audit log archival
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="job.archived",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="jobs",
+            resource_id=str(job.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"status": {"old": old_status.value, "new": "closed"}}
+        )

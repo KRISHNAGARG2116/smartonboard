@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 import os
 import sys
+import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -382,6 +383,27 @@ async def recruit(
             storage_service.delete_file(quarantine_path)
             raise
 
+        evaluation_id = str(uuid.uuid4())
+        
+        # 1. Audit log evaluation started
+        from core.audit import log_audit_event
+        from db.session import SessionLocal
+        with SessionLocal() as db:
+            log_audit_event(
+                db=db,
+                action="ai.evaluation_started",
+                actor_type="UNAUTHENTICATED",
+                company_id=tenant_id if tenant_id != "unauthenticated" else None,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={
+                    "evaluation_id": evaluation_id,
+                    "job_role": job_role,
+                    "department": department,
+                    "filename": file.filename
+                }
+            )
+
         result = process_candidate(
             pdf_bytes=pdf_bytes,
             job_description=job_description,
@@ -391,6 +413,37 @@ async def recruit(
         )
 
         decision = result.get("decision_result", {}).get("decision", "REJECT")
+        score = result.get("scoring_result", {}).get("total_score", 0)
+        
+        # 2. Audit log match score generated
+        with SessionLocal() as db:
+            log_audit_event(
+                db=db,
+                action="ai.match_score_generated",
+                actor_type="UNAUTHENTICATED",
+                company_id=tenant_id if tenant_id != "unauthenticated" else None,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"evaluation_id": evaluation_id, "score": score}
+            )
+            
+        # 3. Audit log evaluation completed (compact storage constraint)
+        with SessionLocal() as db:
+            log_audit_event(
+                db=db,
+                action="ai.evaluation_completed",
+                actor_type="UNAUTHENTICATED",
+                company_id=tenant_id if tenant_id != "unauthenticated" else None,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={
+                    "evaluation_id": evaluation_id,
+                    "score": score,
+                    "recommendation": decision,
+                    "model_version": "gemini-1.5-pro",
+                    "summary": f"Candidate processed for {job_role} in {department}. Fit: {result.get('scoring_result', {}).get('overall_fit', 'N/A')}"
+                }
+            )
 
         response = {
             "success": True,

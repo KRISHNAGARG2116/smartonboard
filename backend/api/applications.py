@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -61,7 +61,12 @@ def list_applications(
 
 
 @router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
-def create_application(body: ApplicationCreateRequest, current_user: CurrentUser, db: TenantDb):
+def create_application(
+    body: ApplicationCreateRequest,
+    request: Request,
+    current_user: CurrentUser,
+    db: TenantDb
+):
     job = db.scalar(select(Job).where(Job.id == body.job_id))
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
@@ -72,6 +77,7 @@ def create_application(body: ApplicationCreateRequest, current_user: CurrentUser
             Candidate.email == body.candidate_email.lower(),
         )
     )
+    new_candidate_created = False
     if candidate is None:
         candidate = Candidate(
             company_id=current_user.company_id,
@@ -81,6 +87,7 @@ def create_application(body: ApplicationCreateRequest, current_user: CurrentUser
         )
         db.add(candidate)
         db.flush()
+        new_candidate_created = True
     else:
         candidate.full_name = body.candidate_name
         if body.candidate_phone:
@@ -108,6 +115,21 @@ def create_application(body: ApplicationCreateRequest, current_user: CurrentUser
     db.add(application)
     db.commit()
 
+    if new_candidate_created:
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="candidate.created",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="candidates",
+            resource_id=str(candidate.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"email": candidate.email, "full_name": candidate.full_name, "phone": candidate.phone}
+        )
+
     application = db.scalar(
         select(Application)
         .options(selectinload(Application.candidate), selectinload(Application.job))
@@ -129,7 +151,13 @@ def get_application(application_id: uuid.UUID, db: TenantDb):
 
 
 @router.patch("/{application_id}", response_model=ApplicationResponse)
-def update_application(application_id: uuid.UUID, body: ApplicationUpdateRequest, db: TenantDb):
+def update_application(
+    application_id: uuid.UUID,
+    body: ApplicationUpdateRequest,
+    request: Request,
+    current_user: CurrentUser,
+    db: TenantDb
+):
     application = db.scalar(
         select(Application)
         .options(selectinload(Application.candidate), selectinload(Application.job))
@@ -137,8 +165,59 @@ def update_application(application_id: uuid.UUID, body: ApplicationUpdateRequest
     )
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        
+    old_status = application.status
     if body.status is not None:
-        application.status = _parse_application_status(body.status)
-    db.commit()
-    db.refresh(application)
+        new_status = _parse_application_status(body.status)
+        if old_status != new_status:
+            application.status = new_status
+            db.commit()
+            db.refresh(application)
+            
+            # Log audit events for status updates
+            from core.audit import log_audit_event
+            
+            # 1. Log recruiter override
+            log_audit_event(
+                db=db,
+                action="ai.recruiter_override",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                company_id=current_user.company_id,
+                resource_type="applications",
+                resource_id=str(application.id),
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={
+                    "application_id": str(application.id),
+                    "candidate_id": str(application.candidate_id),
+                    "old_status": old_status.value,
+                    "new_status": new_status.value
+                }
+            )
+            
+            # 2. Log corresponding lifecycle state event
+            action_lifecycle = "candidate.stage_changed"
+            if new_status == ApplicationStatus.HIRED:
+                action_lifecycle = "candidate.hired"
+            elif new_status == ApplicationStatus.REJECTED:
+                action_lifecycle = "candidate.rejected"
+                
+            log_audit_event(
+                db=db,
+                action=action_lifecycle,
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                company_id=current_user.company_id,
+                resource_type="candidates",
+                resource_id=str(application.candidate_id),
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={
+                    "application_id": str(application.id),
+                    "old_status": old_status.value,
+                    "new_status": new_status.value
+                }
+            )
+            
     return _application_response(application)

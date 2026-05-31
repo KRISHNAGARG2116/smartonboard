@@ -104,3 +104,95 @@ def log_audit_event(
         f"AUDIT EVENT: action={action} company_id={comp_uuid} actor_type={actor_type} actor_id={act_uuid}"
     )
     return log_entry
+
+
+from sqlalchemy import select, text
+
+DEFAULT_SCRUB_LIST = [
+    "name", "full_name", "first_name", "last_name", "email", "personal_email",
+    "work_email", "phone", "mobile", "telephone", "address", "city", "state",
+    "country", "postal_code", "linkedin", "github", "portfolio_url", "website",
+    "resume_text", "resume_url", "resume_file", "cover_letter", "candidate_notes",
+    "assessment_answers", "candidate_links", "candidate_id_external", "ip_address",
+    "ai_explanation", "ai_reasoning", "ai_summary", "ai_feedback"
+]
+
+def recursively_scrub_metadata(data, scrub_set, marker="[PSEUDONYMIZED]"):
+    """Recursively scrub sensitive keys from metadata dictionary or list."""
+    if isinstance(data, dict):
+        scrubbed = {}
+        for k, v in data.items():
+            if k.lower() in scrub_set:
+                scrubbed[k] = marker
+            else:
+                scrubbed[k] = recursively_scrub_metadata(v, scrub_set, marker)
+        return scrubbed
+    elif isinstance(data, list):
+        return [recursively_scrub_metadata(item, scrub_set, marker) for item in data]
+    else:
+        return data
+
+
+def pseudonymize_audit_logs(
+    db: Session,
+    candidate_id: str | uuid.UUID,
+    candidate_email: str | None = None,
+    custom_scrub_list: list[str] = None
+) -> int:
+    """Scrub personal data recursively from historical audit logs to comply with GDPR Right-to-Be-Forgotten.
+    
+    Finds and updates any logs associated with the candidate_id or email, recursively scrubbing
+    the 31 default keys in their metadata_json payloads and masking client IP addresses.
+    
+    Returns the count of modified logs.
+    """
+    scrub_fields = custom_scrub_list if custom_scrub_list is not None else DEFAULT_SCRUB_LIST
+    scrub_set = {f.lower() for f in scrub_fields}
+    
+    candidate_id_str = str(candidate_id)
+    email_str = candidate_email.lower() if candidate_email else None
+    
+    modified_count = 0
+    with tenant_context(auth_mode="true"):
+        # 1. Query for candidate-related audit logs under auth_mode="true" to bypass RLS restrictions
+        logs_stmt = select(AuditLog)
+        all_logs = db.scalars(logs_stmt).all()
+        
+        matched_logs = []
+        for log in all_logs:
+            matches = False
+            if log.actor_id and str(log.actor_id) == candidate_id_str:
+                matches = True
+            elif log.resource_id and log.resource_id == candidate_id_str:
+                matches = True
+                
+            # Inspect metadata
+            if log.metadata_json:
+                meta_str = str(log.metadata_json).lower()
+                if candidate_id_str in meta_str:
+                    matches = True
+                elif email_str and email_str in meta_str:
+                    matches = True
+                    
+            if matches:
+                matched_logs.append(log)
+                
+        # 2. Scrub metadata recursively and mask column values
+        db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', true)"))
+        for log in matched_logs:
+            # Recursive metadata scrubbing
+            if log.metadata_json:
+                log.metadata_json = recursively_scrub_metadata(log.metadata_json, scrub_set)
+                
+            # Column-level IP address scrubbing
+            if "ip_address" in scrub_set and log.ip_address:
+                log.ip_address = "[PSEUDONYMIZED]"
+                
+            db.add(log)
+            modified_count += 1
+            
+        if modified_count > 0:
+            db.commit()
+        db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', true)"))
+            
+    return modified_count
