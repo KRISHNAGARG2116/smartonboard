@@ -361,8 +361,36 @@ def submit_scorecard(
         submitted_at=datetime.now(timezone.utc)
     )
     db.add(scorecard)
+
+    # Check for active pending committee review cycle
+    from models.committee import CommitteeReview, CommitteeReviewReviewer
+    from core.consensus import calculate_scorecard_weighted_score, evaluate_committee_review_consensus
+
+    active_review = db.scalar(
+        select(CommitteeReview).where(
+            CommitteeReview.application_id == application_id,
+            CommitteeReview.company_id == current_user.company_id,
+            CommitteeReview.status == "pending"
+        )
+    )
+    if active_review:
+        is_reviewer = db.scalar(
+            select(CommitteeReviewReviewer).where(
+                CommitteeReviewReviewer.committee_review_id == active_review.id,
+                CommitteeReviewReviewer.user_id == current_user.id
+            )
+        )
+        if is_reviewer:
+            scorecard.committee_review_id = active_review.id
+            db.flush()
+            calculate_scorecard_weighted_score(db, scorecard, active_review.scorecard_template_id)
+
     db.commit()
     db.refresh(scorecard)
+
+    if active_review and scorecard.committee_review_id:
+        evaluate_committee_review_consensus(db, active_review.id)
+
 
     # Evaluate auto-progression rules
     from core.workflows import evaluate_auto_progression_rules

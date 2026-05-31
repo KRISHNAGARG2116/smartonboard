@@ -25,6 +25,14 @@ from models.pipeline import PipelineTemplate, Pipeline, StageDefinition
 from models.approval import ApprovalTemplate, ApprovalTemplateStep, ApprovalChain, ApprovalStep
 from models.sla import StageSLA, CandidateStageSLATracker
 from models.escalation import ApprovalEscalationRule, ApprovalStepEscalation
+from models.committee import (
+    ScorecardTemplate,
+    ScorecardTemplateSkill,
+    HiringCommittee,
+    HiringCommitteeMember,
+    CommitteeReview,
+    CommitteeReviewReviewer,
+)
 
 __all__ = [
     "Company",
@@ -61,6 +69,13 @@ __all__ = [
     "StageSLA",
     "CandidateStageSLATracker",
     "ApprovalEscalationRule",
-    "ApprovalStepEscalation"
+    "ApprovalStepEscalation",
+    "ScorecardTemplate",
+    "ScorecardTemplateSkill",
+    "HiringCommittee",
+    "HiringCommitteeMember",
+    "CommitteeReview",
+    "CommitteeReviewReviewer",
 ]
+
 
