@@ -21,6 +21,8 @@ from models.calendar_credentials import CalendarCredentials
 from models.oauth_state import OAuthState
 from models.scheduling_link import SchedulingLink
 from models.interview_slot import InterviewSlot
+from models.pipeline import PipelineTemplate, Pipeline, StageDefinition
+from models.approval import ApprovalTemplate, ApprovalTemplateStep, ApprovalChain, ApprovalStep
 
 __all__ = [
     "Company",
@@ -46,6 +48,13 @@ __all__ = [
     "CalendarCredentials",
     "OAuthState",
     "SchedulingLink",
-    "InterviewSlot"
+    "InterviewSlot",
+    "PipelineTemplate",
+    "Pipeline",
+    "StageDefinition",
+    "ApprovalTemplate",
+    "ApprovalTemplateStep",
+    "ApprovalChain",
+    "ApprovalStep"
 ]
 

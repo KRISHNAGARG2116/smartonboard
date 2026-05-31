@@ -14,6 +14,8 @@ from api.intelligence import router as intelligence_router
 from api.sso import router as sso_router
 from api.calendars import router as calendars_router
 from api.scheduling import router as scheduling_router
+from api.pipelines import router as pipelines_router
+from api.approvals import router as approvals_router
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
@@ -30,5 +32,7 @@ v1_router.include_router(intelligence_router)
 v1_router.include_router(sso_router)
 v1_router.include_router(calendars_router)
 v1_router.include_router(scheduling_router)
+v1_router.include_router(pipelines_router)
+v1_router.include_router(approvals_router)
 
 
