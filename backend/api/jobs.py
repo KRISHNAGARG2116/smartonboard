@@ -4,9 +4,12 @@ from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
 
 from api.deps import CurrentUser, TenantDb, RequireRecruiter
-from models import Job
+from models import Job, Candidate, CandidateEmbedding
 from models.enums import JobStatus
 from schemas.job import JobCreateRequest, JobResponse, JobUpdateRequest
+from core.embeddings import EmbeddingService
+from core.audit import log_audit_event
+
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -154,7 +157,6 @@ def delete_job(
         db.commit()
         
         # Audit log archival
-        from core.audit import log_audit_event
         log_audit_event(
             db=db,
             action="job.archived",
@@ -167,3 +169,95 @@ def delete_job(
             user_agent=request.headers.get("user-agent"),
             metadata={"status": {"old": old_status.value, "new": "closed"}}
         )
+
+
+@router.post("/{job_id}/candidate-matches")
+def get_candidate_matches(
+    job_id: uuid.UUID,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    """
+    Ranks the candidate pool semantically against job description criteria.
+    Candidate ranking is calculated utilizing the average similarity score
+    of the top N=3 chunks. Enforces multi-tenant vector RLS boundary.
+    """
+    job = db.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.company_id == current_user.company_id
+        )
+    )
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    embedder = EmbeddingService()
+    query_vector = embedder.generate_embedding(job.description or job.title)
+
+    # Query all candidate embeddings joining candidates (RLS filtered)
+    stmt = (
+        select(CandidateEmbedding, Candidate.full_name)
+        .join(Candidate, Candidate.id == CandidateEmbedding.candidate_id)
+        .where(CandidateEmbedding.company_id == current_user.company_id)
+    )
+    embeddings_list = db.execute(stmt).all()
+
+    # Group embeddings by candidate
+    candidate_chunks = {}
+    for emb, full_name in embeddings_list:
+        score = embedder.compute_similarity(query_vector, emb.resume_embedding)
+        cand_id = emb.candidate_id
+        if cand_id not in candidate_chunks:
+            candidate_chunks[cand_id] = {
+                "full_name": full_name,
+                "scores": [],
+                "best_chunk": "",
+                "best_score": -1.0,
+                "best_chunk_idx": 0
+            }
+        candidate_chunks[cand_id]["scores"].append(score)
+        if score > candidate_chunks[cand_id]["best_score"]:
+            candidate_chunks[cand_id]["best_score"] = score
+            candidate_chunks[cand_id]["best_chunk"] = emb.chunk_text
+            candidate_chunks[cand_id]["best_chunk_idx"] = emb.chunk_index
+
+    # Calculate average of the top N=3 chunks for ranking
+    matches = []
+    for cand_id, info in candidate_chunks.items():
+        sorted_scores = sorted(info["scores"], reverse=True)
+        top_n = sorted_scores[:3]
+        avg_score = sum(top_n) / len(top_n) if top_n else 0.0
+
+        matches.append({
+            "candidate_id": str(cand_id),
+            "full_name": info["full_name"],
+            "similarity_score": round(avg_score, 4),
+            "matched_chunk": info["best_chunk"],
+            "chunk_index": info["best_chunk_idx"]
+        })
+
+    # Sort matches by average similarity score in descending order
+    matches.sort(key=lambda x: x["similarity_score"], reverse=True)
+
+    # Log ai.discovery_searched audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="ai.discovery_searched",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        resource_type="jobs",
+        resource_id=str(job_id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "job_id": str(job_id),
+            "company_id": str(current_user.company_id),
+            "candidate_match_count": len(matches)
+        }
+    )
+
+    return matches
+

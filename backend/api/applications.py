@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.deps import CurrentUser, TenantDb, RequireRecruiter
-from models import Application, Candidate, Job
+from models import Application, Candidate, Job, CandidateEmbedding
 from models.enums import ApplicationStatus
 from schemas.application import (
     ApplicationCreateRequest,
@@ -22,7 +22,9 @@ from core.celery_app import celery_app
 from core.malware import scan_file_for_malware
 from core.signature import validate_file_signature
 from core.storage import LocalStorageService
+from core.embeddings import EmbeddingService
 from pathlib import Path
+
 
 STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent.parent / "storage"
 storage_service = LocalStorageService(STORAGE_BASE_DIR)
@@ -382,7 +384,12 @@ async def create_application_async(
         raise HTTPException(status_code=500, detail="Secure file handling failure") from exc
 
     # 4. Job Validation
-    job = db.scalar(select(Job).where(Job.id == job_id))
+    job = db.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.company_id == current_user.company_id
+        )
+    )
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
@@ -426,5 +433,170 @@ def get_application_async_status(
         return {"status": "FAILED", "error": "Task was revoked or cancelled."}
     
     return {"status": res.state}
+
+
+@router.post("/{application_id}/qa")
+def qa_candidate_resume(
+    application_id: uuid.UUID,
+    body: dict,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    """
+    Interactive conversational resume Q&A (RAG) assistant grounded securely on candidate resume chunks.
+    Enforces a strict similarity threshold of 0.35. If all chunks fall below, returns a grounded refusal.
+    Logs RAG compliance audit events with zero generated answers leakage.
+    """
+    question = body.get("question", "").strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+        
+    application = db.scalar(
+        select(Application)
+        .options(selectinload(Application.candidate))
+        .where(
+            Application.id == application_id,
+            Application.company_id == current_user.company_id
+        )
+    )
+    if application is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    candidate = application.candidate
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+        
+    # Embed recruiter's question
+    embedder = EmbeddingService()
+    query_vector = embedder.generate_embedding(question)
+    
+    # Query candidate chunks (RLS filtered)
+    stmt = (
+        select(CandidateEmbedding)
+        .where(
+            CandidateEmbedding.company_id == current_user.company_id,
+            CandidateEmbedding.candidate_id == candidate.id
+        )
+    )
+    embeddings = db.scalars(stmt).all()
+    
+    # Rank chunks by similarity score
+    scored_chunks = []
+    for emb in embeddings:
+        score = embedder.compute_similarity(query_vector, emb.resume_embedding)
+        scored_chunks.append({
+            "chunk_text": emb.chunk_text,
+            "similarity_score": score,
+            "chunk_index": emb.chunk_index
+        })
+        
+    # Sort descending
+    scored_chunks.sort(key=lambda x: x["similarity_score"], reverse=True)
+    
+    THRESHOLD = 0.35
+    top_chunks = [c for c in scored_chunks[:3] if c["similarity_score"] >= THRESHOLD]
+    
+    # Audit event: ai.rag_queried
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="ai.rag_queried",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        resource_type="applications",
+        resource_id=str(application_id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "application_id": str(application_id),
+            "candidate_id": str(candidate.id),
+            "question_length": len(question)
+        }
+    )
+
+    model_version = "llama-3.3-70b-versatile"
+
+    if not top_chunks:
+        answer = "I apologize, but the candidate's resume does not specify or contain information relevant to your question."
+        
+        # Audit event: ai.rag_answer_generated (Metadata only, no answer content)
+        log_audit_event(
+            db=db,
+            action="ai.rag_answer_generated",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="applications",
+            resource_id=str(application_id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={
+                "application_id": str(application_id),
+                "source_chunk_count": 0,
+                "model_version": model_version,
+                "threshold_blocked": True
+            }
+        )
+        
+        return {
+            "answer": answer,
+            "source_chunks": []
+        }
+        
+    # Construct RAG Prompt
+    context_str = ""
+    for idx, chunk in enumerate(top_chunks):
+        context_str += f"\n[Source Chunk {idx+1} (Index {chunk['chunk_index']})]\n{chunk['chunk_text']}\n"
+        
+    prompt = f"""You are an AI recruitment assistant. Answer the recruiter's question using ONLY the provided resume context.
+If the context does not contain the answer, politely state that the resume does not specify this information.
+Do not invent facts or extrapolate beyond the provided text.
+
+Candidate: {candidate.full_name}
+Question: {question}
+
+Context:
+{context_str}
+
+Answer concisely and professionally."""
+
+    from langchain_groq import ChatGroq
+    llm = ChatGroq(model_name=model_version)
+    result = llm.invoke(prompt)
+    answer = result.content.strip()
+    
+    # Audit event: ai.rag_answer_generated (Metadata only, no answer content)
+    log_audit_event(
+        db=db,
+        action="ai.rag_answer_generated",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        resource_type="applications",
+        resource_id=str(application_id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "application_id": str(application_id),
+            "source_chunk_count": len(top_chunks),
+            "model_version": model_version,
+            "threshold_blocked": False
+        }
+    )
+    
+    return {
+        "answer": answer,
+        "source_chunks": [
+            {
+                "chunk_text": c["chunk_text"],
+                "similarity_score": round(c["similarity_score"], 4),
+                "chunk_index": c["chunk_index"]
+            }
+            for c in top_chunks
+        ]
+    }
+
 
 

@@ -27,3 +27,15 @@ class EmbeddingService:
         # BGE models perform best when query embeddings are normalized
         embedding = model.encode(text, normalize_embeddings=True)
         return embedding.tolist()
+
+    @staticmethod
+    def compute_similarity(v1: List[float], v2: List[float]) -> float:
+        """
+        Computes cosine similarity between two vectors.
+        Since our HuggingFace embeddings are pre-normalized, the dot product
+        is mathematically equivalent to the cosine similarity.
+        """
+        if len(v1) != len(v2) or not v1 or not v2:
+            return 0.0
+        return sum(a * b for a, b in zip(v1, v2))
+

@@ -8,6 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 # Force fallback storage mode during tests if native pgvector not available/tested
 os.environ["USE_PGVECTOR"] = "false"
+# Force Celery to execute tasks synchronously and in-process for all tests
+os.environ["CELERY_TASK_ALWAYS_EAGER"] = "true"
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
