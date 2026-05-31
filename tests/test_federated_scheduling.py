@@ -306,3 +306,352 @@ def test_sso_rls_tenant_isolation(api_client, db_session):
         # Verify can query Company B settings (should be empty)
         sso_settings_b = db_session.scalar(select(CompanySSOSettings).where(CompanySSOSettings.company_id == comp_b_id))
         assert sso_settings_b is None
+
+
+def test_connect_oauth_redirect_whitelist(api_client, db_session):
+    """Verify that connect endpoint handles redirect whitelist gating and persists OAuthState."""
+    from models.oauth_state import OAuthState
+
+    # 1. Setup Company and User
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Whitelist Corp", slug="whitelist-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(
+            company_id=comp.id,
+            email="recruiter_whitelist@corp.com",
+            full_name="Recruiter W",
+            password_hash="dummy",
+            role=UserRole.RECRUITER
+        )
+        db_session.add(user)
+        db_session.commit()
+
+    # 2. Get Bearer Auth Token using ACS login simulation
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({
+        "assertion_id": assertion_id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "saml_roles": [],
+        "signature": "valid_signature"
+    })
+    
+    # Configure SAML Settings so ACS works
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(
+            company_id=comp.id,
+            sso_provider="saml2",
+            idp_entity_id="http://mock-okta.com/issuer",
+            idp_sso_url="http://mock-okta.com/sso"
+        )
+        db_session.add(sso)
+        db_session.commit()
+
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={
+        "company_slug": comp.slug,
+        "saml_response": saml_payload
+    })
+    assert acs_resp.status_code == 200
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 3. Request connect with whitelisted URI
+    conn_resp = api_client.post("/api/v1/auth/calendars/connect", json={
+        "provider": "google",
+        "redirect_uri": "http://mock-idp.com/oauth/google/callback"
+    }, headers=headers)
+    assert conn_resp.status_code == 200
+    assert "accounts.google.com" in conn_resp.json()["redirect_url"]
+
+    # Assert OAuthState persisted
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        states = db_session.scalars(select(OAuthState).where(OAuthState.user_id == user.id)).all()
+        assert len(states) == 1
+        assert states[0].provider == "google"
+        assert states[0].used_at is None
+        assert states[0].expires_at > datetime.now(timezone.utc)
+
+    # 4. Request connect with non-whitelisted URI -> HTTP 400
+    conn_resp_invalid = api_client.post("/api/v1/auth/calendars/connect", json={
+        "provider": "google",
+        "redirect_uri": "https://malicious.com/callback"
+    }, headers=headers)
+    assert conn_resp_invalid.status_code == 400
+    assert "Redirect URI not whitelisted" in conn_resp_invalid.json()["detail"]
+
+
+def test_oauth_callback_validation(api_client, db_session):
+    """Verify that OAuth callback performs cryptographic validation, JIT credentials persistence, and webhook/connected audit logs."""
+    from models.oauth_state import OAuthState
+
+    # 1. Setup Company, User, and configure SAML authentication
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Callback Corp", slug="callback-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(
+            company_id=comp.id,
+            email="recruiter_callback@corp.com",
+            full_name="Recruiter C",
+            password_hash="dummy",
+            role=UserRole.RECRUITER
+        )
+        db_session.add(user)
+        db_session.commit()
+
+    # Get authentication token
+    assertion_id = f"assertion-{uuid.uuid4()}"
+    saml_payload = json.dumps({
+        "assertion_id": assertion_id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "saml_roles": [],
+        "signature": "valid_signature"
+    })
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(
+            company_id=comp.id,
+            sso_provider="saml2",
+            idp_entity_id="http://mock-okta.com/issuer",
+            idp_sso_url="http://mock-okta.com/sso"
+        )
+        db_session.add(sso)
+        db_session.commit()
+
+    acs_resp = api_client.post("/api/v1/auth/sso/acs", json={
+        "company_slug": comp.slug,
+        "saml_response": saml_payload
+    })
+    access_token = acs_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 2. Pre-seed a valid state and nonce in the DB
+    state_token = "state_12345"
+    nonce_token = "nonce_12345"
+    state_hash = hashlib.sha256(state_token.encode("utf-8")).hexdigest()
+    nonce_hash = hashlib.sha256(nonce_token.encode("utf-8")).hexdigest()
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        oauth_state = OAuthState(
+            company_id=comp.id,
+            user_id=user.id,
+            provider="google",
+            state_hash=state_hash,
+            nonce_hash=nonce_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
+        )
+        db_session.add(oauth_state)
+        db_session.commit()
+
+    # 3. Call callback with matching state & nonce -> Success
+    cb_resp = api_client.post("/api/v1/auth/calendars/callback", json={
+        "provider": "google",
+        "code": "success_oauth_code",
+        "state": state_token,
+        "nonce": nonce_token,
+        "redirect_uri": "http://mock-idp.com/oauth/google/callback"
+    }, headers=headers)
+    assert cb_resp.status_code == 200
+    assert cb_resp.json()["status"] == "connected"
+
+    # Assert credentials record created and encrypted
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        cred = db_session.scalar(select(CalendarCredentials).where(CalendarCredentials.user_id == user.id))
+        assert cred is not None
+        assert cred.provider == "google"
+        assert cred.status == "active"
+        
+        # Verify envelope encryption (should be unreadable ciphertext in DB representation)
+        assert "google_access_token" not in cred.encrypted_access_token
+        
+        # Verify decryption via SecretVault
+        vault = SecretVaultService()
+        assert vault.decrypt_secret(cred.encrypted_access_token) == "google_access_token_success_oauth_code"
+
+        # Assert audit logs recorded correctly
+        connected_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "calendar.connected", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert connected_log is not None
+        assert connected_log.metadata_json["provider"] == "google"
+
+        webhook_log = db_session.scalar(
+            select(AuditLog)
+            .where(AuditLog.action == "calendar.webhook_registered", AuditLog.company_id == comp.id)
+            .order_by(AuditLog.timestamp.desc())
+        )
+        assert webhook_log is not None
+
+    # 4. Request same callback again -> Consumed state -> HTTP 400
+    cb_resp_consumed = api_client.post("/api/v1/auth/calendars/callback", json={
+        "provider": "google",
+        "code": "success_oauth_code",
+        "state": state_token,
+        "nonce": nonce_token,
+        "redirect_uri": "http://mock-idp.com/oauth/google/callback"
+    }, headers=headers)
+    assert cb_resp_consumed.status_code == 400
+    assert "consumed" in cb_resp_consumed.json()["detail"].lower()
+
+
+def test_calendar_ownership_enforcement(api_client, db_session):
+    """Verify that only the credential owner or an OWNER role may disconnect/manage a calendar integration."""
+    # 1. Setup Company with Recruiters A and B, plus an OWNER C
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Ownership Corp", slug="ownership-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+
+        recruiter_a = User(company_id=comp.id, email="rec_a@corp.com", full_name="Recruiter A", password_hash="dummy", role=UserRole.RECRUITER)
+        recruiter_b = User(company_id=comp.id, email="rec_b@corp.com", full_name="Recruiter B", password_hash="dummy", role=UserRole.RECRUITER)
+        owner_c = User(company_id=comp.id, email="owner_c@corp.com", full_name="Owner C", password_hash="dummy", role=UserRole.OWNER)
+        
+        db_session.add_all([recruiter_a, recruiter_b, owner_c])
+        db_session.commit()
+
+    # Configure SAML Settings so ACS works for users
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        sso = CompanySSOSettings(
+            company_id=comp.id,
+            sso_provider="saml2",
+            idp_entity_id="http://mock-okta.com/issuer",
+            idp_sso_url="http://mock-okta.com/sso"
+        )
+        db_session.add(sso)
+        db_session.commit()
+
+    # Get Bearer tokens for Recruiter B and Owner C
+    def get_token_for(user_obj):
+        assertion_id = f"assertion-{uuid.uuid4()}"
+        saml_payload = json.dumps({
+            "assertion_id": assertion_id,
+            "email": user_obj.email,
+            "full_name": user_obj.full_name,
+            "saml_roles": [],
+            "signature": "valid_signature"
+        })
+        res = api_client.post("/api/v1/auth/sso/acs", json={"company_slug": comp.slug, "saml_response": saml_payload})
+        return res.json()["access_token"]
+
+    token_b = get_token_for(recruiter_b)
+    token_c = get_token_for(owner_c)
+
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+    headers_c = {"Authorization": f"Bearer {token_c}"}
+
+    # 2. Seed a calendar credential belonging to Recruiter A
+    vault = SecretVaultService()
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        cred = CalendarCredentials(
+            company_id=comp.id,
+            user_id=recruiter_a.id,
+            provider="google",
+            account_email=recruiter_a.email,
+            encrypted_access_token=vault.encrypt_secret("secret_token_a"),
+            encrypted_refresh_token=vault.encrypt_secret("refresh_token_a"),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            status="active"
+        )
+        db_session.add(cred)
+        db_session.commit()
+        cred_id = str(cred.id)
+
+    # 3. Recruiter B attempts to disconnect Recruiter A's calendar -> HTTP 403 Forbidden
+    disc_b_resp = api_client.post(f"/api/v1/auth/calendars/{cred_id}/disconnect", headers=headers_b)
+    assert disc_b_resp.status_code == 403
+    assert "Forbidden" in disc_b_resp.json()["detail"]
+
+    # 4. Owner C attempts to disconnect Recruiter A's calendar -> Success
+    disc_c_resp = api_client.post(f"/api/v1/auth/calendars/{cred_id}/disconnect", headers=headers_c)
+    assert disc_c_resp.status_code == 200
+    assert disc_c_resp.json()["status"] == "disconnected"
+
+
+def test_rate_limit_recovery_and_health(db_session):
+    """Verify that rate limits (HTTP 429) transition status to rate_limited and track retry metrics before self-healing."""
+    # 1. Setup Company, User and Seed active credential
+    vault = SecretVaultService()
+    with tenant_context(auth_mode="true"):
+        comp = Company(name="Rate Health Corp", slug="rate-health-corp", status=CompanyStatus.ACTIVE)
+        db_session.add(comp)
+        db_session.flush()
+        user = User(company_id=comp.id, email="recruiter_rate@corp.com", full_name="Recruiter R", password_hash="dummy", role=UserRole.RECRUITER)
+        db_session.add(user)
+        db_session.flush()
+
+        cred = CalendarCredentials(
+            company_id=comp.id,
+            user_id=user.id,
+            provider="google",
+            account_email=user.email,
+            encrypted_access_token=vault.encrypt_secret("secret_access"),
+            encrypted_refresh_token=vault.encrypt_secret("secret_refresh"),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            status="active",
+            retry_count=0
+        )
+        db_session.add(cred)
+        db_session.commit()
+        cred_id = cred.id
+
+    # 2. Simulate Provider sync raising Rate Limit error
+    from tasks.calendar_sync import run_delta_sync_for_credential, ProviderRateLimitError
+    from unittest.mock import patch, MagicMock
+
+    with tenant_context(auth_mode="true"):
+        db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp.id)})
+        
+        # Mock GoogleCalendarProvider.fetch_changes to simulate rate limiting (HTTP 429)
+        with patch("tasks.calendar_sync.GoogleCalendarProvider.fetch_changes", side_effect=ValueError("429 Too Many Requests")):
+            with pytest.raises(ProviderRateLimitError):
+                run_delta_sync_for_credential(db=db_session, credential_id=cred_id)
+
+        # Assert status transitioned to rate_limited and retry_count was incremented
+        db_session.refresh(cred)
+        assert cred.status == "rate_limited"
+        assert cred.retry_count == 1
+        assert cred.last_retry_at is not None
+        assert "rate limit" in cred.last_sync_error.lower()
+
+        # 3. Simulate self-healing on successful sync
+        with patch("tasks.calendar_sync.GoogleCalendarProvider.fetch_changes", return_value={"changes": [], "sync_token": "new_token_77"}):
+            result = run_delta_sync_for_credential(db=db_session, credential_id=cred_id)
+            assert result["status"] == "success"
+
+        # Assert status self-healed back to active, retry count reset, and last_sync_error cleared
+        db_session.refresh(cred)
+        assert cred.status == "active"
+        assert cred.retry_count == 0
+        assert cred.last_sync_error is None
+        assert cred.sync_token == "new_token_77"
+
+
+def test_provider_capability_declarations():
+    """Verify that calendar providers explicitly declare capability flags instead of relying on provider name checks."""
+    from core.calendar_provider import GoogleCalendarProvider, MicrosoftGraphProvider
+
+    google = GoogleCalendarProvider()
+    outlook = MicrosoftGraphProvider()
+
+    # Google Capabilities
+    assert google.supports_webhooks is True
+    assert google.supports_delta_sync is True
+    assert google.supports_free_busy is True
+    assert google.supports_push_renewal is False
+
+    # Outlook Capabilities
+    assert outlook.supports_webhooks is True
+    assert outlook.supports_delta_sync is True
+    assert outlook.supports_free_busy is True
+    assert outlook.supports_push_renewal is True
+

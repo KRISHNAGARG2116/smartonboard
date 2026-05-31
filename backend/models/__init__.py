@@ -18,6 +18,7 @@ from models.insight_interaction import AIInsightInteraction
 from models.export_job import ExportJob
 from models.company_sso import CompanySSOSettings
 from models.calendar_credentials import CalendarCredentials
+from models.oauth_state import OAuthState
 from models.scheduling_link import SchedulingLink
 from models.interview_slot import InterviewSlot
 
@@ -43,6 +44,8 @@ __all__ = [
     "ExportJob",
     "CompanySSOSettings",
     "CalendarCredentials",
+    "OAuthState",
     "SchedulingLink",
     "InterviewSlot"
 ]
+

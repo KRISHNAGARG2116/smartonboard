@@ -664,6 +664,35 @@ def cleanup_expired_exports_async():
             logger.info(f"Cleaned up {count} expired analytics export jobs.")
         except Exception as exc:
             db.rollback()
+
             logger.error(f"Error running cleanup_expired_exports_async: {exc}")
         finally:
             db.close()
+
+
+@celery_app.task(bind=True, max_retries=5, default_retry_delay=60)
+def generate_delta_sync_async(self, credential_id: str, company_id: str):
+    """
+    Background sync runner for a specific calendar credential under strict RLS isolation.
+    Handles rate limiting exceptions by registering exponential backoffs and retrying.
+    """
+    from tasks.calendar_sync import run_delta_sync_for_credential, ProviderRateLimitError
+    
+    with tenant_context(tenant_id=company_id):
+        db = SessionLocal()
+        try:
+            run_delta_sync_for_credential(db=db, credential_id=uuid.UUID(credential_id))
+        except ProviderRateLimitError as exc:
+            # Implement exponential backoff retry using Celery's task retry
+            db.rollback()
+            retry_cnt = self.request.retries
+            # Exponential backoff: 2^retry * 60 seconds (60, 120, 240, etc.)
+            backoff_delay = (2 ** retry_cnt) * 60
+            logger.warning(f"Rate limited by calendar provider. Retrying in {backoff_delay}s... Error: {exc}")
+            raise self.retry(exc=exc, countdown=backoff_delay)
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Sync failed for credential {credential_id}: {exc}")
+        finally:
+            db.close()
+
