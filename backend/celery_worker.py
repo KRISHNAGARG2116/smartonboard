@@ -19,6 +19,32 @@ from core.audit import log_audit_event
 logger = logging.getLogger("celery")
 
 
+def invalidate_insights(db, application_id: uuid.UUID, insight_types: list[str]):
+    """
+    Soft-invalidates cached recruiter insights matching the types.
+    Preserves lifecycle history, avoids row churn, and resets generation parameters.
+    """
+    from models.recruiter_insight import AIRecruiterInsight
+    from datetime import datetime, timezone
+    
+    epoch = datetime.fromtimestamp(0, tz=timezone.utc)
+    
+    for it in insight_types:
+        stmt = select(AIRecruiterInsight).where(
+            AIRecruiterInsight.application_id == application_id,
+            AIRecruiterInsight.insight_type == it
+        )
+        insight = db.scalar(stmt)
+        if insight:
+            insight.generation_status = "PENDING"
+            insight.content = None
+            insight.last_error = None
+            insight.checksum = ""
+            insight.generated_at = None
+            insight.expires_at = epoch
+            db.flush()
+
+
 class GroqRateLimitError(Exception):
     """Raised when encountering rate-limiting or service capacity caps on LLM APIs."""
     pass
@@ -177,6 +203,10 @@ def process_resume_async(self, file_path: str, company_id: str, job_id: str, eva
                     )
                     db.add(new_emb)
                 db.flush()
+                
+                # Invalidate cached recruiter insights due to candidate resume changes
+                if application:
+                    invalidate_insights(db, application.id, ["candidate_summary", "hiring_recommendation"])
 
             # 9. Emit compliance audit events inside tenant connection context
             log_audit_event(
@@ -392,6 +422,121 @@ def track_recruiter_productivity_async(company_id: str, recruiter_id: str, metri
         except Exception as exc:
             db.rollback()
             logger.error(f"Error in track_recruiter_productivity_async: {exc}")
+            raise exc
+        finally:
+            db.close()
+
+
+@celery_app.task(bind=True, max_retries=3)
+def generate_recruiter_insight_async(self, company_id: str, application_id: str, insight_type: str, checksum: str):
+    """
+    Asynchronously generates and caches recruiter insights (candidate summaries, scorecard consensus,
+    or hiring recommendations) using bias-mitigated prompts.
+    """
+    from models.recruiter_insight import AIRecruiterInsight
+    from core.intelligence import GenerativeIntelligenceService
+    from datetime import datetime, timezone, timedelta
+    
+    retry_cnt = self.request.retries
+    
+    with tenant_context(tenant_id=company_id):
+        db = SessionLocal()
+        try:
+            company_uuid = uuid.UUID(company_id)
+            app_uuid = uuid.UUID(application_id)
+            
+            # Fetch or create insight record
+            stmt = select(AIRecruiterInsight).where(
+                AIRecruiterInsight.application_id == app_uuid,
+                AIRecruiterInsight.insight_type == insight_type
+            )
+            insight = db.scalar(stmt)
+            if not insight:
+                insight = AIRecruiterInsight(
+                    company_id=company_uuid,
+                    application_id=app_uuid,
+                    insight_type=insight_type,
+                    checksum=checksum,
+                    expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+                    model_version="llama-3.3-70b-versatile"
+                )
+                db.add(insight)
+                db.flush()
+                
+            insight.generation_status = "PROCESSING"
+            db.commit()
+            
+            # Run the generative engine
+            result = GenerativeIntelligenceService.generate_insight(db, app_uuid, insight_type)
+            
+            insight.content = result["content"]
+            insight.confidence_score = result["confidence_score"]
+            insight.confidence_reason = result["confidence_reason"]
+            insight.candidate_embedding_ids = result["candidate_embedding_ids"]
+            insight.scorecard_ids = result["scorecard_ids"]
+            insight.checksum = checksum
+            insight.generation_status = "COMPLETED"
+            insight.last_error = None
+            insight.generated_at = datetime.now(timezone.utc)
+            insight.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+            db.commit()
+            
+            # Log audit event
+            action_map = {
+                "candidate_summary": "ai.summary_generated",
+                "scorecard_consensus": "ai.consensus_generated",
+                "hiring_recommendation": "ai.recommendation_generated"
+            }
+            log_audit_event(
+                db=db,
+                action=action_map.get(insight_type, "ai.insight_generated"),
+                actor_type="SYSTEM",
+                company_id=company_uuid,
+                metadata={
+                    "application_id": application_id,
+                    "prompt_version": 1,
+                    "model_version": "llama-3.3-70b-versatile",
+                    "confidence_score": result["confidence_score"]
+                }
+            )
+            
+        except Exception as exc:
+            db.rollback()
+            # If rate limit or similar transient Groq error, retry
+            err_str = str(exc).lower()
+            is_transient = "429" in err_str or "rate limit" in err_str or "overloaded" in err_str or "503" in err_str
+            if is_transient and retry_cnt < 3:
+                countdown = (2 ** retry_cnt) * 15
+                logger.warning(f"Transient error generating insight. Retrying in {countdown}s. Error: {exc}")
+                raise self.retry(exc=exc, countdown=countdown)
+            
+            # Permanent failure
+            insight = db.scalar(stmt)
+            if insight:
+                insight.generation_status = "FAILED"
+                insight.last_error = str(exc)
+                insight.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+                db.commit()
+                
+            # Log failure audit event
+            try:
+                with SessionLocal() as log_db:
+                    log_audit_event(
+                        db=log_db,
+                        action="ai.summary_failed",
+                        actor_type="SYSTEM",
+                        company_id=company_uuid,
+                        metadata={
+                            "application_id": application_id,
+                            "insight_type": insight_type,
+                            "error_type": exc.__class__.__name__,
+                            "prompt_version": 1
+                        }
+                    )
+                    log_db.commit()
+            except Exception as log_exc:
+                logger.error(f"Error logging ai.summary_failed audit event: {log_exc}")
+                
             raise exc
         finally:
             db.close()

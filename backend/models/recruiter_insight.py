@@ -27,6 +27,9 @@ class AIRecruiterInsight(Base):
     prompt_version: Mapped[int] = mapped_column(default=1, nullable=False)
     checksum: Mapped[str] = mapped_column(String(64), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    candidate_embedding_ids: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
+    scorecard_ids: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
     model_version: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

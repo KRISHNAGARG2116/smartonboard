@@ -364,6 +364,10 @@ def submit_scorecard(
     db.commit()
     db.refresh(scorecard)
 
+    # Soft-invalidate cached insights due to scorecard changes
+    from celery_worker import invalidate_insights
+    invalidate_insights(db, application_id, ["scorecard_consensus", "hiring_recommendation"])
+
     # 4. Log scorecard.created
     log_audit_event(
         db=db,
