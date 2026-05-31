@@ -1,5 +1,8 @@
 import abc
 from pathlib import Path
+import uuid
+from sqlalchemy import select, text
+from sqlalchemy.orm import Session
 
 class ArchiveStorageProvider(abc.ABC):
     """Abstract base class for cold-storage audit log archives, decoupling cloud provider specifics."""
@@ -52,3 +55,63 @@ class S3ArchiveProvider(ArchiveStorageProvider):
         # Stub implementation returning mock bytes
         print(f"S3_ARCHIVE: Downloading {filename} from s3://{self.bucket_name} (stubbed)")
         return b"{}"
+
+
+def archive_old_audit_logs(
+    db: Session,
+    company_id: uuid.UUID | None,
+    provider: ArchiveStorageProvider,
+    days: int = 90
+) -> str | None:
+    """Archive logs older than X days to cold storage, then purge from hot SQL database under secure bypass context."""
+    from datetime import datetime, timedelta, timezone
+    import json
+    import uuid as py_uuid
+    from models.audit import AuditLog
+    from db.session import tenant_context
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Query logs to archive under auth_mode="true" (system-level RLS bypass)
+    with tenant_context(auth_mode="true"):
+        stmt = select(AuditLog).where(AuditLog.timestamp < cutoff)
+        if company_id:
+            stmt = stmt.where(AuditLog.company_id == company_id)
+            
+        old_logs = db.scalars(stmt).all()
+        if not old_logs:
+            return None
+            
+        # Serialize logs to JSON bytes
+        log_data = []
+        for log in old_logs:
+            log_data.append({
+                "id": str(log.id),
+                "company_id": str(log.company_id) if log.company_id else None,
+                "actor_id": str(log.actor_id) if log.actor_id else None,
+                "actor_type": log.actor_type,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": log.resource_id,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent,
+                "metadata_json": log.metadata_json,
+                "timestamp": log.timestamp.isoformat()
+            })
+            
+        archive_content = json.dumps(log_data).encode("utf-8")
+        
+        # Save archive using the provider
+        timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        comp_prefix = str(company_id) if company_id else "global"
+        filename = f"audit_archive_{comp_prefix}_{timestamp_str}.json"
+        archive_uri = provider.upload_archive(filename, archive_content)
+        
+        # Purge archived records from database under secure bypass context
+        db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', true)"))
+        for log in old_logs:
+            db.delete(log)
+        db.commit()
+        db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', true)"))
+        
+        return archive_uri
