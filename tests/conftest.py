@@ -73,6 +73,6 @@ def db_session(db_engine):
             with db_engine.connect() as conn:
                 with conn.begin():
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', false)"))
-                    for table in ("ai_recruiter_insights", "recruiter_productivity_aggregates", "funnel_aggregates", "candidate_stage_transitions", "candidate_embeddings", "offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
+                    for table in ("export_jobs", "ai_insight_interactions", "ai_recruiter_insights", "recruiter_productivity_aggregates", "funnel_aggregates", "candidate_stage_transitions", "candidate_embeddings", "offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
                         conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))

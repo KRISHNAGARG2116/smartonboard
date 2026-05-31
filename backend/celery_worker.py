@@ -540,3 +540,130 @@ def generate_recruiter_insight_async(self, company_id: str, application_id: str,
             raise exc
         finally:
             db.close()
+
+
+@celery_app.task
+def generate_analytics_export_async(company_id: str, user_id: str, job_id: str):
+    """
+    Asynchronously queries multi-tenant interaction analytics under RLS connection scoping,
+    compiles to CSV in storage, and logs completion audit events.
+    """
+    from models.export_job import ExportJob
+    from models.insight_interaction import AIInsightInteraction
+    import csv
+    import os
+    
+    with tenant_context(tenant_id=company_id):
+        db = SessionLocal()
+        try:
+            company_uuid = uuid.UUID(company_id)
+            user_uuid = uuid.UUID(user_id)
+            job_uuid = uuid.UUID(job_id)
+            
+            job = db.scalar(select(ExportJob).where(ExportJob.id == job_uuid))
+            if not job:
+                logger.error(f"ExportJob {job_id} not found.")
+                return
+                
+            job.status = "PROCESSING"
+            db.commit()
+            
+            # Ensure exports directory exists inside workspace
+            exports_dir = Path(__file__).resolve().parent.parent / "storage" / "exports" / company_id
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            
+            dest_file = exports_dir / f"{job_id}.csv"
+            
+            # Query and compile interactions
+            stmt = select(AIInsightInteraction).where(
+                AIInsightInteraction.company_id == company_uuid
+            ).order_by(AIInsightInteraction.created_at.desc())
+            rows = db.scalars(stmt).all()
+            
+            with open(dest_file, mode="w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    "Interaction ID", "User ID", "Application ID",
+                    "Insight Type", "Interaction Type", "Snapshot", "Decision Date"
+                ])
+                for r in rows:
+                    writer.writerow([
+                        str(r.id), str(r.user_id), str(r.application_id),
+                        r.insight_type, r.interaction_type, r.recommendation_snapshot or "", r.created_at.isoformat()
+                    ])
+                    
+            job.file_path = str(dest_file)
+            job.status = "COMPLETED"
+            db.commit()
+            
+            # Log export completion event
+            log_audit_event(
+                db=db,
+                action="security.analytics_export_generated",
+                actor_type="SYSTEM",
+                company_id=company_uuid,
+                metadata={
+                    "export_job_id": job_id,
+                    "record_count": len(rows),
+                    "format": "csv"
+                }
+            )
+            
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Error executing generate_analytics_export_async: {exc}")
+            
+            # Re-fetch under tenant context to write error state
+            try:
+                job = db.scalar(select(ExportJob).where(ExportJob.id == uuid.UUID(job_id)))
+                if job:
+                    job.status = "FAILED"
+                    job.error_message = str(exc)
+                    db.commit()
+            except Exception as inner_exc:
+                logger.error(f"Failed to record FAILED state: {inner_exc}")
+        finally:
+            db.close()
+
+
+@celery_app.task
+def cleanup_expired_exports_async():
+    """
+    Scheduled task that runs to prune expired generated export CSV files from disk
+    and marks completed storage entities as EXPIRED.
+    """
+    from models.export_job import ExportJob
+    from datetime import datetime, timezone
+    import os
+    
+    # Run under bypass context to clear expired files across all tenants
+    with tenant_context(auth_mode="true"):
+        db = SessionLocal()
+        try:
+            now = datetime.now(timezone.utc)
+            stmt = select(ExportJob).where(
+                ExportJob.expires_at < now,
+                ExportJob.status == "COMPLETED"
+            )
+            expired_jobs = db.scalars(stmt).all()
+            
+            count = 0
+            for job in expired_jobs:
+                if job.file_path and os.path.exists(job.file_path):
+                    try:
+                        os.remove(job.file_path)
+                    except Exception as fs_exc:
+                        logger.error(f"Failed to remove file {job.file_path}: {fs_exc}")
+                        
+                job.status = "EXPIRED"
+                job.file_path = None
+                db.add(job)
+                count += 1
+                
+            db.commit()
+            logger.info(f"Cleaned up {count} expired analytics export jobs.")
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Error running cleanup_expired_exports_async: {exc}")
+        finally:
+            db.close()

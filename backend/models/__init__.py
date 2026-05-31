@@ -14,6 +14,8 @@ from models.stage_transition import CandidateStageTransition
 from models.funnel_aggregate import FunnelAggregate
 from models.recruiter_productivity import RecruiterProductivityAggregate
 from models.recruiter_insight import AIRecruiterInsight
+from models.insight_interaction import AIInsightInteraction
+from models.export_job import ExportJob
 
 __all__ = [
     "Company",
@@ -32,5 +34,7 @@ __all__ = [
     "CandidateStageTransition",
     "FunnelAggregate",
     "RecruiterProductivityAggregate",
-    "AIRecruiterInsight"
+    "AIRecruiterInsight",
+    "AIInsightInteraction",
+    "ExportJob"
 ]

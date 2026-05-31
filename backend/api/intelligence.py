@@ -261,6 +261,22 @@ def process_insight_request(
         )
 
     # 7. Return completed cache hit
+    # Auto-log a VIEWED interaction
+    try:
+        from models.insight_interaction import AIInsightInteraction
+        interaction = AIInsightInteraction(
+            company_id=current_user.company_id,
+            user_id=current_user.id,
+            application_id=id,
+            insight_type=insight_type,
+            interaction_type="VIEWED",
+            recommendation_snapshot=None
+        )
+        db.add(interaction)
+        db.commit()
+    except Exception:
+        db.rollback()
+
     return {
         "status": "COMPLETED",
         "application_id": str(insight.application_id),
@@ -272,4 +288,117 @@ def process_insight_request(
         "candidate_embedding_ids": insight.candidate_embedding_ids,
         "scorecard_ids": insight.scorecard_ids,
         "content": insight.content
+    }
+
+
+from pydantic import BaseModel
+
+class DecisionOutcomeBody(BaseModel):
+    insight_type: str
+    decision: str # 'ACCEPTED', 'DISMISSED', 'OVERRIDDEN'
+    recruiter_decision: str | None = None # 'HIRE', 'NO_HIRE'
+
+
+@router.post("/applications/{id}/decide-outcome")
+def decide_outcome(
+    id: uuid.UUID,
+    db: TenantDb,
+    current_user: RequireRecruiter,
+    body: DecisionOutcomeBody
+):
+    """
+    Submits a recruiter outcome decision (ACCEPTED, DISMISSED, OVERRIDDEN)
+    for a completed AI insight, snapshotting the model recommendation.
+    """
+    if body.decision not in {"ACCEPTED", "DISMISSED", "OVERRIDDEN"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid decision. Must be one of: ACCEPTED, DISMISSED, OVERRIDDEN"
+        )
+
+    # 1. Enforce strict Python company boundary
+    app = db.scalar(
+        select(Application).where(
+            Application.id == id,
+            Application.company_id == current_user.company_id
+        )
+    )
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    # 2. Query completed insight
+    insight = db.scalar(
+        select(AIRecruiterInsight).where(
+            AIRecruiterInsight.application_id == id,
+            AIRecruiterInsight.insight_type == body.insight_type,
+            AIRecruiterInsight.generation_status == "COMPLETED"
+        )
+    )
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No completed insight of type '{body.insight_type}' found for this application."
+        )
+
+    # 3. Determine recommendation snapshot
+    snapshot = "NO_HIRE"
+    if body.insight_type == "hiring_recommendation":
+        content_upper = (insight.content or "").upper()
+        if "HIRE" in content_upper and "NO-HIRE" not in content_upper and "NO HIRE" not in content_upper:
+            snapshot = "HIRE"
+        elif "NO-HIRE" in content_upper or "NO HIRE" in content_upper:
+            snapshot = "NO_HIRE"
+        elif "HIRE" in content_upper:
+            # Fallback if both present or complex structure
+            snapshot = "HIRE"
+
+    # 4. Record interaction outcome
+    from models.insight_interaction import AIInsightInteraction
+    interaction = AIInsightInteraction(
+        company_id=current_user.company_id,
+        user_id=current_user.id,
+        application_id=id,
+        insight_type=body.insight_type,
+        interaction_type=body.decision,
+        recommendation_snapshot=snapshot,
+        recruiter_decision=body.recruiter_decision or (snapshot if body.decision != "OVERRIDDEN" else ("NO_HIRE" if snapshot == "HIRE" else "HIRE"))
+    )
+    db.add(interaction)
+    db.commit()
+
+    # 5. Log audit events
+    from core.audit import log_audit_event
+    if body.decision == "DISMISSED":
+        log_audit_event(
+            db=db,
+            action="ai.insight_dismissed",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            metadata={
+                "application_id": str(id),
+                "insight_type": body.insight_type,
+                "prompt_version": insight.prompt_version,
+                "dismissed_reason": "Manual review mismatch"
+            }
+        )
+    else:
+        # ACCEPTED or OVERRIDDEN both indicate adoption review completed
+        log_audit_event(
+            db=db,
+            action="ai.insight_adopted",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            metadata={
+                "application_id": str(id),
+                "insight_type": body.insight_type,
+                "prompt_version": insight.prompt_version,
+                "decision_type": body.decision
+            }
+        )
+
+    return {
+        "success": True,
+        "message": f"Outcome decision '{body.decision}' successfully recorded for insight '{body.insight_type}'."
     }
