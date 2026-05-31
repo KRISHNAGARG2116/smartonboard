@@ -137,7 +137,8 @@ def pseudonymize_audit_logs(
     db: Session,
     candidate_id: str | uuid.UUID,
     candidate_email: str | None = None,
-    custom_scrub_list: list[str] = None
+    custom_scrub_list: list[str] = None,
+    commit: bool = True
 ) -> int:
     """Scrub personal data recursively from historical audit logs to comply with GDPR Right-to-Be-Forgotten.
     
@@ -191,8 +192,9 @@ def pseudonymize_audit_logs(
             db.add(log)
             modified_count += 1
             
-        if modified_count > 0:
+        if modified_count > 0 and commit:
             db.commit()
-        db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', true)"))
+        if commit:
+            db.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', true)"))
             
     return modified_count

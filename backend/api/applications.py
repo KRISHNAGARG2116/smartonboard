@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.deps import CurrentUser, TenantDb
+from api.deps import CurrentUser, TenantDb, RequireRecruiter
 from models import Application, Candidate, Job
 from models.enums import ApplicationStatus
 from schemas.application import (
@@ -221,3 +221,57 @@ def update_application(
             )
             
     return _application_response(application)
+
+
+@router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_application(
+    application_id: uuid.UUID,
+    request: Request,
+    current_user: RequireRecruiter, # Recruiter allowed
+    db: TenantDb,
+):
+    # 1. Fetch Application under company context (RLS verified)
+    application = db.scalar(
+        select(Application).where(
+            Application.id == application_id,
+            Application.company_id == current_user.company_id
+        )
+    )
+    if not application:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        
+    actor_id = current_user.id
+    company_id = current_user.company_id
+    actor_role = current_user.role.value.upper()
+
+    try:
+        # 2. Log application.deleted audit event prior to cascade deletion
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="application.deleted",
+            actor_type=actor_role,
+            actor_id=actor_id,
+            company_id=company_id,
+            resource_type="applications",
+            resource_id=str(application_id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={
+                "application_id": str(application_id),
+                "actor_id": str(actor_id),
+                "company_id": str(company_id)
+            }
+        )
+
+        # 3. Delete Application (Cascades automatically to notes, interviews, scorecards, offers)
+        db.delete(application)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to execute application deletion workflow"
+        ) from e
+

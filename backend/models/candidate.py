@@ -25,4 +25,4 @@ class Candidate(Base):
     )
 
     company: Mapped["Company"] = relationship(back_populates="candidates")
-    applications: Mapped[list["Application"]] = relationship(back_populates="candidate")
+    applications: Mapped[list["Application"]] = relationship(back_populates="candidate", cascade="all, delete-orphan")
