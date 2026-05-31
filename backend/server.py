@@ -58,7 +58,32 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartOnboard API", version="2.1.0", lifespan=lifespan)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+from fastapi.responses import JSONResponse
+
+async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    try:
+        from core.audit import log_audit_event
+        from db.session import SessionLocal
+        
+        with SessionLocal() as db:
+            log_audit_event(
+                db=db,
+                action="security.rate_limit_violation",
+                actor_type="UNAUTHENTICATED",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"path": request.url.path, "detail": str(exc)}
+            )
+    except Exception as e:
+        print(f"Failed to log rate limit violation audit event: {e}")
+        
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"}
+    )
+
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -182,6 +207,18 @@ async def screen_upload(
                 scan_file_for_malware(content)
             except ValueError as val_err:
                 print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}': {val_err}")
+                from core.audit import log_audit_event
+                from db.session import SessionLocal
+                with SessionLocal() as db:
+                    log_audit_event(
+                        db=db,
+                        action="file.scan_failure",
+                        actor_type="UNAUTHENTICATED",
+                        resource_type="quarantine",
+                        ip_address=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent"),
+                        metadata={"filename": file.filename, "error": str(val_err), "event": "malware_detected"}
+                    )
                 raise HTTPException(status_code=400, detail=str(val_err))
             except RuntimeError as run_err:
                 print(f"SECURITY EVENT: Malware scanner failure in production: {run_err}")
@@ -192,11 +229,38 @@ async def screen_upload(
                 validate_file_signature(content, file.filename or "")
             except ValueError as sig_err:
                 print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
+                from core.audit import log_audit_event
+                from db.session import SessionLocal
+                with SessionLocal() as db:
+                    log_audit_event(
+                        db=db,
+                        action="file.signature_failure",
+                        actor_type="UNAUTHENTICATED",
+                        resource_type="quarantine",
+                        ip_address=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent"),
+                        metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
+                    )
                 raise HTTPException(status_code=400, detail=str(sig_err))
 
             # 6. Promotion Phase
             tenant_id = tenant_id_var.get() or "unauthenticated"
             permanent_path = storage_service.promote_file(quarantine_path, tenant_id)
+            
+            from core.audit import log_audit_event
+            from db.session import SessionLocal
+            with SessionLocal() as db:
+                log_audit_event(
+                    db=db,
+                    action="file.promoted",
+                    actor_type="UNAUTHENTICATED",
+                    company_id=tenant_id if tenant_id != "unauthenticated" else None,
+                    resource_type="uploads",
+                    resource_id=permanent_path.name,
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    metadata={"filename": file.filename, "size": len(content)}
+                )
 
         except Exception:
             # Clean up quarantine if any step fails
@@ -258,6 +322,18 @@ async def recruit(
                 scan_file_for_malware(pdf_bytes)
             except ValueError as val_err:
                 print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}': {val_err}")
+                from core.audit import log_audit_event
+                from db.session import SessionLocal
+                with SessionLocal() as db:
+                    log_audit_event(
+                        db=db,
+                        action="file.scan_failure",
+                        actor_type="UNAUTHENTICATED",
+                        resource_type="quarantine",
+                        ip_address=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent"),
+                        metadata={"filename": file.filename, "error": str(val_err), "event": "malware_detected"}
+                    )
                 raise HTTPException(status_code=400, detail=str(val_err))
             except RuntimeError as run_err:
                 print(f"SECURITY EVENT: Malware scanner failure in production: {run_err}")
@@ -268,11 +344,38 @@ async def recruit(
                 validate_file_signature(pdf_bytes, file.filename or "")
             except ValueError as sig_err:
                 print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
+                from core.audit import log_audit_event
+                from db.session import SessionLocal
+                with SessionLocal() as db:
+                    log_audit_event(
+                        db=db,
+                        action="file.signature_failure",
+                        actor_type="UNAUTHENTICATED",
+                        resource_type="quarantine",
+                        ip_address=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent"),
+                        metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
+                    )
                 raise HTTPException(status_code=400, detail=str(sig_err))
 
             # 6. Promotion Phase
             tenant_id = tenant_id_var.get() or "unauthenticated"
             permanent_path = storage_service.promote_file(quarantine_path, tenant_id)
+            
+            from core.audit import log_audit_event
+            from db.session import SessionLocal
+            with SessionLocal() as db:
+                log_audit_event(
+                    db=db,
+                    action="file.promoted",
+                    actor_type="UNAUTHENTICATED",
+                    company_id=tenant_id if tenant_id != "unauthenticated" else None,
+                    resource_type="uploads",
+                    resource_id=permanent_path.name,
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    metadata={"filename": file.filename, "size": len(pdf_bytes)}
+                )
 
         except Exception:
             # Clean up quarantine if any step fails

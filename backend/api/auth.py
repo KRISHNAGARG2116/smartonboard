@@ -143,6 +143,21 @@ def register(
         response=response
     )
     
+    # Audit log registration
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.register",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        company_id=user.company_id,
+        resource_type="users",
+        resource_id=str(user.id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
+    
     return AuthResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -178,10 +193,30 @@ def login(
         )
 
     if user is None:
+        # Audit log login failure
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.login_failed",
+            actor_type="UNAUTHENTICATED",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"email": body.email, "password": body.password}
+        )
         verify_password(body.password, dummy_hash)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     if not verify_password(body.password, user.password_hash):
+        # Audit log login failure
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.login_failed",
+            actor_type="UNAUTHENTICATED",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"email": body.email, "password": body.password}
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     access_token, refresh_token = create_user_session_and_tokens(
@@ -190,6 +225,19 @@ def login(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         response=response
+    )
+    
+    # Audit log login success
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.login",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
     )
     
     return AuthResponse(
@@ -245,6 +293,21 @@ def refresh_token_route(
         db.add(session)
         db.commit()
         response.delete_cookie("refresh_token")
+        
+        # Audit log replay attack
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="security.refresh_token_replay",
+            actor_type="UNAUTHENTICATED",
+            company_id=session.company_id if hasattr(session, "company_id") else None,
+            resource_type="user_sessions",
+            resource_id=str(session.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"session_id": str(session.id), "event": "token_replay_attack"}
+        )
+        
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token reuse detected. Session revoked.")
         
     with tenant_context(auth_mode="true"):
@@ -280,6 +343,19 @@ def refresh_token_route(
     
     db.add(session)
     db.commit()
+
+    # Audit log successful refresh
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.refresh",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"session_id": str(session.id)}
+    )
     
     response.set_cookie(
         key="refresh_token",
@@ -310,6 +386,9 @@ def logout(
     db: Annotated[Session, Depends(get_db)],
     refresh_token_cookie: Annotated[str | None, Cookie(alias="refresh_token")] = None
 ):
+    actor_id = None
+    company_id = None
+    
     # Revoke session via access token JTI
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.lower().startswith("bearer "):
@@ -320,6 +399,10 @@ def logout(
             jti = payload.get("jti")
             session_id = payload.get("session_id")
             exp_timestamp = payload.get("exp")
+            
+            # Extract identities for audit logging
+            actor_id = payload.get("sub")
+            company_id = payload.get("company_id")
             
             if jti and exp_timestamp:
                 exp_dt = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
@@ -344,6 +427,13 @@ def logout(
             settings = get_settings()
             payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
             session_id = payload.get("session_id")
+            
+            # Fallback identities for audit logging
+            if not actor_id:
+                actor_id = payload.get("sub")
+            if not company_id:
+                company_id = payload.get("company_id")
+                
             if session_id:
                 from uuid import UUID
                 session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
@@ -354,6 +444,18 @@ def logout(
         except Exception:
             pass
             
+    # Audit log logout event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.logout",
+        actor_type="RECRUITER" if actor_id else "UNAUTHENTICATED",
+        actor_id=actor_id,
+        company_id=company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent")
+    )
+    
     response.delete_cookie("refresh_token")
     return {"success": True, "detail": "Successfully logged out and session revoked"}
 
@@ -386,6 +488,7 @@ def list_sessions(
 @router.post("/sessions/revoke")
 def revoke_session(
     body: RevokeSessionRequest,
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
@@ -398,5 +501,19 @@ def revoke_session(
     session.is_revoked = True
     db.add(session)
     db.commit()
+    
+    # Audit log session revocation event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.session_revoked",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"session_id": str(session.id)}
+    )
+    
     return {"success": True, "detail": "Session successfully revoked"}
 

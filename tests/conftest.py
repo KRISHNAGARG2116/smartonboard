@@ -56,6 +56,7 @@ def db_engine():
 def db_session(db_engine):
     SessionTest = sessionmaker(bind=db_engine, autocommit=False, autoflush=False, expire_on_commit=False)
     session = SessionTest()
+    session.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))
     
     try:
         yield session
@@ -65,5 +66,7 @@ def db_session(db_engine):
         with tenant_context(auth_mode="true"):
             with db_engine.connect() as conn:
                 with conn.begin():
-                    for table in ("applications", "candidates", "jobs", "users", "companies"):
+                    conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', false)"))
+                    for table in ("audit_logs", "applications", "candidates", "jobs", "users", "companies"):
                         conn.execute(text(f"DELETE FROM {table}"))
+                    conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))
