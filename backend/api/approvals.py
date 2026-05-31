@@ -7,6 +7,7 @@ from api.deps import RequireRecruiter, TenantDb
 from models.approval import ApprovalTemplate, ApprovalTemplateStep, ApprovalChain, ApprovalStep
 from models.job import Job
 from models.offer import Offer
+from models.escalation import ApprovalEscalationRule
 from schemas.approval import (
     ApprovalTemplateCreate,
     ApprovalTemplateResponse,
@@ -14,6 +15,8 @@ from schemas.approval import (
     ApprovalChainResponse,
     ApprovalStepAction,
     ApprovalStepResponse,
+    ApprovalEscalationRuleCreate,
+    ApprovalEscalationRuleResponse,
 )
 from core.audit import log_audit_event
 
@@ -334,3 +337,79 @@ def action_approval_step(
     db.commit()
     db.refresh(step)
     return step
+
+
+@router.post("/templates/steps/{step_id}/escalation", response_model=ApprovalEscalationRuleResponse, status_code=status.HTTP_201_CREATED)
+def create_approval_escalation_rule(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+    step_id: uuid.UUID,
+    payload: ApprovalEscalationRuleCreate,
+):
+    """
+    Configures a timeout escalation rule on an approval template step definition.
+    """
+    # 1. Fetch template step and verify company boundaries
+    step = db.scalar(
+        select(ApprovalTemplateStep).where(
+            ApprovalTemplateStep.id == step_id,
+            ApprovalTemplateStep.company_id == current_user.company_id
+        )
+    )
+    if not step:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval template step not found")
+
+    # 2. Check if delegate_id (if delegate) exists in the company
+    if payload.escalation_type == "delegate":
+        if not payload.delegate_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="delegate_id is required when escalation_type is 'delegate'",
+            )
+        from models.user import User
+        delegate = db.scalar(
+            select(User).where(
+                User.id == payload.delegate_id,
+                User.company_id == current_user.company_id
+            )
+        )
+        if not delegate:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delegate user not found")
+
+    # 3. Create or Update Rule
+    rule = db.scalar(
+        select(ApprovalEscalationRule).where(
+            ApprovalEscalationRule.approval_template_step_id == step_id,
+            ApprovalEscalationRule.company_id == current_user.company_id
+        )
+    )
+    if rule:
+        rule.timeout_seconds = payload.timeout_seconds
+        rule.escalation_type = payload.escalation_type
+        rule.delegate_id = payload.delegate_id
+    else:
+        rule = ApprovalEscalationRule(
+            company_id=current_user.company_id,
+            approval_template_step_id=step_id,
+            timeout_seconds=payload.timeout_seconds,
+            escalation_type=payload.escalation_type,
+            delegate_id=payload.delegate_id
+        )
+        db.add(rule)
+
+    db.commit()
+    db.refresh(rule)
+
+    # Log audit event
+    log_audit_event(
+        db=db,
+        action="approval.escalation_configured",
+        actor_type="user",
+        company_id=current_user.company_id,
+        actor_id=current_user.id,
+        resource_type="approval_escalation_rule",
+        resource_id=str(rule.id),
+        metadata={"approval_template_step_id": str(step_id), "escalation_type": payload.escalation_type},
+    )
+
+    return rule

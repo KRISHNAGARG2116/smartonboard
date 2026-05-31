@@ -109,3 +109,30 @@ class ApprovalStepAction(BaseModel):
         if v not in supported_actions:
             raise ValueError(f"Unsupported action '{v}'. Supported: {supported_actions}")
         return v
+
+
+class ApprovalEscalationRuleCreate(BaseModel):
+    timeout_seconds: int = Field(..., gt=0)
+    escalation_type: str = Field(...)  # 'delegate', 'auto_approve', 'auto_reject'
+    delegate_id: uuid.UUID | None = None
+
+    @field_validator('escalation_type')
+    @classmethod
+    def validate_escalation_type(cls, v: str) -> str:
+        supported = {'delegate', 'auto_approve', 'auto_reject'}
+        if v not in supported:
+            raise ValueError(f"Unsupported escalation type '{v}'. Supported: {supported}")
+        return v
+
+
+class ApprovalEscalationRuleResponse(BaseModel):
+    id: uuid.UUID
+    company_id: uuid.UUID
+    approval_template_step_id: uuid.UUID
+    timeout_seconds: int
+    escalation_type: str
+    delegate_id: uuid.UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

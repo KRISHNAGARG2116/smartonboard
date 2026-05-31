@@ -664,7 +664,6 @@ def cleanup_expired_exports_async():
             logger.info(f"Cleaned up {count} expired analytics export jobs.")
         except Exception as exc:
             db.rollback()
-
             logger.error(f"Error running cleanup_expired_exports_async: {exc}")
         finally:
             db.close()
@@ -683,10 +682,8 @@ def generate_delta_sync_async(self, credential_id: str, company_id: str):
         try:
             run_delta_sync_for_credential(db=db, credential_id=uuid.UUID(credential_id))
         except ProviderRateLimitError as exc:
-            # Implement exponential backoff retry using Celery's task retry
             db.rollback()
             retry_cnt = self.request.retries
-            # Exponential backoff: 2^retry * 60 seconds (60, 120, 240, etc.)
             backoff_delay = (2 ** retry_cnt) * 60
             logger.warning(f"Rate limited by calendar provider. Retrying in {backoff_delay}s... Error: {exc}")
             raise self.retry(exc=exc, countdown=backoff_delay)
@@ -695,4 +692,12 @@ def generate_delta_sync_async(self, credential_id: str, company_id: str):
             logger.error(f"Sync failed for credential {credential_id}: {exc}")
         finally:
             db.close()
+
+
+# Import advanced automation tasks to ensure Celery registers them on startup
+from tasks.escalations import check_sla_breaches_task, check_approval_escalations_task
+
+
+
+
 

@@ -1,0 +1,173 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/krishnagarg/smartonboard-main
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, langsmith-0.8.7, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 4 items / 3 deselected / 1 selected
+
+tests/test_dynamic_escalations.py F                                      [100%]
+
+=================================== FAILURES ===================================
+_________ test_structured_auto_progression_and_sla_resolution_on_exit __________
+tests/test_dynamic_escalations.py:348: in test_structured_auto_progression_and_sla_resolution_on_exit
+    assert resp_sc.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+---------------------------- Captured stderr setup -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+----------------------------- Captured stderr call -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+------------------------------ Captured log call -------------------------------
+WARNING  kombu.connection:connection.py:671 No hostname was supplied. Reverting to default 'localhost'
+--------------------------- Captured stderr teardown ---------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/schemas/audit.py:5
+  /Users/krishnagarg/smartonboard-main/backend/schemas/audit.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditLogResponse(BaseModel):
+
+backend/api/router.py:13
+  /Users/krishnagarg/smartonboard-main/backend/api/router.py:13: FastAPIDeprecationWarning: `example` has been deprecated, please use `examples` instead
+    from api.intelligence import router as intelligence_router
+
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_dynamic_escalations.py::test_structured_auto_progression_and_sla_resolution_on_exit
+================= 1 failed, 3 deselected, 4 warnings in 2.80s ==================

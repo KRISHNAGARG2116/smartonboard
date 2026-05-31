@@ -5,10 +5,13 @@ from sqlalchemy import select
 from api.deps import RequireRecruiter, TenantDb
 from models.pipeline import PipelineTemplate, Pipeline, StageDefinition
 from models.job import Job
+from models.sla import StageSLA
 from schemas.pipeline import (
     PipelineTemplateCreate,
     PipelineTemplateResponse,
     PipelineResponse,
+    StageSLACreate,
+    StageSLAResponse,
 )
 from core.audit import log_audit_event
 
@@ -145,3 +148,81 @@ def instantiate_pipeline_from_template(
     )
 
     return pipeline
+
+
+@router.post("/stages/{stage_id}/sla", response_model=StageSLAResponse, status_code=status.HTTP_201_CREATED)
+def create_stage_sla(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+    stage_id: uuid.UUID,
+    payload: StageSLACreate,
+):
+    """
+    Registers a time limit SLA on a stage definition, enforcing the approved validation:
+    - fallback_stage_id (if provided) must belong to the exact same pipeline template or pipeline instance as the source stage.
+    """
+    # 1. Fetch source stage
+    stage = db.scalar(
+        select(StageDefinition).where(
+            StageDefinition.id == stage_id,
+            StageDefinition.company_id == current_user.company_id
+        )
+    )
+    if not stage:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stage definition not found")
+
+    # 2. Validation: check fallback_stage_id belongs to the same pipeline version as source stage
+    if payload.fallback_stage_id:
+        fallback = db.scalar(
+            select(StageDefinition).where(
+                StageDefinition.id == payload.fallback_stage_id,
+                StageDefinition.company_id == current_user.company_id
+            )
+        )
+        if not fallback:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fallback stage definition not found")
+
+        # Verify pipeline templates or pipeline instances match exactly!
+        if stage.pipeline_template_id != fallback.pipeline_template_id or stage.pipeline_id != fallback.pipeline_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Fallback stage must belong to the same pipeline or template version as the source stage"
+            )
+
+    # 3. Create SLA (overwrite if exists or simple create)
+    sla = db.scalar(
+        select(StageSLA).where(
+            StageSLA.stage_definition_id == stage_id,
+            StageSLA.company_id == current_user.company_id
+        )
+    )
+    if sla:
+        sla.duration_seconds = payload.duration_seconds
+        sla.escalation_action = payload.escalation_action
+        sla.fallback_stage_id = payload.fallback_stage_id
+    else:
+        sla = StageSLA(
+            company_id=current_user.company_id,
+            stage_definition_id=stage_id,
+            duration_seconds=payload.duration_seconds,
+            escalation_action=payload.escalation_action,
+            fallback_stage_id=payload.fallback_stage_id
+        )
+        db.add(sla)
+
+    db.commit()
+    db.refresh(sla)
+
+    # Log audit event
+    log_audit_event(
+        db=db,
+        action="pipeline.stage_sla_configured",
+        actor_type="user",
+        company_id=current_user.company_id,
+        actor_id=current_user.id,
+        resource_type="stage_sla",
+        resource_id=str(sla.id),
+        metadata={"stage_definition_id": str(stage_id), "duration_seconds": payload.duration_seconds},
+    )
+
+    return sla

@@ -364,6 +364,11 @@ def submit_scorecard(
     db.commit()
     db.refresh(scorecard)
 
+    # Evaluate auto-progression rules
+    from core.workflows import evaluate_auto_progression_rules
+    evaluate_auto_progression_rules(db=db, application=app_record)
+
+
     # Soft-invalidate cached insights due to scorecard changes
     from celery_worker import invalidate_insights
     invalidate_insights(db, application_id, ["scorecard_consensus", "hiring_recommendation"])

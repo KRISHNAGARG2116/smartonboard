@@ -73,7 +73,7 @@ def db_session(db_engine):
             with db_engine.connect() as conn:
                 with conn.begin():
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'true', false)"))
-                    for table in ("approval_steps", "approval_chains", "approval_template_steps", "approval_templates", "stage_definitions", "pipelines", "pipeline_templates", "oauth_states", "interview_slots", "scheduling_links", "calendar_credentials", "company_sso_settings", "export_jobs", "ai_insight_interactions", "ai_recruiter_insights", "recruiter_productivity_aggregates", "funnel_aggregates", "candidate_stage_transitions", "candidate_embeddings", "offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
+                    for table in ("approval_step_escalations", "approval_escalation_rules", "candidate_stage_sla_trackers", "stage_slas", "approval_steps", "approval_chains", "approval_template_steps", "approval_templates", "stage_definitions", "pipelines", "pipeline_templates", "oauth_states", "interview_slots", "scheduling_links", "calendar_credentials", "company_sso_settings", "export_jobs", "ai_insight_interactions", "ai_recruiter_insights", "recruiter_productivity_aggregates", "funnel_aggregates", "candidate_stage_transitions", "candidate_embeddings", "offers", "scorecards", "interviews", "candidate_notes", "audit_logs", "applications", "candidates", "jobs", "users", "companies"):
 
                         conn.execute(text(f"DELETE FROM {table}"))
                     conn.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))

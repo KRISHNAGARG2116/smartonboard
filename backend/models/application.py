@@ -29,6 +29,9 @@ class Application(Base):
         nullable=False,
         index=True,
     )
+    current_stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("stage_definitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     source: Mapped[str] = mapped_column(String(50), default="pipeline", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -38,6 +41,7 @@ class Application(Base):
     company: Mapped["Company"] = relationship(back_populates="applications")
     job: Mapped["Job"] = relationship(back_populates="applications")
     candidate: Mapped["Candidate"] = relationship(back_populates="applications")
+    current_stage: Mapped["StageDefinition | None"] = relationship("StageDefinition")
     candidate_notes: Mapped[list["CandidateNote"]] = relationship("CandidateNote", back_populates="application", cascade="all, delete-orphan")
     interviews: Mapped[list["Interview"]] = relationship("Interview", back_populates="application", cascade="all, delete-orphan")
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="application", cascade="all, delete-orphan")
