@@ -11,6 +11,7 @@ from api.offers import router as offers_router
 from api.candidates import router as candidates_router
 from api.analytics import router as analytics_router
 from api.intelligence import router as intelligence_router
+from api.sso import router as sso_router
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
@@ -24,3 +25,4 @@ v1_router.include_router(offers_router)
 v1_router.include_router(candidates_router)
 v1_router.include_router(analytics_router)
 v1_router.include_router(intelligence_router)
+v1_router.include_router(sso_router)

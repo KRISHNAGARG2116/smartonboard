@@ -16,6 +16,10 @@ from models.recruiter_productivity import RecruiterProductivityAggregate
 from models.recruiter_insight import AIRecruiterInsight
 from models.insight_interaction import AIInsightInteraction
 from models.export_job import ExportJob
+from models.company_sso import CompanySSOSettings
+from models.calendar_credentials import CalendarCredentials
+from models.scheduling_link import SchedulingLink
+from models.interview_slot import InterviewSlot
 
 __all__ = [
     "Company",
@@ -36,5 +40,9 @@ __all__ = [
     "RecruiterProductivityAggregate",
     "AIRecruiterInsight",
     "AIInsightInteraction",
-    "ExportJob"
+    "ExportJob",
+    "CompanySSOSettings",
+    "CalendarCredentials",
+    "SchedulingLink",
+    "InterviewSlot"
 ]
