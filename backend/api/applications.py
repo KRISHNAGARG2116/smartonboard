@@ -17,7 +17,11 @@ from schemas.application import (
 
 from fastapi import File, Form, UploadFile
 from celery.result import AsyncResult
-from celery_worker import process_resume_async
+from celery_worker import (
+    process_resume_async,
+    track_stage_transition_async,
+    track_recruiter_productivity_async,
+)
 from core.celery_app import celery_app
 from core.malware import scan_file_for_malware
 from core.signature import validate_file_signature
@@ -188,6 +192,37 @@ def update_application(
             application.status = new_status
             db.commit()
             db.refresh(application)
+            
+            # Dispatch background tracking tasks
+            track_stage_transition_async.delay(
+                str(current_user.company_id),
+                str(application.id),
+                old_status.value,
+                new_status.value,
+                str(current_user.id)
+            )
+            
+            if old_status == ApplicationStatus.SUBMITTED:
+                track_recruiter_productivity_async.delay(
+                    str(current_user.company_id),
+                    str(current_user.id),
+                    "review"
+                )
+            
+            order = [
+                ApplicationStatus.SUBMITTED,
+                ApplicationStatus.SCREENING,
+                ApplicationStatus.INTERVIEW,
+                ApplicationStatus.OFFER,
+                ApplicationStatus.HIRED
+            ]
+            if old_status in order and new_status in order:
+                if order.index(new_status) > order.index(old_status):
+                    track_recruiter_productivity_async.delay(
+                        str(current_user.company_id),
+                        str(current_user.id),
+                        "advance"
+                    )
             
             # Log audit events for status updates
             from core.audit import log_audit_event

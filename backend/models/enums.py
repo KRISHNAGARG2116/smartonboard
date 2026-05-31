@@ -24,3 +24,10 @@ class ApplicationStatus(str, enum.Enum):
     OFFER = "offer"
     HIRED = "hired"
     REJECTED = "rejected"
+
+
+class InsightGenerationStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"

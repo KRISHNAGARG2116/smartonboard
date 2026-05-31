@@ -9,6 +9,7 @@ from api.notes import router as notes_router
 from api.interviews import router as interviews_router
 from api.offers import router as offers_router
 from api.candidates import router as candidates_router
+from api.analytics import router as analytics_router
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
@@ -20,3 +21,4 @@ v1_router.include_router(notes_router)
 v1_router.include_router(interviews_router)
 v1_router.include_router(offers_router)
 v1_router.include_router(candidates_router)
+v1_router.include_router(analytics_router)

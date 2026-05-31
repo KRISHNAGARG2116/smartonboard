@@ -8,6 +8,10 @@ from sqlalchemy.orm import selectinload
 from api.deps import RequireRecruiter, TenantDb
 from models import Application, Interview, Scorecard, User, Job
 from models.enums import ApplicationStatus
+from celery_worker import (
+    track_stage_transition_async,
+    track_recruiter_productivity_async,
+)
 from schemas.interview import (
     InterviewCreateRequest,
     InterviewResponse,
@@ -130,6 +134,21 @@ def schedule_interview(
     db.refresh(interview)
     if status_changed:
         db.refresh(app_record)
+
+    # Dispatch background tracking tasks
+    track_recruiter_productivity_async.delay(
+        str(current_user.company_id),
+        str(current_user.id),
+        "interview"
+    )
+    if status_changed:
+        track_stage_transition_async.delay(
+            str(current_user.company_id),
+            str(application_id),
+            previous_status,
+            new_status,
+            str(current_user.id)
+        )
 
     # 3. Log Audit Events
     # Event 1: interview.scheduled

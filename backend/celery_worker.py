@@ -251,3 +251,147 @@ def process_resume_async(self, file_path: str, company_id: str, job_id: str, eva
 
         finally:
             db.close()
+
+
+@celery_app.task
+def track_stage_transition_async(company_id: str, application_id: str, from_status: str, to_status: str, actor_id: str | None = None):
+    """
+    Asynchronously tracks candidate stage transition, calculates durations,
+    and updates funnel aggregates under strict RLS isolation.
+    """
+    from models.stage_transition import CandidateStageTransition
+    from models.funnel_aggregate import FunnelAggregate
+    from datetime import datetime, timezone
+
+    with tenant_context(tenant_id=company_id):
+        db = SessionLocal()
+        try:
+            app_uuid = uuid.UUID(application_id)
+            company_uuid = uuid.UUID(company_id)
+            actor_uuid = uuid.UUID(actor_id) if actor_id else None
+
+            # 1. Update the previous active transition's duration if exists
+            stmt = (
+                select(CandidateStageTransition)
+                .where(
+                    CandidateStageTransition.application_id == app_uuid,
+                    CandidateStageTransition.to_status == from_status,
+                    CandidateStageTransition.duration_seconds.is_(None)
+                )
+                .order_by(CandidateStageTransition.transitioned_at.desc())
+                .limit(1)
+            )
+            last_t = db.scalar(stmt)
+            now = datetime.now(timezone.utc)
+            if last_t:
+                duration = int((now - last_t.transitioned_at).total_seconds())
+                last_t.duration_seconds = max(0, duration)
+                db.flush()
+
+            # 2. Insert new transition record
+            new_t = CandidateStageTransition(
+                company_id=company_uuid,
+                application_id=app_uuid,
+                from_status=from_status,
+                to_status=to_status,
+                actor_id=actor_uuid,
+                transitioned_at=now
+            )
+            db.add(new_t)
+            db.flush()
+
+            # 3. Retrieve application to find associated job_id
+            application = db.scalar(select(Application).where(Application.id == app_uuid))
+            if application:
+                job_id = application.job_id
+
+                # Increment candidate_count for to_status
+                agg_stmt = select(FunnelAggregate).where(
+                    FunnelAggregate.company_id == company_uuid,
+                    FunnelAggregate.job_id == job_id,
+                    FunnelAggregate.stage == to_status
+                )
+                agg_to = db.scalar(agg_stmt)
+                if agg_to is None:
+                    agg_to = FunnelAggregate(
+                        company_id=company_uuid,
+                        job_id=job_id,
+                        stage=to_status,
+                        candidate_count=1
+                    )
+                    db.add(agg_to)
+                else:
+                    agg_to.candidate_count += 1
+
+                # If advancing from an existing stage (not to rejected), increment conversion_count for from_status
+                if from_status and to_status != "rejected" and to_status != from_status:
+                    agg_from_stmt = select(FunnelAggregate).where(
+                        FunnelAggregate.company_id == company_uuid,
+                        FunnelAggregate.job_id == job_id,
+                        FunnelAggregate.stage == from_status
+                    )
+                    agg_from = db.scalar(agg_from_stmt)
+                    if agg_from is None:
+                        agg_from = FunnelAggregate(
+                            company_id=company_uuid,
+                            job_id=job_id,
+                            stage=from_status,
+                            conversion_count=1
+                        )
+                        db.add(agg_from)
+                    else:
+                        agg_from.conversion_count += 1
+
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Error in track_stage_transition_async: {exc}")
+            raise exc
+        finally:
+            db.close()
+
+
+@celery_app.task
+def track_recruiter_productivity_async(company_id: str, recruiter_id: str, metric_type: str):
+    """
+    Asynchronously increments recruiter productivity aggregates under strict RLS isolation.
+    """
+    from models.recruiter_productivity import RecruiterProductivityAggregate
+
+    with tenant_context(tenant_id=company_id):
+        db = SessionLocal()
+        try:
+            company_uuid = uuid.UUID(company_id)
+            recruiter_uuid = uuid.UUID(recruiter_id)
+
+            stmt = select(RecruiterProductivityAggregate).where(
+                RecruiterProductivityAggregate.company_id == company_uuid,
+                RecruiterProductivityAggregate.recruiter_id == recruiter_uuid
+            )
+            prod = db.scalar(stmt)
+            if prod is None:
+                prod = RecruiterProductivityAggregate(
+                    company_id=company_uuid,
+                    recruiter_id=recruiter_uuid
+                )
+                db.add(prod)
+                db.flush()
+
+            if metric_type == "review":
+                prod.applications_reviewed += 1
+            elif metric_type == "advance":
+                prod.candidates_advanced += 1
+            elif metric_type == "interview":
+                prod.interviews_scheduled += 1
+            elif metric_type == "offer_create":
+                prod.offers_created += 1
+            elif metric_type == "offer_accept":
+                prod.offers_accepted += 1
+
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.error(f"Error in track_recruiter_productivity_async: {exc}")
+            raise exc
+        finally:
+            db.close()

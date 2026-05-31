@@ -8,6 +8,10 @@ from sqlalchemy import select
 from api.deps import RequireRecruiter, RequireOwner, TenantDb
 from models import Application, Offer
 from models.enums import ApplicationStatus
+from celery_worker import (
+    track_stage_transition_async,
+    track_recruiter_productivity_async,
+)
 from schemas.offer import (
     OfferCreateRequest,
     OfferDecideRequest,
@@ -95,6 +99,20 @@ def create_offer(
     db.commit()
     db.refresh(offer)
     db.refresh(app_record)
+
+    # Dispatch background tracking tasks
+    track_recruiter_productivity_async.delay(
+        str(current_user.company_id),
+        str(current_user.id),
+        "offer_create"
+    )
+    track_stage_transition_async.delay(
+        str(current_user.company_id),
+        str(application_id),
+        previous_status,
+        new_status,
+        str(current_user.id)
+    )
 
     # 6. Corrected Audit Metadata for offer.created
     log_audit_event(
@@ -372,6 +390,22 @@ def decide_offer(
                 "previous_status": previous_app_status,
                 "new_status": app_record.status.value
             }
+        )
+
+    # Dispatch background tracking tasks
+    if status_changed:
+        track_stage_transition_async.delay(
+            str(current_user.company_id),
+            str(application_id),
+            previous_app_status,
+            app_record.status.value,
+            str(current_user.id)
+        )
+    if body.decision == "signed":
+        track_recruiter_productivity_async.delay(
+            str(current_user.company_id),
+            str(current_user.id),
+            "offer_accept"
         )
 
     # Log separate application.status_changed event

@@ -8,3 +8,5 @@ node_modules/
 *.pdf
 .venv/
 .pytest_cache/
+storage/archive/
+storage/uploads/
