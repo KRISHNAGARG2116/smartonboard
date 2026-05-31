@@ -31,6 +31,9 @@ class Settings:
         self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
         self.refresh_token_expire_days = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
+        # Redis URL configuration
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
         # Enforce Groq key presence in production
         if is_production and not os.getenv("GROQ_API_KEY"):
             raise ValueError("GROQ_API_KEY must be configured in production")
@@ -39,3 +42,4 @@ class Settings:
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+

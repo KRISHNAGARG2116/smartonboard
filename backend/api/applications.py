@@ -15,6 +15,19 @@ from schemas.application import (
     JobBrief,
 )
 
+from fastapi import File, Form, UploadFile
+from celery.result import AsyncResult
+from celery_worker import process_resume_async
+from core.celery_app import celery_app
+from core.malware import scan_file_for_malware
+from core.signature import validate_file_signature
+from core.storage import LocalStorageService
+from pathlib import Path
+
+STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent.parent / "storage"
+storage_service = LocalStorageService(STORAGE_BASE_DIR)
+
+
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 
@@ -274,4 +287,144 @@ def delete_application(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to execute application deletion workflow"
         ) from e
+
+
+@router.post("/async", status_code=status.HTTP_202_ACCEPTED)
+async def create_application_async(
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+    job_id: uuid.UUID = Form(...),
+    file: UploadFile = File(...),
+):
+    """
+    Asynchronously parses a candidate's resume, executes LangGraph evaluation,
+    generates embeddings, and creates/updates the application state.
+    Returns 202 Accepted with a task identifier.
+    """
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+    
+    # 1. Early Content-Length validation
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
+
+    pdf_bytes = await file.read()
+    if len(pdf_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 5 MB.")
+
+    if not pdf_bytes:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+    # 2. Synchronous Antivirus & Signature Validation (Quarantine Phase)
+    quarantine_path = storage_service.save_quarantine(pdf_bytes, file.filename or "file.dat")
+    try:
+        # Malware Dynamic & Static Scan
+        try:
+            scan_file_for_malware(pdf_bytes)
+        except ValueError as val_err:
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="file.scan_failure",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                company_id=current_user.company_id,
+                resource_type="quarantine",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"filename": file.filename, "error": str(val_err), "event": "malware_detected"}
+            )
+            raise HTTPException(status_code=400, detail=str(val_err))
+        except RuntimeError as run_err:
+            raise HTTPException(status_code=500, detail="Security scanning service failure")
+
+        # File Signature Verification
+        try:
+            validate_file_signature(pdf_bytes, file.filename or "")
+        except ValueError as sig_err:
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="file.signature_failure",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                company_id=current_user.company_id,
+                resource_type="quarantine",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
+            )
+            raise HTTPException(status_code=400, detail=str(sig_err))
+
+        # 3. Promotion Phase
+        permanent_path = storage_service.promote_file(quarantine_path, str(current_user.company_id))
+        
+        # Log promotion compliance audit
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="file.promoted",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="uploads",
+            resource_id=permanent_path.name,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"filename": file.filename, "size": len(pdf_bytes)}
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        storage_service.delete_file(quarantine_path)
+        raise HTTPException(status_code=500, detail="Secure file handling failure") from exc
+
+    # 4. Job Validation
+    job = db.scalar(select(Job).where(Job.id == job_id))
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+
+    # 5. Dispatch task to Celery worker queue
+    evaluation_id = str(uuid.uuid4())
+    relative_path = f"uploads/{current_user.company_id}/{permanent_path.name}"
+    
+    task = process_resume_async.delay(
+        relative_path,
+        str(current_user.company_id),
+        str(job_id),
+        evaluation_id
+    )
+
+    return {
+        "task_id": task.id,
+        "status": "PENDING"
+    }
+
+
+@router.get("/async/status/{task_id}")
+def get_application_async_status(
+    task_id: str,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Checks the status of the asynchronous recruitment task.
+    """
+    res = AsyncResult(task_id, app=celery_app)
+    
+    if res.state == "PENDING":
+        return {"status": "PROCESSING"}
+    elif res.state == "STARTED":
+        return {"status": "PROCESSING"}
+    elif res.state == "SUCCESS":
+        return {"status": "COMPLETED", "result": res.result}
+    elif res.state == "FAILURE":
+        return {"status": "FAILED", "error": str(res.result)}
+    elif res.state == "REVOKED":
+        return {"status": "FAILED", "error": "Task was revoked or cancelled."}
+    
+    return {"status": res.state}
+
 
