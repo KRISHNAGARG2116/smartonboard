@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.schedules import crontab
 from core.config import get_settings
 
 settings = get_settings()
@@ -29,4 +30,20 @@ celery_app.conf.update(
     task_always_eager=os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true",
     task_store_eager_result=True,  # Enables storing task results when eager is True
 )
+
+celery_app.conf.beat_schedule = {
+    "sweep-sla-breaches-every-30s": {
+        "task": "tasks.escalations.check_sla_breaches_task",
+        "schedule": 30.0,
+    },
+    "sweep-approval-escalations-every-30s": {
+        "task": "tasks.escalations.check_approval_escalations_task",
+        "schedule": 30.0,
+    },
+    "cleanup-expired-exports-daily": {
+        "task": "celery_worker.cleanup_expired_exports_async",
+        "schedule": crontab(hour=0, minute=0),
+    },
+}
+
 
