@@ -86,6 +86,10 @@ async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExc
 
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
+from core.middleware import IPWhitelistMiddleware
+
+app.add_middleware(IPWhitelistMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

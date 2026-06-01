@@ -34,6 +34,8 @@ from models.committee import (
     CommitteeReviewReviewer,
 )
 from models.webhook import WebhookSubscription, WebhookDeliveryLog
+from models.enterprise import CompanyIPWhitelist, CompanySMTPSettings
+
 
 
 __all__ = [
@@ -80,7 +82,10 @@ __all__ = [
     "CommitteeReviewReviewer",
     "WebhookSubscription",
     "WebhookDeliveryLog",
+    "CompanyIPWhitelist",
+    "CompanySMTPSettings",
 ]
+
 
 
 

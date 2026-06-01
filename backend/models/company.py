@@ -39,4 +39,7 @@ class Company(Base):
     candidate_embeddings: Mapped[list["CandidateEmbedding"]] = relationship("CandidateEmbedding", back_populates="company", cascade="all, delete-orphan")
     webhook_subscriptions: Mapped[list["WebhookSubscription"]] = relationship("WebhookSubscription", back_populates="company", cascade="all, delete-orphan")
     webhook_delivery_logs: Mapped[list["WebhookDeliveryLog"]] = relationship("WebhookDeliveryLog", back_populates="company", cascade="all, delete-orphan")
+    ip_whitelists: Mapped[list["CompanyIPWhitelist"]] = relationship("CompanyIPWhitelist", back_populates="company", cascade="all, delete-orphan")
+    smtp_settings: Mapped["CompanySMTPSettings"] = relationship("CompanySMTPSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
+
 

@@ -44,6 +44,10 @@ celery_app.conf.beat_schedule = {
         "task": "celery_worker.cleanup_expired_exports_async",
         "schedule": crontab(hour=0, minute=0),
     },
+    "reverify-smtp-settings-daily": {
+        "task": "tasks.smtp.reverify_all_smtp_settings_task",
+        "schedule": crontab(hour=1, minute=0),
+    },
 }
 
 

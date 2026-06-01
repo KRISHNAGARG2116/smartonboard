@@ -697,6 +697,7 @@ def generate_delta_sync_async(self, credential_id: str, company_id: str):
 # Import advanced automation tasks to ensure Celery registers them on startup
 from tasks.escalations import check_sla_breaches_task, check_approval_escalations_task
 from tasks.webhooks import dispatch_webhook_event_task, purge_expired_delivery_logs
+from tasks.smtp import reverify_all_smtp_settings_task
 
 
 
