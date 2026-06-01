@@ -19,6 +19,8 @@ from api.approvals import router as approvals_router
 from api.committees import router as committees_router
 from api.webhooks import router as webhooks_router
 from api.enterprise import router as enterprise_router
+from api.employees import router as employees_router
+
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
@@ -40,6 +42,7 @@ v1_router.include_router(approvals_router)
 v1_router.include_router(committees_router)
 v1_router.include_router(webhooks_router)
 v1_router.include_router(enterprise_router)
+v1_router.include_router(employees_router)
 
 
 

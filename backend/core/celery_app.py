@@ -32,6 +32,10 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    "sweep-onboarding-outbox-every-5s": {
+        "task": "tasks.hris.sweep_onboarding_outbox_task",
+        "schedule": 5.0,
+    },
     "sweep-sla-breaches-every-30s": {
         "task": "tasks.escalations.check_sla_breaches_task",
         "schedule": 30.0,

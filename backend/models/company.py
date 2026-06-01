@@ -44,5 +44,13 @@ class Company(Base):
     subscription_plan: Mapped["CompanySubscriptionPlan"] = relationship("CompanySubscriptionPlan", back_populates="company", uselist=False, cascade="all, delete-orphan")
     usage_ledger: Mapped["CompanyUsageLedger"] = relationship("CompanyUsageLedger", back_populates="company", uselist=False, cascade="all, delete-orphan")
     usage_histories: Mapped[list["CompanyUsageHistory"]] = relationship("CompanyUsageHistory", back_populates="company", cascade="all, delete-orphan")
+    employees: Mapped[list["Employee"]] = relationship("Employee", back_populates="company", cascade="all, delete-orphan")
+    hris_integrations: Mapped[list["CompanyHRISIntegration"]] = relationship("CompanyHRISIntegration", back_populates="company", cascade="all, delete-orphan")
+    onboarding_templates: Mapped[list["OnboardingTemplate"]] = relationship("OnboardingTemplate", back_populates="company", cascade="all, delete-orphan")
+    hris_field_mappings: Mapped[list["HRISFieldMapping"]] = relationship("HRISFieldMapping", back_populates="company", cascade="all, delete-orphan")
+    sync_metrics: Mapped[list["SyncMetric"]] = relationship("SyncMetric", back_populates="company", cascade="all, delete-orphan")
+    dlq_records: Mapped[list["DLQRecord"]] = relationship("DLQRecord", back_populates="company", cascade="all, delete-orphan")
+    employee_sync_histories: Mapped[list["EmployeeSyncHistory"]] = relationship("EmployeeSyncHistory", back_populates="company", cascade="all, delete-orphan")
+
 
 

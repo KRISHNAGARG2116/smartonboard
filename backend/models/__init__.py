@@ -41,6 +41,21 @@ from models.enterprise import (
     CompanyUsageLedger,
     CompanyUsageHistory,
 )
+from models.employees import (
+    CompanyHRISIntegration,
+    Employee,
+    OnboardingTemplate,
+    OnboardingTemplateTask,
+    OnboardingWorkflow,
+    OnboardingTask,
+    OnboardingDocument,
+    OnboardingEventOutbox,
+    HRISFieldMapping,
+    SyncMetric,
+    DLQRecord,
+    EmployeeSyncHistory,
+)
+
 
 
 
@@ -93,6 +108,18 @@ __all__ = [
     "CompanySubscriptionPlan",
     "CompanyUsageLedger",
     "CompanyUsageHistory",
+    "CompanyHRISIntegration",
+    "Employee",
+    "OnboardingTemplate",
+    "OnboardingTemplateTask",
+    "OnboardingWorkflow",
+    "OnboardingTask",
+    "OnboardingDocument",
+    "OnboardingEventOutbox",
+    "HRISFieldMapping",
+    "SyncMetric",
+    "DLQRecord",
+    "EmployeeSyncHistory",
 ]
 
 
