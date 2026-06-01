@@ -41,5 +41,8 @@ class Company(Base):
     webhook_delivery_logs: Mapped[list["WebhookDeliveryLog"]] = relationship("WebhookDeliveryLog", back_populates="company", cascade="all, delete-orphan")
     ip_whitelists: Mapped[list["CompanyIPWhitelist"]] = relationship("CompanyIPWhitelist", back_populates="company", cascade="all, delete-orphan")
     smtp_settings: Mapped["CompanySMTPSettings"] = relationship("CompanySMTPSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
+    subscription_plan: Mapped["CompanySubscriptionPlan"] = relationship("CompanySubscriptionPlan", back_populates="company", uselist=False, cascade="all, delete-orphan")
+    usage_ledger: Mapped["CompanyUsageLedger"] = relationship("CompanyUsageLedger", back_populates="company", uselist=False, cascade="all, delete-orphan")
+    usage_histories: Mapped[list["CompanyUsageHistory"]] = relationship("CompanyUsageHistory", back_populates="company", cascade="all, delete-orphan")
 
 

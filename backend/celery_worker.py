@@ -73,6 +73,11 @@ def process_resume_async(self, file_path: str, company_id: str, job_id: str, eva
             if job is None:
                 raise ValueError(f"Terminal Error: Job with ID {job_id} does not exist.")
 
+            # Enforce parsed candidate billing quota (retries excluded)
+            if retry_cnt == 0:
+                from core.quota import increment_quota_usage
+                increment_quota_usage(db, uuid.UUID(company_id), "candidates_processed")
+
             # 3. Emit ai.evaluation_started compliance audit event
             log_audit_event(
                 db=db,
@@ -698,6 +703,7 @@ def generate_delta_sync_async(self, credential_id: str, company_id: str):
 from tasks.escalations import check_sla_breaches_task, check_approval_escalations_task
 from tasks.webhooks import dispatch_webhook_event_task, purge_expired_delivery_logs
 from tasks.smtp import reverify_all_smtp_settings_task
+from tasks.billing import aggregate_usage_billing_period_task
 
 
 

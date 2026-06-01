@@ -1,6 +1,7 @@
 from tasks.escalations import check_sla_breaches_task, check_approval_escalations_task
 from tasks.webhooks import dispatch_webhook_event_task, purge_expired_delivery_logs
 from tasks.smtp import reverify_all_smtp_settings_task
+from tasks.billing import aggregate_usage_billing_period_task
 
 __all__ = [
     "check_sla_breaches_task",
@@ -8,6 +9,7 @@ __all__ = [
     "dispatch_webhook_event_task",
     "purge_expired_delivery_logs",
     "reverify_all_smtp_settings_task",
+    "aggregate_usage_billing_period_task",
 ]
 
 

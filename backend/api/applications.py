@@ -428,6 +428,10 @@ async def create_application_async(
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
+    # Enforce parsed candidate billing quota pre-flight check
+    from core.quota import check_quota_pre_flight
+    check_quota_pre_flight(db, current_user.company_id, "candidates_processed")
+
     # 5. Dispatch task to Celery worker queue
     evaluation_id = str(uuid.uuid4())
     relative_path = f"uploads/{current_user.company_id}/{permanent_path.name}"

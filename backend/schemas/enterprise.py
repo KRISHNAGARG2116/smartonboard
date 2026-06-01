@@ -61,3 +61,47 @@ class CompanySMTPSettingsResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CompanySubscriptionPlanUpdateRequest(BaseModel):
+    tier_name: str = Field(..., description="Plan tier name: 'free' | 'growth' | 'enterprise'")
+
+    @field_validator("tier_name")
+    @classmethod
+    def validate_tier(cls, v: str) -> str:
+        if v.lower() not in ("free", "growth", "enterprise"):
+            raise ValueError("Plan tier name must reside within ('free', 'growth', 'enterprise').")
+        return v.lower()
+
+
+class CompanySubscriptionPlanResponse(BaseModel):
+    id: uuid.UUID
+    company_id: uuid.UUID
+    tier_name: str
+    candidate_limit: int
+    job_limit: int
+    ai_limit: int
+    webhook_limit: int
+    pending_downgrade_tier: str | None
+    pending_downgrade_effective_at: datetime | None
+    billing_cycle_start: datetime
+    billing_cycle_end: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyUsageLedgerResponse(BaseModel):
+    id: uuid.UUID
+    company_id: uuid.UUID
+    candidates_processed: int
+    active_jobs_count: int
+    ai_screenings_run: int
+    webhooks_dispatched: int
+    last_reset_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

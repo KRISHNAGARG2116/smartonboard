@@ -133,4 +133,7 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
             finally:
                 db.close()
 
-        return await call_next(request)
+        response = await call_next(request)
+        if hasattr(request.state, "quota_warning") and request.state.quota_warning:
+            response.headers["X-Quota-Warning"] = request.state.quota_warning
+        return response

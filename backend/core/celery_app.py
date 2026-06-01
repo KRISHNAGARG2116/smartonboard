@@ -48,6 +48,10 @@ celery_app.conf.beat_schedule = {
         "task": "tasks.smtp.reverify_all_smtp_settings_task",
         "schedule": crontab(hour=1, minute=0),
     },
+    "aggregate-usage-billing-period-daily": {
+        "task": "tasks.billing.aggregate_usage_billing_period_task",
+        "schedule": crontab(hour=2, minute=0),
+    },
 }
 
 

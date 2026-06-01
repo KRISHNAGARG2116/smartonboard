@@ -37,6 +37,11 @@ def dispatch_webhook_event_task(self, company_id: str, event_type: str, payload:
     with tenant_context(tenant_id=company_id):
         db = SessionLocal()
         try:
+            # Enforce unique triggered event quota (retries excluded)
+            if retry_cnt == 0:
+                from core.quota import increment_quota_usage
+                increment_quota_usage(db, uuid.UUID(company_id), "webhooks_dispatched")
+
             # Query all active subscriptions for this company
             stmt = select(WebhookSubscription).where(
                 WebhookSubscription.company_id == uuid.UUID(company_id),

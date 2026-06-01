@@ -36,12 +36,17 @@ def create_job(
     current_user: RequireRecruiter,
     db: TenantDb
 ):
+    job_status = _parse_job_status(body.status)
+    if job_status == JobStatus.OPEN:
+        from core.quota import increment_quota_usage
+        increment_quota_usage(db, current_user.company_id, "active_jobs_count", increment_by=1, request=request)
+
     job = Job(
         company_id=current_user.company_id,
         title=body.title,
         department=body.department,
         description=body.description,
-        status=_parse_job_status(body.status),
+        status=job_status,
         start_date=body.start_date,
     )
     db.add(job)
@@ -107,6 +112,9 @@ def update_job(
     if body.status is not None:
         new_status = _parse_job_status(body.status)
         if old_status != new_status:
+            if new_status == JobStatus.OPEN and old_status != JobStatus.OPEN:
+                from core.quota import increment_quota_usage
+                increment_quota_usage(db, current_user.company_id, "active_jobs_count", increment_by=1, request=request)
             changes["status"] = {"old": old_status.value, "new": new_status.value}
             job.status = new_status
     if body.start_date is not None:

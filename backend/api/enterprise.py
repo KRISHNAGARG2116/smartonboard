@@ -21,6 +21,9 @@ from schemas.enterprise import (
     CompanyIPWhitelistResponse,
     CompanySMTPSettingsCreate,
     CompanySMTPSettingsResponse,
+    CompanySubscriptionPlanResponse,
+    CompanySubscriptionPlanUpdateRequest,
+    CompanyUsageLedgerResponse,
 )
 
 logger = logging.getLogger("app")
@@ -380,3 +383,201 @@ def test_smtp_settings(
     db.commit()
     db.refresh(smtp)
     return smtp
+
+
+# =========================================================================
+# Subscription & Quota Ledgers Endpoints
+# =========================================================================
+
+from sqlalchemy.orm import Session
+from db.session import get_db
+
+def require_owner_or_billing_service(
+    request: Request,
+    db: Session,
+) -> dict:
+    is_billing_service = request.headers.get("X-Billing-Service-Token") == os.getenv(
+        "BILLING_SERVICE_TOKEN", "secure-billing-service-token"
+    )
+    if is_billing_service:
+        company_id_str = request.headers.get("X-Company-Id")
+        if not company_id_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Billing Service requests must carry a valid 'X-Company-Id' header."
+            )
+        try:
+            company_id = uuid.UUID(company_id_str)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid 'X-Company-Id' header format."
+            )
+
+        from db.session import set_tenant_context, tenant_id_var
+        tenant_id_var.set(str(company_id))
+        set_tenant_context(db, str(company_id))
+
+        return {
+            "company_id": company_id,
+            "actor_id": None,
+            "actor_type": "SYSTEM"
+        }
+    
+    # Otherwise, require logged-in Owner
+    from fastapi.security import HTTPAuthorizationCredentials
+    from api.deps import get_current_user
+    
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    
+    token = auth_header.split(" ")[1]
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    user = get_current_user(credentials=credentials, db=db)
+    if user.role.value != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Only Company Owners or the Billing Service can modify subscription plans."
+        )
+
+    from db.session import set_tenant_context, tenant_id_var
+    tenant_id_var.set(str(user.company_id))
+    set_tenant_context(db, str(user.company_id))
+
+    return {
+        "company_id": user.company_id,
+        "actor_id": user.id,
+        "actor_type": "RECRUITER"
+    }
+
+
+@router.get("/subscription", response_model=CompanySubscriptionPlanResponse)
+def get_company_subscription(
+    current_user: RequireOwner,
+    db: TenantDb,
+):
+    from core.quota import get_or_initialize_subscription_plan
+    return get_or_initialize_subscription_plan(db, current_user.company_id)
+
+
+@router.get("/usage", response_model=CompanyUsageLedgerResponse)
+def get_company_usage(
+    current_user: RequireOwner,
+    db: TenantDb,
+):
+    from core.quota import get_or_initialize_usage_ledger
+    from sqlalchemy import func
+    from models import Job
+
+    ledger = get_or_initialize_usage_ledger(db, current_user.company_id)
+    
+    # Sync live active jobs count for accuracy
+    stmt = select(func.count(Job.id)).where(
+        Job.company_id == current_user.company_id,
+        Job.status == "active"
+    )
+    ledger.active_jobs_count = db.scalar(stmt)
+    db.add(ledger)
+    db.commit()
+    db.refresh(ledger)
+    return ledger
+
+
+@router.post("/subscription", response_model=CompanySubscriptionPlanResponse)
+def update_company_subscription(
+    body: CompanySubscriptionPlanUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    auth_data = require_owner_or_billing_service(request, db)
+    company_id = auth_data["company_id"]
+    actor_id = auth_data["actor_id"]
+    actor_type = auth_data["actor_type"]
+
+    # Process Tier Upgrade/Downgrade Lifecycle
+    from core.quota import get_or_initialize_subscription_plan
+    plan = get_or_initialize_subscription_plan(db, company_id)
+
+    target_tier = body.tier_name.lower()
+    current_tier = plan.tier_name.lower()
+
+    if target_tier == current_tier:
+        return plan
+
+    tier_levels = {"free": 1, "growth": 2, "enterprise": 3}
+    current_level = tier_levels.get(current_tier, 1)
+    target_level = tier_levels.get(target_tier, 1)
+
+    now = datetime.now(timezone.utc)
+
+    # Determine limits
+    limits_map = {
+        "free": {"candidate": 5, "job": 3, "ai": 5, "webhook": 10},
+        "growth": {"candidate": 100, "job": 20, "ai": 100, "webhook": 200},
+        "enterprise": {"candidate": 1000, "job": 100, "ai": 1000, "webhook": 2000}
+    }
+    new_limits = limits_map.get(target_tier, limits_map["free"])
+
+    if target_level > current_level:
+        # 1. UPGRADE: Take effect immediately
+        plan.tier_name = target_tier
+        plan.candidate_limit = new_limits["candidate"]
+        plan.job_limit = new_limits["job"]
+        plan.ai_limit = new_limits["ai"]
+        plan.webhook_limit = new_limits["webhook"]
+
+        # Cancel any pending scheduled downgrades
+        plan.pending_downgrade_tier = None
+        plan.pending_downgrade_effective_at = None
+        plan.updated_at = now
+        db.add(plan)
+        db.commit()
+        db.refresh(plan)
+
+        # Log billing.tier_upgraded audit event
+        log_audit_event(
+            db=db,
+            action="billing.tier_upgraded",
+            actor_type=actor_type,
+            actor_id=actor_id,
+            company_id=company_id,
+            resource_type="company_subscription_plans",
+            resource_id=str(plan.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={
+                "old_tier": current_tier,
+                "new_tier": target_tier,
+                "candidate_limit": new_limits["candidate"],
+                "job_limit": new_limits["job"],
+            }
+        )
+    else:
+        # 2. DOWNGRADE: Effective next billing cycle
+        plan.pending_downgrade_tier = target_tier
+        plan.pending_downgrade_effective_at = plan.billing_cycle_end
+        plan.updated_at = now
+        db.add(plan)
+        db.commit()
+        db.refresh(plan)
+
+        # Log billing.downgrade_scheduled audit event
+        log_audit_event(
+            db=db,
+            action="billing.downgrade_scheduled",
+            actor_type=actor_type,
+            actor_id=actor_id,
+            company_id=company_id,
+            resource_type="company_subscription_plans",
+            resource_id=str(plan.id),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={
+                "current_tier": current_tier,
+                "pending_downgrade_tier": target_tier,
+                "effective_at": plan.billing_cycle_end.isoformat(),
+            }
+        )
+
+    return plan
