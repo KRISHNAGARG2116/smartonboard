@@ -17,6 +17,7 @@ from api.scheduling import router as scheduling_router
 from api.pipelines import router as pipelines_router
 from api.approvals import router as approvals_router
 from api.committees import router as committees_router
+from api.webhooks import router as webhooks_router
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
@@ -36,6 +37,8 @@ v1_router.include_router(scheduling_router)
 v1_router.include_router(pipelines_router)
 v1_router.include_router(approvals_router)
 v1_router.include_router(committees_router)
+v1_router.include_router(webhooks_router)
+
 
 
 

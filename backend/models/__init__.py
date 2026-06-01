@@ -33,6 +33,8 @@ from models.committee import (
     CommitteeReview,
     CommitteeReviewReviewer,
 )
+from models.webhook import WebhookSubscription, WebhookDeliveryLog
+
 
 __all__ = [
     "Company",
@@ -76,6 +78,9 @@ __all__ = [
     "HiringCommitteeMember",
     "CommitteeReview",
     "CommitteeReviewReviewer",
+    "WebhookSubscription",
+    "WebhookDeliveryLog",
 ]
+
 
 

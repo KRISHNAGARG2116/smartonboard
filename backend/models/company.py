@@ -37,3 +37,6 @@ class Company(Base):
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="company", cascade="all, delete-orphan")
     offers: Mapped[list["Offer"]] = relationship("Offer", back_populates="company", cascade="all, delete-orphan")
     candidate_embeddings: Mapped[list["CandidateEmbedding"]] = relationship("CandidateEmbedding", back_populates="company", cascade="all, delete-orphan")
+    webhook_subscriptions: Mapped[list["WebhookSubscription"]] = relationship("WebhookSubscription", back_populates="company", cascade="all, delete-orphan")
+    webhook_delivery_logs: Mapped[list["WebhookDeliveryLog"]] = relationship("WebhookDeliveryLog", back_populates="company", cascade="all, delete-orphan")
+
