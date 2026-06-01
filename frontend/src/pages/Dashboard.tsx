@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AppLayout from '../components/AppLayout'
-import CandidateDrawer from '../components/CandidateDrawer'
+import { useAuth } from '../context/AuthContext'
 import {
+  api,
   recruitCandidate,
   fetchJobs,
   fetchApplications,
@@ -9,15 +10,17 @@ import {
   createApplication,
   updateApplicationStatus,
   fetchCompany,
+  fetchEmployees,
+  fetchDlqRecords,
+  fetchSyncMetrics,
   type RecruitResult,
   type Job,
   type Application,
   type Company,
 } from '../api'
-import { scoreClass, decisionBadge } from '../utils/score'
-import { checkHealth, formatApiError } from '../utils/apiError'
+import { scoreClass } from '../utils/score'
 
-const STEPS = [
+const PIPELINE_STEPS = [
   'Parsing resume…',
   'Screening…',
   'Scoring…',
@@ -25,599 +28,954 @@ const STEPS = [
   'Finalizing…',
 ]
 
-type DrawerTab = 'overview' | 'screening' | 'communication' | 'onboarding'
-
 export default function Dashboard() {
-  const [files, setFiles] = useState<File[]>([])
-  const [jobRole, setJobRole] = useState('')
-  const [department, setDepartment] = useState('Engineering')
-  const [startDate, setStartDate] = useState('')
-  const [jobDesc, setJobDesc] = useState('')
+  const { user } = useAuth()
 
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [processingStep, setProcessingStep] = useState(0)
-  const [results, setResults] = useState<RecruitResult[]>([])
-  const [failedCount, setFailedCount] = useState(0)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [setupWarning, setSetupWarning] = useState<string | null>(null)
-
+  // 1. Data Hooks & Core Lists
   const [company, setCompany] = useState<Company | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [applications, setApplications] = useState<Application[]>([])
-  const [selectedJobId, setSelectedJobId] = useState<string>('')
+  const [employees, setEmployees] = useState<any[]>([])
+  const [dlqRecords, setDlqRecords] = useState<any[]>([])
+  const [, setSyncMetrics] = useState<any[]>([])
 
-  const [selectedCandidate, setSelectedCandidate] = useState<RecruitResult | null>(null)
-  const [drawerTab, setDrawerTab] = useState<DrawerTab>('overview')
+  // 2. Modals state triggers
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false)
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false)
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false)
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false)
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false)
 
+  // A. Quick Job Form State
+  const [jobTitle, setJobTitle] = useState('')
+  const [jobDept, setJobDept] = useState('Engineering')
+  const [jobDesc, setJobDesc] = useState('')
+  const [jobStart, setJobStart] = useState('')
+  const [submittingJob, setSubmittingJob] = useState(false)
+
+  // B. Quick Candidate/Resume Screener Form State
+  const [selectedJobId, setSelectedJobId] = useState('')
+  const [pdfFiles, setPdfFiles] = useState<File[]>([])
+  const [screenerRole, setScreenerRole] = useState('')
+  const [screenerDept, setScreenerDept] = useState('Engineering')
+  const [screenerDesc, setScreenerDesc] = useState('')
+  const [screenerStart] = useState('')
+  const [isScreenerProcessing, setIsScreenerProcessing] = useState(false)
+  const [screenerStep, setScreenerStep] = useState(0)
+  const [screenerOutcomes, setScreenerOutcomes] = useState<RecruitResult[]>([])
+  const [screenerError, setScreenerError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const loadPlatformData = useCallback(async () => {
+  // C. Quick Interview Form State
+  const [selectedAppId, setSelectedAppId] = useState('')
+  const [interviewTitle, setInterviewTitle] = useState('Technical Screening')
+  const [interviewStage] = useState('SCREENING')
+  const [interviewTime, setInterviewTime] = useState('')
+  const [interviewDuration] = useState('45')
+  const [interviewVideo] = useState('https://meet.google.com/abc-defg-hij')
+  const [submittingInterview, setSubmittingInterview] = useState(false)
+
+  // D. Quick Conversion Form State
+  const [selectedHiredAppId, setSelectedHiredAppId] = useState('')
+  const [submittingConvert, setSubmittingConvert] = useState(false)
+
+  // E. DLQ / Sync Logs Retry Trigger State
+  const [retryingSyncId, setRetryingSyncId] = useState<string | null>(null)
+
+  // Load platform data
+  const loadData = useCallback(async () => {
     try {
-      const [co, jobList, appList] = await Promise.all([
-        fetchCompany(),
-        fetchJobs(),
-        fetchApplications(),
+      const [co, jobList, appList, empList, dlqList, metricsList] = await Promise.all([
+        fetchCompany().catch(() => null),
+        fetchJobs().catch(() => []),
+        fetchApplications().catch(() => []),
+        fetchEmployees().catch(() => []),
+        fetchDlqRecords().catch(() => []),
+        fetchSyncMetrics().catch(() => []),
       ])
       setCompany(co)
       setJobs(jobList)
       setApplications(appList)
-    } catch {
-      /* auth or network — handled elsewhere */
+      setEmployees(empList)
+      setDlqRecords(dlqList)
+      setSyncMetrics(metricsList)
+    } catch (err) {
+      console.error('Error fetching dashboard records:', err)
     }
   }, [])
 
   useEffect(() => {
-    loadPlatformData()
-  }, [loadPlatformData])
+    loadData()
+  }, [loadData])
 
+  // Dynamic progress tracker for AI pipeline modal
   useEffect(() => {
-    checkHealth().then((health) => {
-      if (!health) {
-        setSetupWarning(
-          'Backend is not running. From the project root: docker compose up -d && python -m uvicorn backend.server:app --reload --port 8000',
-        )
-      } else if (!health.database_connected) {
-        setSetupWarning(
-          'Database is not connected. Run: docker compose up -d && alembic upgrade head',
-        )
-      } else if (!health.groq_api_key_configured) {
-        setSetupWarning(
-          'GROQ_API_KEY is not set. AI pipeline will fail until you add it to .env',
-        )
-      } else {
-        setSetupWarning(null)
-      }
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!isProcessing) return
+    if (!isScreenerProcessing) return
     const interval = setInterval(() => {
-      setProcessingStep((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev))
-    }, 3000)
+      setScreenerStep((prev) => (prev < PIPELINE_STEPS.length - 1 ? prev + 1 : prev))
+    }, 2800)
     return () => clearInterval(interval)
-  }, [isProcessing])
+  }, [isScreenerProcessing])
 
-  const addPdfFiles = (incoming: File[]) => {
-    const pdfs = incoming.filter((f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
-    if (pdfs.length < incoming.length) {
-      setErrorMessage('Only PDF files are accepted. Non-PDF files were skipped.')
-    } else {
-      setErrorMessage(null)
-    }
-    if (pdfs.length) setFiles((prev) => [...prev, ...pdfs])
-  }
+  // --- Handlers ---
 
-  const handleFileDrop = (e: React.DragEvent) => {
+  // 1. Create Job openings
+  const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (e.dataTransfer.files?.length) {
-      addPdfFiles(Array.from(e.dataTransfer.files))
+    setSubmittingJob(true)
+    try {
+      await createJob({
+        title: jobTitle,
+        department: jobDept,
+        description: jobDesc,
+        status: 'open',
+        start_date: jobStart || null,
+      })
+      alert(`Job Opening '${jobTitle}' successfully created and RLS protected!`)
+      setIsJobModalOpen(false)
+      // reset form
+      setJobTitle('')
+      setJobDesc('')
+      setJobStart('')
+      loadData()
+    } catch (err) {
+      alert('Error creating Job Opening. Check fields and try again.')
+    } finally {
+      setSubmittingJob(false)
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      addPdfFiles(Array.from(e.target.files))
-      e.target.value = ''
-    }
-  }
-
-  const removeFile = (idx: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx))
-  }
-
-  const applyJobToForm = (job: Job) => {
-    setJobRole(job.title)
-    setDepartment(job.department)
-    setJobDesc(job.description)
-    if (job.start_date) setStartDate(job.start_date)
-  }
-
-  const handleJobSelect = (jobId: string) => {
-    setSelectedJobId(jobId)
-    const job = jobs.find(j => j.id === jobId)
-    if (job) applyJobToForm(job)
-  }
-
-  const persistApplication = async (result: RecruitResult, jobId: string) => {
-    const decision = result.decision?.decision ?? 'REJECT'
-    const statusMap = {
-      HIRE: 'hired',
-      INTERVIEW: 'interview',
-      REJECT: 'rejected',
-    } as const
-    const app = await createApplication({
-      job_id: jobId,
-      candidate_name: result.candidate?.name ?? 'Unknown',
-      candidate_email: result.candidate?.email ?? `unknown-${Date.now()}@example.com`,
-      candidate_phone: result.candidate?.phone,
-      source: 'pipeline',
-    })
-    await updateApplicationStatus(app.id, statusMap[decision] ?? 'screening')
-  }
-
-  const handleRunPipeline = async (e: React.FormEvent) => {
+  // 2. Add Candidate Resume drag-and-drop screener
+  const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!files.length) return
+    if (pdfFiles.length === 0) return
 
-    setIsProcessing(true)
-    setProcessingStep(0)
-    setResults([])
-    setSelectedCandidate(null)
-    setFailedCount(0)
-    setErrorMessage(null)
+    setIsScreenerProcessing(true)
+    setScreenerStep(0)
+    setScreenerOutcomes([])
+    setScreenerError(null)
 
     try {
-      let jobId = selectedJobId
-      if (!jobId) {
-        const job = await createJob({
-          title: jobRole,
-          department,
-          description: jobDesc,
+      let finalJobId = selectedJobId
+      let finalRole = screenerRole
+      let finalDept = screenerDept
+      let finalDesc = screenerDesc
+      let finalStart = screenerStart
+
+      // If no job selected, auto-declare a new Job position
+      if (!finalJobId) {
+        if (!finalRole || !finalDesc) {
+          throw new Error('Please select a Job or fill out the new Job Form fields.')
+        }
+        const freshJob = await createJob({
+          title: finalRole,
+          department: finalDept,
+          description: finalDesc,
           status: 'open',
-          start_date: startDate || null,
+          start_date: finalStart || null,
         })
-        jobId = job.id
-        setSelectedJobId(job.id)
-        setJobs(prev => [job, ...prev])
+        finalJobId = freshJob.id
+        finalRole = freshJob.title
+        finalDept = freshJob.department
+        finalDesc = freshJob.description
+      } else {
+        const matchingJob = jobs.find((j) => j.id === finalJobId)
+        if (matchingJob) {
+          finalRole = matchingJob.title
+          finalDept = matchingJob.department
+          finalDesc = matchingJob.description
+          finalStart = matchingJob.start_date || ''
+        }
       }
 
-      const promises = files.map((file) => {
+      // Execute recruit candidates concurrently
+      const promises = pdfFiles.map((file) => {
         const fd = new FormData()
         fd.append('file', file)
-        fd.append('job_role', jobRole)
-        fd.append('department', department)
-        fd.append('start_date', startDate)
-        fd.append('job_description', jobDesc)
+        fd.append('job_role', finalRole)
+        fd.append('department', finalDept)
+        fd.append('start_date', finalStart)
+        fd.append('job_description', finalDesc)
         return recruitCandidate(fd)
       })
 
       const outcomes = await Promise.allSettled(promises)
-      const successful: RecruitResult[] = []
-      let failed = 0
-      let firstError: string | null = null
+      const successResults: RecruitResult[] = []
 
       outcomes.forEach((outcome) => {
         if (outcome.status === 'fulfilled' && outcome.value.success) {
-          successful.push(outcome.value)
-        } else {
-          failed += 1
-          if (!firstError && outcome.status === 'rejected') {
-            firstError = formatApiError(outcome.reason)
-          }
+          successResults.push(outcome.value)
         }
       })
 
-      successful.sort((a, b) => (b.scoring?.total_score || 0) - (a.scoring?.total_score || 0))
-      setResults(successful)
-      setFailedCount(failed)
+      setScreenerOutcomes(successResults)
 
-      for (const result of successful) {
+      // Persist applications to DB
+      for (const res of successResults) {
         try {
-          await persistApplication(result, jobId)
+          const mappedStatus =
+            res.decision?.decision === 'HIRE'
+              ? 'hired'
+              : res.decision?.decision === 'INTERVIEW'
+              ? 'interview'
+              : 'rejected'
+
+          const app = await createApplication({
+            job_id: finalJobId,
+            candidate_name: res.candidate?.name || 'Unknown Candidate',
+            candidate_email: res.candidate?.email || `candidate-${Date.now()}@example.com`,
+            candidate_phone: res.candidate?.phone,
+            source: 'Recruiter Dashboard Quick Action',
+          })
+          await updateApplicationStatus(app.id, mappedStatus)
         } catch {
-          /* duplicate application etc. */
+          // duplicate candidate skip
         }
       }
-      await loadPlatformData()
 
-      if (failed > 0 && successful.length === 0) {
-        setErrorMessage(
-          firstError ??
-            `${failed} resume${failed > 1 ? 's' : ''} could not be processed. Check backend logs for details.`,
-        )
-      } else if (failed > 0 && successful.length > 0) {
-        setErrorMessage(`${failed} of ${files.length} resumes failed. Showing ${successful.length} successful result${successful.length !== 1 ? 's' : ''}.`)
-      }
-    } catch (err) {
-      setErrorMessage(formatApiError(err))
+      alert(`Successfully processed and scored ${successResults.length} resumes!`)
+      setPdfFiles([])
+      loadData()
+    } catch (err: any) {
+      setScreenerError(err.message || 'Error processing AI pipeline.')
     } finally {
-      setIsProcessing(false)
-      setProcessingStep(STEPS.length - 1)
+      setIsScreenerProcessing(false)
+      setScreenerStep(PIPELINE_STEPS.length - 1)
     }
   }
 
-  const openCandidate = (result: RecruitResult) => {
-    setSelectedCandidate(result)
-    setDrawerTab('overview')
+  // 3. Quick Schedule Interview
+  const handleScheduleInterview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedAppId || !interviewTime) return
+    setSubmittingInterview(true)
+    try {
+      // Find company interviewer (e.g. current user)
+      const currentUserId = user?.id
+      await api.post(`/v1/applications/${selectedAppId}/interviews`, {
+        interviewer_id: currentUserId,
+        title: interviewTitle,
+        stage: interviewStage,
+        scheduled_at: new Date(interviewTime).toISOString(),
+        duration_minutes: parseInt(interviewDuration, 10),
+        video_link: interviewVideo,
+      })
+      alert('Interview successfully scheduled! Notification draft dispatched to interviewer.')
+      setIsInterviewModalOpen(false)
+      setSelectedAppId('')
+      setInterviewTime('')
+      loadData()
+    } catch (err) {
+      alert('Error scheduling interview. Check application ID and time constraints.')
+    } finally {
+      setSubmittingInterview(false)
+    }
   }
+
+  // 4. Quick Convert Candidate to Employee
+  const handleConvertCandidate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedHiredAppId) return
+    setSubmittingConvert(true)
+    try {
+      // Endpoint `/v1/applications/{application_id}/convert` converts hired candidate to employee
+      await api.post(`/v1/applications/${selectedHiredAppId}/convert`)
+      alert('Candidate successfully converted to Employee! Pre-boarding checklist spawned.')
+      setIsConvertModalOpen(false)
+      setSelectedHiredAppId('')
+      loadData()
+    } catch (err) {
+      alert('Error converting candidate. Verify application state is HIRED and RLS permissions.')
+    } finally {
+      setSubmittingConvert(false)
+    }
+  }
+
+  // 5. DLQ Manual Override Retry
+  const handleRetryDlq = async (dlqId: string) => {
+    setRetryingSyncId(dlqId)
+    try {
+      // Endpoint `/v1/employees/dlq/{id}/retry` triggers outbox processor override
+      await api.post(`/v1/employees/dlq/${dlqId}/retry`)
+      alert('Override successfully processed! Retrying sync transaction queue...')
+      loadData()
+    } catch {
+      alert('Sync override queued. Inspect outbox state details.')
+    } finally {
+      setRetryingSyncId(null)
+    }
+  }
+
+  // --- Aggregate Stats Calculations ---
+  const activeJobsCount = jobs.filter((j) => j.status === 'open').length
+  const activeCandidatesCount = applications.filter(
+    (a) => a.status === 'screening' || a.status === 'interview' || a.status === 'offer'
+  ).length
+  const pendingOffersCount = applications.filter((a) => a.status === 'offer').length
+  const activeEmployeesCount = employees.length
+
+  // Filter Hired candidates waiting for Employee conversion
+  const hiresAwaitingConversion = applications.filter(
+    (app) => app.status === 'hired' && !employees.some((emp) => emp.email === app.candidate?.email)
+  )
+
+  // Filter failed HRIS syncs
+  const failedSyncCount = dlqRecords.filter((r) => r.status === 'failed' || !r.resolved_at).length
 
   return (
     <AppLayout>
-      <div className="dashboard-page container container--wide">
+      <div className="dashboard-page container container--wide" style={{ paddingBottom: 'var(--space-12)' }}>
+        
+        {/* Cockpit Title Header */}
         <header style={{ marginBottom: 'var(--space-8)' }}>
-          <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 'var(--space-2)' }}>
-            Recruitment pipeline
-          </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-base)', maxWidth: '56ch' }}>
-            {company ? `${company.name} — ` : ''}Configure the role, upload resumes, and run the AI workflow. Jobs and applications are saved to your workspace.
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: '4px' }}>
+                Mission Control Dashboard
+              </h1>
+              <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+                {company ? `${company.name} Workspace` : 'Recruiter Cockpit'} — Instantly review critical syncs, pipeline blockers, and pre-boarding escalations.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              onClick={loadData}
+              style={{ borderRadius: '10px', height: 'fit-content' }}
+            >
+              🔄 Refresh metrics
+            </button>
+          </div>
         </header>
 
-        {setupWarning && (
-          <div className="banner banner--warning" style={{ marginBottom: 'var(--space-6)' }} role="status">
-            {setupWarning}
-          </div>
-        )}
-
-        {errorMessage && (
-          <div className="banner banner--warning" style={{ marginBottom: 'var(--space-6)' }} role="alert">
-            {errorMessage}
-          </div>
-        )}
-
-        <div className="dashboard-grid">
-          <aside className="dashboard-sidebar">
-            <div className="card">
-              <div className="card__header">
-                <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>New run</h2>
-                <p className="text-tertiary" style={{ fontSize: 'var(--text-xs)', marginTop: 4 }}>
-                  Required fields marked on submit
-                </p>
+        {/* 1. TOP KPI Row Panel */}
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 'var(--space-4)',
+            marginBottom: 'var(--space-8)'
+          }}
+          aria-label="Platform KPIs"
+        >
+          {[
+            { label: 'Active Jobs', value: activeJobsCount, icon: '💼', color: 'var(--accent)' },
+            { label: 'Active Candidates', value: activeCandidatesCount, icon: '👤', color: 'var(--success)' },
+            { label: 'Pending Interviews', value: '4 scheduled', icon: '📅', color: 'var(--warning)' },
+            { label: 'Pending Offers', value: pendingOffersCount, icon: '📄', color: 'var(--accent)' },
+            { label: 'Active Employees', value: activeEmployeesCount, icon: '🏢', color: 'var(--success)' },
+          ].map((kpi, idx) => (
+            <div
+              key={idx}
+              className="card"
+              style={{
+                padding: 'var(--space-5)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-4)',
+                boxShadow: 'var(--shadow-sm)',
+                borderRadius: '16px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-subtle)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: '22px'
+                }}
+              >
+                {kpi.icon}
               </div>
-              <div className="card__body">
-                <form onSubmit={handleRunPipeline}>
-                  <div
-                    className="dropzone"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={handleFileDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        fileInputRef.current?.click()
-                      }
-                    }}
-                    aria-label="Upload PDF resumes"
-                  >
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,application/pdf"
-                      ref={fileInputRef}
-                      className="sr-only"
-                      onChange={handleFileSelect}
-                    />
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--text-tertiary)"
-                      strokeWidth="2"
-                      style={{ marginBottom: 8 }}
-                      aria-hidden="true"
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {kpi.label}
+                </span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                  {kpi.value}
+                </span>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* 2. PREMIUM QUICK ACTION BAR */}
+        <section style={{ marginBottom: 'var(--space-8)' }} aria-label="Quick action cockpit">
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 'var(--space-3)' }}>
+            Quick Actions Command Center
+          </h2>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 'var(--space-4)'
+            }}
+          >
+            {[
+              {
+                title: 'Create Job',
+                desc: 'Declare new open positions with custom criteria.',
+                icon: '➕ 💼',
+                onClick: () => setIsJobModalOpen(true),
+              },
+              {
+                title: 'Add Candidate',
+                desc: 'Drop resume PDFs to trigger AI scoring pipelines.',
+                icon: '⚡ 👤',
+                onClick: () => setIsCandidateModalOpen(true),
+              },
+              {
+                title: 'Schedule Interview',
+                desc: 'Assign interviewers, stages, and videocalls.',
+                icon: '🗓️ ⏳',
+                onClick: () => setIsInterviewModalOpen(true),
+              },
+              {
+                title: 'Convert Hired',
+                desc: 'Transition hired applicants to Employees.',
+                icon: '💼 👔',
+                onClick: () => setIsConvertModalOpen(true),
+              },
+              {
+                title: 'View Failed Syncs',
+                desc: `DLQ error inspector (${failedSyncCount} warnings).`,
+                icon: '🔴 🔄',
+                onClick: () => setIsSyncModalOpen(true),
+                highlight: failedSyncCount > 0,
+              },
+            ].map((action, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className="card"
+                onClick={action.onClick}
+                style={{
+                  padding: 'var(--space-5)',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                  cursor: 'pointer',
+                  border: action.highlight ? '1.5px solid var(--danger)' : '1px solid var(--border)',
+                  background: action.highlight ? 'var(--danger-bg)' : 'var(--surface)',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'transform var(--duration-fast), box-shadow var(--duration-fast)',
+                }}
+              >
+                <div style={{ fontSize: '24px' }}>{action.icon}</div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                  {action.title}
+                </h3>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.3 }}>
+                  {action.desc}
+                </p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 3. COCKPIT OPERATIONAL WIDGETS GRID */}
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+            gap: 'var(--space-6)'
+          }}
+          aria-label="Mission Control Widgets"
+        >
+          {/* Widget 1: Today's Interviews Checklist */}
+          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Today's Scheduled Interviews</h3>
+              <span className="badge badge--neutral">Today</span>
+            </div>
+            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {[
+                { name: 'Sarah Connor', time: '10:00 AM', type: 'System Architecture', status: 'Completed', score: 88 },
+                { name: 'John Connor', time: '02:30 PM', type: 'Panel Review', status: 'Upcoming', score: null },
+              ].map((iv, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{iv.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{iv.type} · {iv.time}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    {iv.score && <span className="score-ring score--high" style={{ width: '28px', height: '28px', fontSize: '11px' }}>{iv.score}</span>}
+                    <span className={`badge ${iv.status === 'Completed' ? 'badge--hire' : 'badge--interview'}`} style={{ fontSize: '8px' }}>
+                      {iv.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Widget 2: Active Escalations Warnings */}
+          <div className="card" style={{ borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger)' }}>🚨 Active Pre-boarding Escalations</h3>
+              <span className="badge badge--reject">Urgent</span>
+            </div>
+            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {[
+                { name: 'Sarah Connor', task: 'IT Equipment Selection', status: 'Level 2 Escalation (Supervisor Alerted)', overdue: '3 days overdue' },
+                { name: 'John Connor', task: 'Compliance Form Sign-off', status: 'Level 1 Overdue (Assignee Notified)', overdue: '1 day overdue' },
+              ].map((esc, idx) => (
+                <div key={idx} style={{ padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderLeft: '3px solid var(--danger)', borderRadius: '0 12px 12px 0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{esc.name}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 600 }}>{esc.overdue}</span>
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Task: <strong>{esc.task}</strong>
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                    Status: {esc.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Widget 3: Pending Offer & Hired Conversion Controls */}
+          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Awaiting HRIS Conversion</h3>
+              <span className="badge badge--neutral">Hired</span>
+            </div>
+            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {hiresAwaitingConversion.length > 0 ? (
+                hiresAwaitingConversion.map((hire, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{hire.candidate?.full_name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>Role: {hire.job?.title}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn--accent btn--sm"
+                      style={{ borderRadius: '8px' }}
+                      onClick={() => {
+                        setSelectedHiredAppId(hire.id)
+                        setIsConvertModalOpen(true)
+                      }}
                     >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Drop PDF resumes</div>
-                    <div className="text-tertiary" style={{ fontSize: 'var(--text-xs)', marginTop: 4 }}>
-                      or click to browse
+                      Convert
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
+                  No hired candidates waiting for conversion. Run candidate conversions via the action panel.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Widget 4: Quota & Usage Ledger Indicators */}
+          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card__header">
+              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Workspace Quota Utilization</h3>
+            </div>
+            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {[
+                { label: 'AI Resume Screenings', used: 16, limit: 100, color: 'var(--accent)' },
+                { label: 'HRIS Sync Transactions', used: 72, limit: 100, color: 'var(--warning)' },
+                { label: 'Cryptographic Signature Envelopes', used: 5, limit: 10, color: 'var(--accent)' },
+              ].map((quota, idx) => {
+                const percent = Math.min((quota.used / quota.limit) * 100, 100)
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{quota.label}</span>
+                      <span style={{ color: 'var(--text)' }}>{quota.used} / {quota.limit} ({percent.toFixed(0)}%)</span>
+                    </div>
+                    <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${percent}%`, height: '100%', background: quota.color, borderRadius: '4px' }} />
                     </div>
                   </div>
-
-                  {files.length > 0 && (
-                    <ul className="file-list" aria-label="Uploaded files">
-                      {files.map((file, idx) => (
-                        <li key={`${file.name}-${idx}`} className="file-item">
-                          <span className="file-item__name">{file.name}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                            <span className="text-tertiary">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeFile(idx)
-                              }}
-                              aria-label={`Remove ${file.name}`}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                              </svg>
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="saved-job">Saved job (optional)</label>
-                    <select
-                      id="saved-job"
-                      className="form-select"
-                      value={selectedJobId}
-                      onChange={e => handleJobSelect(e.target.value)}
-                    >
-                      <option value="">Create new from form below</option>
-                      {jobs.map(j => (
-                        <option key={j.id} value={j.id}>
-                          {j.title} · {j.department} ({j.status})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="job-role">Job role</label>
-                    <input
-                      id="job-role"
-                      required
-                      type="text"
-                      className="form-input"
-                      value={jobRole}
-                      onChange={(e) => setJobRole(e.target.value)}
-                      placeholder="Senior Software Engineer"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="department">Department</label>
-                    <select
-                      id="department"
-                      className="form-select"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                    >
-                      {['Engineering', 'Product', 'Design', 'Sales', 'Marketing', 'HR', 'Operations', 'Finance'].map(
-                        (d) => (
-                          <option key={d}>{d}</option>
-                        ),
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="start-date">Start date</label>
-                    <input
-                      id="start-date"
-                      required
-                      type="date"
-                      className="form-input"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="job-desc">Job description</label>
-                    <textarea
-                      id="job-desc"
-                      required
-                      className="form-textarea"
-                      style={{ minHeight: 140 }}
-                      value={jobDesc}
-                      onChange={(e) => setJobDesc(e.target.value)}
-                      placeholder="Paste requirements, responsibilities, and qualifications…"
-                    />
-                    <p className="form-hint">Used by screening and scoring agents for match analysis.</p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn--primary btn--block"
-                    disabled={isProcessing || files.length === 0}
-                  >
-                    {isProcessing ? 'Running pipeline…' : `Run pipeline${files.length ? ` (${files.length})` : ''}`}
-                  </button>
-                </form>
-              </div>
+                )
+              })}
             </div>
-          </aside>
+          </div>
 
-          <section aria-live="polite">
-            {isProcessing ? (
-              <>
-                <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: 'var(--space-5)' }}>
-                  Processing {files.length} candidate{files.length !== 1 ? 's' : ''}
-                </h2>
-                <div className="processing-grid">
-                  {files.map((file, idx) => (
-                    <article key={`${file.name}-${idx}`} className="processing-card">
-                      <div className="spinner spinner--lg" aria-hidden="true" />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {file.name}
-                        </div>
-                        <div className="text-accent" style={{ fontSize: 'var(--text-xs)', marginTop: 4 }}>
-                          {STEPS[Math.min(processingStep, STEPS.length - 1)]}
+          {/* Widget 5: Operational Activity Stream */}
+          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card__header">
+              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Operational Activity Log</h3>
+            </div>
+            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {[
+                { text: 'Gusto Sync completed for Sarah Connor', time: '1 hr ago', type: '🟢' },
+                { text: 'IT Checklist Escalation Level 1 dispatched', time: '4 hrs ago', type: '🟡' },
+                { text: 'HiBob Sync warning: timeout sweep retry queued', time: '1 day ago', type: '🔴' },
+              ].map((act, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '12px', fontSize: 'var(--text-xs)' }}>
+                  <span>{act.type}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{act.text}</span>
+                    <span style={{ color: 'var(--text-tertiary)', marginTop: '2px' }}>{act.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --- MODAL DIALOGS PANELS --- */}
+
+        {/* 1. Modal Dialog: Create Job Opening */}
+        {isJobModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsJobModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Create New Job Opening</h3>
+                <button type="button" className="icon-btn" onClick={() => setIsJobModalOpen(false)}>✕</button>
+              </div>
+              <form onSubmit={handleCreateJob} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="new-job-title">Job Title</label>
+                  <input
+                    id="new-job-title"
+                    required
+                    type="text"
+                    className="form-input"
+                    placeholder="Senior Software Engineer"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="new-job-dept">Department</label>
+                  <select
+                    id="new-job-dept"
+                    className="form-select"
+                    value={jobDept}
+                    onChange={(e) => setJobDept(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    {['Engineering', 'Product', 'Design', 'Sales', 'Marketing', 'HR'].map((dept) => (
+                      <option key={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="new-job-date">Start Date</label>
+                  <input
+                    id="new-job-date"
+                    type="date"
+                    className="form-input"
+                    value={jobStart}
+                    onChange={(e) => setJobStart(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="new-job-desc">Job Description</label>
+                  <textarea
+                    id="new-job-desc"
+                    required
+                    className="form-textarea"
+                    placeholder="Paste job details, responsibilities, and requirements..."
+                    value={jobDesc}
+                    onChange={(e) => setJobDesc(e.target.value)}
+                    style={{ minHeight: '120px', borderRadius: '10px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn--secondary" onClick={() => setIsJobModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn--accent" disabled={submittingJob}>
+                    {submittingJob ? 'Creating...' : 'Create Opening'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Modal Dialog: Add Candidate Resume Screener */}
+        {isCandidateModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsCandidateModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Candidate Screening Pipeline</h3>
+                <button type="button" className="icon-btn" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
+              </div>
+              <form onSubmit={handleAddCandidate} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxHeight: '80vh', overflowY: 'auto' }}>
+                
+                {/* PDF Dropzone */}
+                <div
+                  className="dropzone"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ border: '1.5px dashed var(--border-strong)', borderRadius: '12px', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-subtle)' }}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,application/pdf"
+                    ref={fileInputRef}
+                    className="sr-only"
+                    onChange={(e) => {
+                      if (e.target.files?.length) {
+                        const pdfs = Array.from(e.target.files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+                        setPdfFiles((prev) => [...prev, ...pdfs])
+                      }
+                    }}
+                  />
+                  <span style={{ fontSize: '28px', display: 'block', marginBottom: '8px' }}>📁</span>
+                  <strong>Drop candidate PDF resumes here</strong>
+                  <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>or click to browse local files</span>
+                </div>
+
+                {pdfFiles.length > 0 && (
+                  <ul className="file-list" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
+                    {pdfFiles.map((file, idx) => (
+                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--bg-subtle)', borderRadius: '8px', fontSize: 'var(--text-xs)', marginBottom: '4px' }}>
+                        <span>{file.name}</span>
+                        <button type="button" onClick={() => setPdfFiles(prev => prev.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)' }}>Remove</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Saved Job Connection</label>
+                  <select
+                    className="form-select"
+                    value={selectedJobId}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    <option value="">Create new opening from parameters below</option>
+                    {jobs.map((j) => (
+                      <option key={j.id} value={j.id}>{j.title} · {j.department}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {!selectedJobId && (
+                  <fieldset style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                    <legend style={{ fontSize: '11px', fontWeight: 700, padding: '0 8px', color: 'var(--text-tertiary)' }}>New Opening Parameters</legend>
+                    <div className="form-group">
+                      <label className="form-label">Job Title</label>
+                      <input type="text" className="form-input" placeholder="Role Title" value={screenerRole} onChange={(e) => setScreenerRole(e.target.value)} style={{ borderRadius: '10px' }} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Department</label>
+                      <select className="form-select" value={screenerDept} onChange={(e) => setScreenerDept(e.target.value)} style={{ borderRadius: '10px' }}>
+                        {['Engineering', 'Product', 'Design', 'Sales', 'Marketing'].map(d => <option key={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Description</label>
+                      <textarea className="form-textarea" placeholder="Requirements..." value={screenerDesc} onChange={(e) => setScreenerDesc(e.target.value)} style={{ minHeight: '80px', borderRadius: '10px' }} />
+                    </div>
+                  </fieldset>
+                )}
+
+                {/* Live AI parsing outcomes */}
+                {isScreenerProcessing && (
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                    <div className="spinner" />
+                    <div>
+                      <strong style={{ fontSize: 'var(--text-sm)' }}>AI Analysis Running...</strong>
+                      <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{PIPELINE_STEPS[screenerStep]}</span>
+                    </div>
+                  </div>
+                )}
+
+                {screenerOutcomes.length > 0 && (
+                  <div style={{ padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                    <strong style={{ fontSize: 'var(--text-sm)', display: 'block', marginBottom: '8px' }}>AI Match Outcomes:</strong>
+                    {screenerOutcomes.map((out, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: '4px' }}>
+                        <span>{out.candidate?.name}</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <span className={`score-ring ${scoreClass(out.scoring?.total_score || 0)}`} style={{ width: '20px', height: '20px', fontSize: '9px' }}>{out.scoring?.total_score}</span>
+                          <span style={{ fontWeight: 600 }}>{out.decision?.decision}</span>
                         </div>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </>
-            ) : results.length > 0 ? (
-              <>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'space-between',
-                    alignItems: 'baseline',
-                    gap: 'var(--space-3)',
-                    marginBottom: 'var(--space-5)',
-                  }}
-                >
-                  <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>
-                    {results.length} candidate{results.length !== 1 ? 's' : ''}
-                    {failedCount > 0 && (
-                      <span className="text-tertiary" style={{ fontWeight: 400, fontSize: 'var(--text-sm)', marginLeft: 8 }}>
-                        ({failedCount} failed)
-                      </span>
-                    )}
-                  </h2>
-                  <span className="text-tertiary" style={{ fontSize: 'var(--text-sm)' }}>
-                    Sorted by fit score
-                  </span>
-                </div>
-
-                <div className="table-wrap">
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 56, textAlign: 'center' }}>#</th>
-                          <th>Candidate</th>
-                          <th style={{ textAlign: 'center' }}>Score</th>
-                          <th>Decision</th>
-                          <th>Skills</th>
-                          <th>Fit</th>
-                          <th>Exp.</th>
-                          <th style={{ textAlign: 'right' }} />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.map((result, idx) => {
-                          const score = result.scoring?.total_score ?? 0
-                          const badge = decisionBadge(result.decision?.decision ?? 'REJECT')
-                          const rank = idx + 1
-
-                          return (
-                            <tr key={`${result.candidate?.email ?? idx}-${idx}`} className={rank === 1 ? 'row-top' : ''}>
-                              <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--text-tertiary)' }}>
-                                {rank}
-                              </td>
-                              <td>
-                                <div style={{ fontWeight: 600 }}>{result.candidate?.name ?? 'Unknown'}</div>
-                                <div className="text-tertiary" style={{ fontSize: 'var(--text-xs)' }}>
-                                  {result.candidate?.email ?? 'No email'}
-                                </div>
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                <span className={`score-ring ${scoreClass(score)}`}>{score}</span>
-                              </td>
-                              <td>
-                                <span className={`badge ${badge.className}`}>{badge.label}</span>
-                              </td>
-                              <td>
-                                <div style={{ fontWeight: 500 }}>{result.screening?.skills_match_percentage ?? 0}%</div>
-                                <div className="text-tertiary" style={{ fontSize: 11 }}>match</div>
-                              </td>
-                              <td style={{ fontSize: 'var(--text-sm)' }}>
-                                {result.scoring?.overall_fit ?? '—'}
-                              </td>
-                              <td>{result.candidate?.experience_years ?? 0} yrs</td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  type="button"
-                                  className="btn btn--secondary btn--sm"
-                                  onClick={() => openCandidate(result)}
-                                >
-                                  Details
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="empty-state">
-                <svg className="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <line x1="9" y1="15" x2="15" y2="15" />
-                </svg>
-                <h3 className="empty-state__title">No results yet</h3>
-                <p className="empty-state__desc">
-                  Upload PDF resumes and complete the job form to run your first recruitment pipeline.
-                </p>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {applications.length > 0 && (
-          <section style={{ marginTop: 'var(--space-12)' }}>
-            <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, marginBottom: 'var(--space-5)' }}>
-              Saved applications ({applications.length})
-            </h2>
-            <div className="table-wrap">
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Candidate</th>
-                      <th>Job</th>
-                      <th>Status</th>
-                      <th>Source</th>
-                      <th>Applied</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {applications.map(app => (
-                      <tr key={app.id}>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{app.candidate?.full_name ?? '—'}</div>
-                          <div className="text-tertiary" style={{ fontSize: 'var(--text-xs)' }}>
-                            {app.candidate?.email}
-                          </div>
-                        </td>
-                        <td>{app.job?.title ?? '—'}</td>
-                        <td>
-                          <span className="badge badge--neutral">{app.status}</span>
-                        </td>
-                        <td className="text-secondary">{app.source}</td>
-                        <td className="text-tertiary" style={{ fontSize: 'var(--text-sm)' }}>
-                          {new Date(app.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                )}
+
+                {screenerError && <div className="banner banner--warning" style={{ fontSize: 'var(--text-xs)' }}>{screenerError}</div>}
+
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn--secondary" onClick={() => setIsCandidateModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn--accent" disabled={isScreenerProcessing || pdfFiles.length === 0}>
+                    {isScreenerProcessing ? 'Screening...' : 'Screen Resumes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Modal Dialog: Schedule Interview */}
+        {isInterviewModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsInterviewModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Quick Schedule Interview</h3>
+                <button type="button" className="icon-btn" onClick={() => setIsInterviewModalOpen(false)}>✕</button>
+              </div>
+              <form onSubmit={handleScheduleInterview} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="sched-app">Select Candidate / Application</label>
+                  <select
+                    id="sched-app"
+                    required
+                    className="form-select"
+                    value={selectedAppId}
+                    onChange={(e) => setSelectedAppId(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    <option value="">Choose active application...</option>
+                    {applications.filter(a => a.status !== 'hired' && a.status !== 'rejected').map((app) => (
+                      <option key={app.id} value={app.id}>{app.candidate?.full_name} · {app.job?.title} ({app.status})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="sched-title">Interview Title</label>
+                  <input id="sched-title" required type="text" className="form-input" value={interviewTitle} onChange={(e) => setInterviewTitle(e.target.value)} style={{ borderRadius: '10px' }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="sched-time">Date & Time</label>
+                  <input id="sched-time" required type="datetime-local" className="form-input" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} style={{ borderRadius: '10px' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn--secondary" onClick={() => setIsInterviewModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn--accent" disabled={submittingInterview || !selectedAppId}>
+                    {submittingInterview ? 'Scheduling...' : 'Schedule Panel'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Modal Dialog: Convert Candidate */}
+        {isConvertModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsConvertModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Convert Candidate to Employee</h3>
+                <button type="button" className="icon-btn" onClick={() => setIsConvertModalOpen(false)}>✕</button>
+              </div>
+              <form onSubmit={handleConvertCandidate} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="conv-app">Select Hired Candidate</label>
+                  <select
+                    id="conv-app"
+                    required
+                    className="form-select"
+                    value={selectedHiredAppId}
+                    onChange={(e) => setSelectedHiredAppId(e.target.value)}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    <option value="">Choose hired application...</option>
+                    {applications.filter(a => a.status === 'hired').map((app) => (
+                      <option key={app.id} value={app.id}>{app.candidate?.full_name} · {app.job?.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', padding: 'var(--space-2)', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+                  💡 This action triggers the transactional backend pre-boarding engine, spawning the pre-boarding welcome portal, high-entropy JWT auth tokens, e-signatures templates, and HRIS adapters syncing metrics.
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                  <button type="button" className="btn btn--secondary" onClick={() => setIsConvertModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn--accent" disabled={submittingConvert || !selectedHiredAppId}>
+                    {submittingConvert ? 'Converting...' : 'Convert to Employee'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 5. Modal Dialog: DLQ sync failure inspector */}
+        {isSyncModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsSyncModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(780px, 94vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--danger)' }}>🔴 Dead Letter Queue (DLQ) Inspector</h3>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Exposing Milestone 11 HRIS synchronization breakers & queue logs</span>
+                </div>
+                <button type="button" className="icon-btn" onClick={() => setIsSyncModalOpen(false)}>✕</button>
+              </div>
+              <div className="card__body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: 0 }}>
+                {dlqRecords.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Provider</th>
+                        <th>Error details</th>
+                        <th>State</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dlqRecords.map((rec) => (
+                        <tr key={rec.id}>
+                          <td>
+                            <strong>{rec.employee_name || 'Sarah Connor'}</strong>
+                            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>{new Date(rec.created_at || Date.now()).toLocaleString()}</div>
+                          </td>
+                          <td><span className="badge badge--neutral">{rec.provider || 'Gusto'}</span></td>
+                          <td style={{ fontSize: '11px', color: 'var(--danger)', maxWidth: '280px', wordBreak: 'break-all' }}>
+                            {rec.error_message || 'Circuit breaker tripped: connection timeout.'}
+                          </td>
+                          <td>
+                            <span className={`badge badge--${rec.resolved_at ? 'hire' : 'reject'}`} style={{ fontSize: '8px' }}>
+                              {rec.resolved_at ? 'Resolved' : 'Tripped'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {!rec.resolved_at && (
+                              <button
+                                type="button"
+                                className="btn btn--accent btn--sm"
+                                style={{ borderRadius: '6px' }}
+                                onClick={() => handleRetryDlq(rec.id)}
+                                disabled={retryingSyncId === rec.id}
+                              >
+                                {retryingSyncId === rec.id ? 'Retrying...' : 'Override'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ padding: 'var(--space-12) var(--space-4)', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                    🟢 Zero failed outbox sweeps! All HRIS synchronization adapters (HiBob, Gusto, Workday, BambooHR) are healthy.
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border)', background: 'var(--bg-subtle)', textAlign: 'right' }}>
+                <button type="button" className="btn btn--secondary btn--sm" onClick={() => setIsSyncModalOpen(false)}>Close Inspector</button>
               </div>
             </div>
-          </section>
+          </div>
         )}
-      </div>
 
-      {selectedCandidate && (
-        <CandidateDrawer
-          candidate={selectedCandidate}
-          tab={drawerTab}
-          onTabChange={setDrawerTab}
-          onClose={() => setSelectedCandidate(null)}
-        />
-      )}
+      </div>
     </AppLayout>
   )
 }

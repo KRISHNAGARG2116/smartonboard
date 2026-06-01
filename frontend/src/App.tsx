@@ -8,6 +8,10 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Results from './pages/Results'
 import CandidatePortal from './pages/CandidatePortal'
+import CandidateDirectory from './pages/CandidateDirectory'
+import PipelineBoard from './pages/PipelineBoard'
+import EmployeeDirectory from './pages/EmployeeDirectory'
+import AnalyticsDashboard from './pages/AnalyticsDashboard'
 
 function App() {
   return (
@@ -18,6 +22,8 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            
+            {/* RLS-Protected Recruiter Command Center Router */}
             <Route
               path="/dashboard"
               element={
@@ -26,6 +32,39 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/candidates"
+              element={
+                <ProtectedRoute>
+                  <CandidateDirectory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pipeline"
+              element={
+                <ProtectedRoute>
+                  <PipelineBoard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employees"
+              element={
+                <ProtectedRoute>
+                  <EmployeeDirectory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <AnalyticsDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/results" element={<Results />} />
             <Route path="/candidate" element={<CandidatePortal />} />
           </Routes>
@@ -36,4 +75,5 @@ function App() {
 }
 
 export default App
+
 
