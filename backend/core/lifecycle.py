@@ -130,6 +130,33 @@ class CandidateToEmployeeService:
         # 7. Evaluate and assign onboarding checklist
         workflow = OnboardingEngine.evaluate_and_assign(db, employee, template)
 
+        # Log Onboarding Activity Log events
+        from core.signatures import log_onboarding_activity
+        log_onboarding_activity(
+            db=db,
+            company_id=employee.company_id,
+            employee_id=employee.id,
+            actor_id=current_user_id,
+            actor_type="recruiter" if current_user_id else "system",
+            event_type="onboarding_started",
+            metadata={"workflow_id": str(workflow.id)}
+        )
+
+        for task in workflow.tasks:
+            log_onboarding_activity(
+                db=db,
+                company_id=employee.company_id,
+                employee_id=employee.id,
+                actor_id=current_user_id,
+                actor_type="recruiter" if current_user_id else "system",
+                event_type="task_created",
+                metadata={
+                    "task_id": str(task.id),
+                    "task_title": task.title,
+                    "task_type": task.task_type
+                }
+            )
+
         # 8. Write 'employee.created' event to Transactional Outbox
         outbox = OnboardingEventOutbox(
             company_id=employee.company_id,

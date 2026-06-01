@@ -271,3 +271,110 @@ class EmployeeSyncHistory(Base):
 
     company: Mapped["Company"] = relationship("Company", back_populates="employee_sync_histories")
     employee: Mapped["Employee"] = relationship("Employee", back_populates="sync_histories")
+
+
+class OnboardingPortalToken(Base):
+    __tablename__ = "onboarding_portal_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    access_scopes: Mapped[dict] = mapped_column(JSONB, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
+
+    company: Mapped["Company"] = relationship("Company", back_populates="onboarding_portal_tokens")
+    employee: Mapped["Employee"] = relationship("Employee")
+
+
+class OnboardingDocumentSignature(Base):
+    __tablename__ = "onboarding_document_signatures"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("onboarding_documents.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=False)
+    user_agent: Mapped[str] = mapped_column(String(500), nullable=False)
+    signer_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    signature_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    signed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
+
+    company: Mapped["Company"] = relationship("Company", back_populates="onboarding_document_signatures")
+    employee: Mapped["Employee"] = relationship("Employee")
+    document: Mapped["OnboardingDocument"] = relationship("OnboardingDocument")
+
+
+class OnboardingTaskReminder(Base):
+    __tablename__ = "onboarding_task_reminders"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("onboarding_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    notification_channel: Mapped[str] = mapped_column(String(30), nullable=False)  # 'email', 'slack', 'sms'
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="scheduled", nullable=False)  # 'scheduled', 'sent', 'cancelled'
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
+
+    company: Mapped["Company"] = relationship("Company", back_populates="onboarding_task_reminders")
+    task: Mapped["OnboardingTask"] = relationship("OnboardingTask")
+
+
+class OnboardingTaskEscalation(Base):
+    __tablename__ = "onboarding_task_escalations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("onboarding_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    escalated_to_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    escalation_level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    company: Mapped["Company"] = relationship("Company", back_populates="onboarding_task_escalations")
+    task: Mapped["OnboardingTask"] = relationship("OnboardingTask")
+    escalated_to: Mapped["User"] = relationship("User")
+
+
+class OnboardingActivityLog(Base):
+    __tablename__ = "onboarding_activity_log"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    actor_type: Mapped[str] = mapped_column(String(30), nullable=False)  # 'candidate', 'employee', 'recruiter', 'system'
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
+
+    company: Mapped["Company"] = relationship("Company", back_populates="onboarding_activity_logs")
+    employee: Mapped["Employee"] = relationship("Employee")

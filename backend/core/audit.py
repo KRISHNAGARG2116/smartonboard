@@ -64,6 +64,11 @@ def log_audit_event(
             resolved_company_id = active_tenant
 
     # 2. Sanitize metadata
+    if metadata is None:
+        metadata = {}
+    if actor_id and actor_type == "candidate":
+        metadata["candidate_actor_id"] = str(actor_id)
+        
     sanitized_meta = sanitize_metadata(metadata)
 
     # 3. Handle UUID parsing
@@ -76,7 +81,7 @@ def log_audit_event(
         )
 
     act_uuid = None
-    if actor_id:
+    if actor_id and actor_type != "candidate":
         act_uuid = (
             uuid.UUID(str(actor_id)) if isinstance(actor_id, str) else actor_id
         )

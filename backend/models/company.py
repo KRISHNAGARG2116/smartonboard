@@ -51,6 +51,11 @@ class Company(Base):
     sync_metrics: Mapped[list["SyncMetric"]] = relationship("SyncMetric", back_populates="company", cascade="all, delete-orphan")
     dlq_records: Mapped[list["DLQRecord"]] = relationship("DLQRecord", back_populates="company", cascade="all, delete-orphan")
     employee_sync_histories: Mapped[list["EmployeeSyncHistory"]] = relationship("EmployeeSyncHistory", back_populates="company", cascade="all, delete-orphan")
+    onboarding_portal_tokens: Mapped[list["OnboardingPortalToken"]] = relationship("OnboardingPortalToken", back_populates="company", cascade="all, delete-orphan")
+    onboarding_document_signatures: Mapped[list["OnboardingDocumentSignature"]] = relationship("OnboardingDocumentSignature", back_populates="company", cascade="all, delete-orphan")
+    onboarding_task_reminders: Mapped[list["OnboardingTaskReminder"]] = relationship("OnboardingTaskReminder", back_populates="company", cascade="all, delete-orphan")
+    onboarding_task_escalations: Mapped[list["OnboardingTaskEscalation"]] = relationship("OnboardingTaskEscalation", back_populates="company", cascade="all, delete-orphan")
+    onboarding_activity_logs: Mapped[list["OnboardingActivityLog"]] = relationship("OnboardingActivityLog", back_populates="company", cascade="all, delete-orphan")
 
 
 

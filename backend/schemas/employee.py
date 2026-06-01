@@ -110,3 +110,75 @@ class EmployeeSyncHistoryResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
+class PortalAuthRequest(BaseModel):
+    token: str = Field(..., description="High-entropy portal access token string")
+
+
+class PortalAuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    employee_id: uuid.UUID
+    full_name: str
+    company_name: str
+
+
+class PortalTaskResponse(BaseModel):
+    id: uuid.UUID
+    title: str
+    description: str | None = None
+    status: str
+    task_type: str
+    due_date: date | None = None
+    requires_signature: bool = False
+    document_id: uuid.UUID | None = None
+    document_name: str | None = None
+
+
+class PortalChecklistResponse(BaseModel):
+    employee_id: uuid.UUID
+    completion_percentage: float
+    tasks: list[PortalTaskResponse]
+
+
+class DocumentSignRequest(BaseModel):
+    signer_name: str = Field(..., max_length=150)
+    signature_text: str = Field(..., description="E-signature representation e.g. /s/ Sarah Connor")
+    agree_to_electronic_terms: bool = Field(..., description="Consent to electronic signature terms")
+
+
+class DocumentSignResponse(BaseModel):
+    signature_id: uuid.UUID
+    document_id: uuid.UUID
+    signature_hash: str
+    signed_at: datetime
+
+
+class OnboardingActivityLogResponse(BaseModel):
+    id: uuid.UUID
+    company_id: uuid.UUID
+    employee_id: uuid.UUID
+    actor_id: uuid.UUID | None = None
+    actor_type: str
+    event_type: str
+    metadata_json: dict
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class EmployeeOnboardingProgressResponse(BaseModel):
+    employee_id: uuid.UUID
+    status: str
+    completed_tasks: int
+    total_tasks: int
+    overdue_tasks: int
+    tasks: list[PortalTaskResponse]
+
+
+class EscalationResolveRequest(BaseModel):
+    resolution_notes: str = Field(..., max_length=500)
+
+
+

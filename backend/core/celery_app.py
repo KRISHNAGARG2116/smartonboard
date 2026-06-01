@@ -56,6 +56,10 @@ celery_app.conf.beat_schedule = {
         "task": "tasks.billing.aggregate_usage_billing_period_task",
         "schedule": crontab(hour=2, minute=0),
     },
+    "process-onboarding-escalations-every-hour": {
+        "task": "tasks.escalations.process_onboarding_escalations_task",
+        "schedule": crontab(minute=0),
+    },
 }
 
 

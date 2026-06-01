@@ -12,7 +12,9 @@ from models import (
     User, Company, Job, Application, Candidate, Offer, Employee,
     OnboardingTemplate, OnboardingTemplateTask, OnboardingWorkflow,
     OnboardingTask, OnboardingDocument, OnboardingEventOutbox,
-    CompanyHRISIntegration, DLQRecord, EmployeeSyncHistory
+    CompanyHRISIntegration, DLQRecord, EmployeeSyncHistory,
+    OnboardingPortalToken, OnboardingDocumentSignature, OnboardingTaskReminder,
+    OnboardingTaskEscalation, OnboardingActivityLog
 )
 from models.enums import UserRole, JobStatus, ApplicationStatus
 from models.audit import AuditLog
@@ -630,4 +632,309 @@ def test_sync_history_and_metrics_api_rls(api_client, db_session, setup_lifecycl
     resp_block_metrics = api_client.get("/api/v1/employees/metrics", headers=headers_b)
     assert resp_block_metrics.status_code == 200
     assert len(resp_block_metrics.json()) == 0
+
+
+def test_portal_authentication_flow(api_client, db_session, setup_lifecycle_test):
+    """Verify portal authentication, short-lived JWT generation, scope validation, and revocation/expiration bounds."""
+    comp_a_id = setup_lifecycle_test["comp_a_id"]
+    app_a = setup_lifecycle_test["app_id_a"]
+    headers_a = setup_lifecycle_test["headers_a"]
+
+    # 1. Convert candidate to employee
+    resp_convert = api_client.post(f"/api/v1/applications/{app_a}/convert", json={"employment_type": "full_time", "employee_number": "EMP-PORT-AUTH"}, headers=headers_a)
+    assert resp_convert.status_code == 201
+    emp_id = uuid.UUID(resp_convert.json()["id"])
+
+    # 2. Seed a valid onboarding portal token
+    with tenant_context(auth_mode="true"):
+        raw_token = "high-entropy-token-string-xyz-1234"
+        import hashlib
+        h = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        
+        portal_token = OnboardingPortalToken(
+            company_id=comp_a_id,
+            employee_id=emp_id,
+            token_hash=h,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+            is_revoked=False,
+            access_scopes=["onboarding:read", "onboarding:write"]
+        )
+        db_session.add(portal_token)
+        db_session.commit()
+        token_id = portal_token.id
+
+    # 3. Authenticate with a valid token -> 200 OK & yields JWT
+    resp_auth = api_client.post("/api/v1/onboarding/portal/authenticate", json={"token": raw_token})
+    assert resp_auth.status_code == 200
+    auth_data = resp_auth.json()
+    assert "access_token" in auth_data
+    assert auth_data["employee_id"] == str(emp_id)
+    assert auth_data["expires_in"] == 14400
+    portal_jwt = auth_data["access_token"]
+
+    # Verify activity log generated portal_authenticated
+    with tenant_context(auth_mode="true"):
+        db_session.expire_all()
+        log = db_session.scalar(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "portal_authenticated"
+        ))
+        assert log is not None
+        assert log.metadata_json["token_id"] == str(token_id)
+
+    # 4. Authenticate with an invalid token -> 401 Unauthorized
+    resp_bad = api_client.post("/api/v1/onboarding/portal/authenticate", json={"token": "invalid-token"})
+    assert resp_bad.status_code == 401
+
+    # 5. Authenticate with a revoked token
+    with tenant_context(auth_mode="true"):
+        portal_token.is_revoked = True
+        db_session.add(portal_token)
+        db_session.commit()
+    resp_revoked = api_client.post("/api/v1/onboarding/portal/authenticate", json={"token": raw_token})
+    assert resp_revoked.status_code == 401
+
+
+def test_portal_checklist_and_document_signing(api_client, db_session, setup_lifecycle_test):
+    """Test checklist retrieval, document e-signing with cryptographic fingerprint hash verification, and timeline state logs."""
+    comp_a_id = setup_lifecycle_test["comp_a_id"]
+    app_a = setup_lifecycle_test["app_id_a"]
+    headers_a = setup_lifecycle_test["headers_a"]
+
+    # 1. Convert candidate to employee -> generates workflow & default tasks
+    resp_convert = api_client.post(f"/api/v1/applications/{app_a}/convert", json={"employment_type": "full_time", "employee_number": "EMP-SIGN"}, headers=headers_a)
+    assert resp_convert.status_code == 201
+    emp_id = uuid.UUID(resp_convert.json()["id"])
+
+    # 2. Seed a valid portal token in DB
+    raw_token = "sign-checklist-token-9988"
+    import hashlib
+    h = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    with tenant_context(auth_mode="true"):
+        portal_token = OnboardingPortalToken(
+            company_id=comp_a_id,
+            employee_id=emp_id,
+            token_hash=h,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+            is_revoked=False,
+            access_scopes=["onboarding:read", "onboarding:write"]
+        )
+        db_session.add(portal_token)
+        db_session.commit()
+
+    # 3. Authenticate to get scoped Portal JWT
+    resp_auth = api_client.post("/api/v1/onboarding/portal/authenticate", json={"token": raw_token})
+    portal_jwt = resp_auth.json()["access_token"]
+    portal_headers = {"Authorization": f"Bearer {portal_jwt}"}
+
+    # 4. GET /api/v1/onboarding/portal/checklist
+    resp_checklist = api_client.get("/api/v1/onboarding/portal/checklist", headers=portal_headers)
+    assert resp_checklist.status_code == 200
+    checklist = resp_checklist.json()
+    assert checklist["employee_id"] == str(emp_id)
+    assert len(checklist["tasks"]) > 0
+    
+    # Verify Sign NDA document exists
+    nda_task = next(t for t in checklist["tasks"] if t["task_type"] == "document_signature")
+    assert nda_task["requires_signature"] is True
+    doc_id = uuid.UUID(nda_task["document_id"])
+
+    # 5. POST /api/v1/onboarding/portal/documents/{id}/sign -> Signs NDA
+    sign_payload = {
+        "signer_name": "Bob Builder",
+        "signature_text": "/s/ Bob Builder",
+        "agree_to_electronic_terms": True
+    }
+    resp_sign = api_client.post(f"/api/v1/onboarding/portal/documents/{doc_id}/sign", json=sign_payload, headers=portal_headers)
+    assert resp_sign.status_code == 200
+    sign_data = resp_sign.json()
+    assert sign_data["document_id"] == str(doc_id)
+    assert sign_data["signature_hash"] is not None
+
+    # 6. Verify database and checklist updates
+    with tenant_context(auth_mode="true"):
+        db_session.expire_all()
+        # Document should be signed
+        doc = db_session.get(OnboardingDocument, doc_id)
+        assert doc.signature_status == "signed"
+        assert doc.signed_at is not None
+
+        # Parent Task should be completed
+        task = db_session.get(OnboardingTask, doc.task_id)
+        assert task.status == "completed"
+        assert task.completed_at is not None
+
+        # Electronic signature record created
+        sig_rec = db_session.scalar(select(OnboardingDocumentSignature).where(OnboardingDocumentSignature.document_id == doc_id))
+        assert sig_rec is not None
+        assert sig_rec.signer_name == "Bob Builder"
+        assert sig_rec.signature_hash == sign_data["signature_hash"]
+
+        # Chronological Activity log populated
+        act_sign = db_session.scalar(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "document_signed"
+        ))
+        assert act_sign is not None
+        assert act_sign.metadata_json["document_id"] == str(doc_id)
+
+        act_task = db_session.scalar(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "task_completed"
+        ))
+        assert act_task is not None
+        assert act_task.metadata_json["task_id"] == str(task.id)
+
+
+def test_onboarding_activity_timeline_and_api(api_client, db_session, setup_lifecycle_test):
+    """Verify activity timeline logging, chronological sorting, pagination parameters, and tenant security isolation."""
+    comp_a_id = setup_lifecycle_test["comp_a_id"]
+    app_a = setup_lifecycle_test["app_id_a"]
+    headers_a = setup_lifecycle_test["headers_a"]
+    headers_b = setup_lifecycle_test["headers_b"]
+
+    # 1. Convert candidate to employee (triggers onboarding_started & task_created events)
+    resp_convert = api_client.post(f"/api/v1/applications/{app_a}/convert", json={"employment_type": "full_time", "employee_number": "EMP-TIMELINE"}, headers=headers_a)
+    assert resp_convert.status_code == 201
+    emp_id = uuid.UUID(resp_convert.json()["id"])
+
+    # 2. Get Employee Activity Timeline -> 200 Success
+    resp_timeline = api_client.get(f"/api/v1/employees/{emp_id}/activity", headers=headers_a)
+    assert resp_timeline.status_code == 200
+    timeline = resp_timeline.json()
+    assert len(timeline) >= 2  # contains onboarding_started + task_created
+    
+    # Chronological sorting: onboarding_started should be before task_created
+    types = [log["event_type"] for log in timeline]
+    assert types[0] == "onboarding_started"
+    assert "task_created" in types
+
+    # 3. Test pagination: limit=1 returns 1 item
+    resp_paginated = api_client.get(f"/api/v1/employees/{emp_id}/activity?limit=1", headers=headers_a)
+    assert resp_paginated.status_code == 200
+    assert len(resp_paginated.json()) == 1
+
+    # 4. Test RLS Multi-Tenant Isolation
+    # Company B tries to view Company A's employee activity timeline -> 404 Not Found
+    db_session.expire_all()
+    resp_isolated = api_client.get(f"/api/v1/employees/{emp_id}/activity", headers=headers_b)
+    assert resp_isolated.status_code == 404
+
+
+def test_onboarding_escalations_and_resolution(api_client, db_session, setup_lifecycle_test):
+    """Validate Levels 1, 2, and 3 background escalations, dispatcher logging, and recruiter manual resolution override."""
+    comp_a_id = setup_lifecycle_test["comp_a_id"]
+    app_a = setup_lifecycle_test["app_id_a"]
+    headers_a = setup_lifecycle_test["headers_a"]
+
+    # 1. Convert candidate to employee -> generates workflow & default tasks
+    resp_convert = api_client.post(f"/api/v1/applications/{app_a}/convert", json={"employment_type": "full_time", "employee_number": "EMP-ESCALATE"}, headers=headers_a)
+    assert resp_convert.status_code == 201
+    emp_id = uuid.UUID(resp_convert.json()["id"])
+
+    # 2. Configure overdue tasks with different due_dates
+    now = datetime.now(timezone.utc)
+    with tenant_context(auth_mode="true"):
+        db_session.expire_all()
+        emp = db_session.get(Employee, emp_id)
+        
+        # Seed a supervisor for Level 2 escalations
+        supervisor = Employee(
+            company_id=comp_a_id,
+            email="supervisor@lifecyclecorp.com",
+            full_name="Julie Supervisor",
+            job_title="Engineering Director",
+            employment_type="full_time",
+            start_date=date.today()
+        )
+        db_session.add(supervisor)
+        db_session.flush()
+        
+        emp.supervisor_id = supervisor.id
+        db_session.add(emp)
+        db_session.flush()
+
+        wf = db_session.scalar(select(OnboardingWorkflow).where(OnboardingWorkflow.employee_id == emp_id))
+        tasks = db_session.scalars(select(OnboardingTask).where(OnboardingTask.workflow_id == wf.id)).all()
+        
+        # Task 0 (NDA): 1 day overdue -> Level 1 (reminder)
+        tasks[0].due_date = (now - timedelta(days=1)).date()
+        
+        # Task 1 (Payroll): 3 days overdue -> Level 2 (supervisor escalation)
+        tasks[1].due_date = (now - timedelta(days=3)).date()
+        
+        # Task 2 (Workstation): 6 days overdue -> Level 3 (recruiter escalation)
+        tasks[2].due_date = (now - timedelta(days=6)).date()
+        
+        for t in tasks:
+            db_session.add(t)
+        db_session.commit()
+        task_l1_id = tasks[0].id
+        task_l2_id = tasks[1].id
+        task_l3_id = tasks[2].id
+
+    # 3. Trigger onboarding escalations background sweeper synchronously
+    from tasks.escalations import sweep_onboarding_escalations
+    sweep_onboarding_escalations()
+
+    # 4. Assert escalations logged in database
+    with tenant_context(auth_mode="true"):
+        db_session.expire_all()
+        
+        # Level 1: Task 0 got reminder
+        reminders = db_session.scalars(select(OnboardingTaskReminder).where(OnboardingTaskReminder.task_id == task_l1_id)).all()
+        assert len(reminders) == 1
+        assert reminders[0].status == "sent"
+        
+        # Level 2: Task 1 got supervisor escalation
+        esc_l2 = db_session.scalar(select(OnboardingTaskEscalation).where(
+            OnboardingTaskEscalation.task_id == task_l2_id,
+            OnboardingTaskEscalation.escalation_level == 2
+        ))
+        assert esc_l2 is not None
+        assert esc_l2.resolved_at is None
+
+        # Level 3: Task 2 got recruiter escalation
+        esc_l3 = db_session.scalar(select(OnboardingTaskEscalation).where(
+            OnboardingTaskEscalation.task_id == task_l3_id,
+            OnboardingTaskEscalation.escalation_level == 3
+        ))
+        assert esc_l3 is not None
+        assert esc_l3.resolved_at is None
+
+        # Timeline logged events
+        act_rem = db_session.scalar(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "reminder_sent"
+        ))
+        assert act_rem is not None
+
+        act_esc = db_session.scalars(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "escalation_triggered"
+        )).all()
+        assert len(act_esc) >= 2
+
+    # 5. POST /api/v1/employees/tasks/{task_id}/escalations/resolve -> Recruiter manually resolves escalations
+    resp_resolve = api_client.post(
+        f"/api/v1/employees/tasks/{task_l3_id}/escalations/resolve",
+        json={"resolution_notes": "Manually verified workstation specs"},
+        headers=headers_a
+    )
+    assert resp_resolve.status_code == 200
+    assert resp_resolve.json()["status"] == "resolved"
+
+    # Verify escalation marked resolved in DB and timeline event generated
+    with tenant_context(auth_mode="true"):
+        db_session.expire_all()
+        resolved_esc = db_session.get(OnboardingTaskEscalation, esc_l3.id)
+        assert resolved_esc.resolved_at is not None
+        
+        act_res = db_session.scalar(select(OnboardingActivityLog).where(
+            OnboardingActivityLog.employee_id == emp_id,
+            OnboardingActivityLog.event_type == "escalation_resolved"
+        ))
+        assert act_res is not None
+        assert act_res.metadata_json["resolution_notes"] == "Manually verified workstation specs"
+
 

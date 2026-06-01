@@ -54,6 +54,11 @@ from models.employees import (
     SyncMetric,
     DLQRecord,
     EmployeeSyncHistory,
+    OnboardingPortalToken,
+    OnboardingDocumentSignature,
+    OnboardingTaskReminder,
+    OnboardingTaskEscalation,
+    OnboardingActivityLog,
 )
 
 
@@ -120,6 +125,11 @@ __all__ = [
     "SyncMetric",
     "DLQRecord",
     "EmployeeSyncHistory",
+    "OnboardingPortalToken",
+    "OnboardingDocumentSignature",
+    "OnboardingTaskReminder",
+    "OnboardingTaskEscalation",
+    "OnboardingActivityLog",
 ]
 
 

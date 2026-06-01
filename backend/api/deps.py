@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.security import decode_access_token
-from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var
+from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var, tenant_context
 from models import User, Company
 from models.enums import CompanyStatus, UserRole
 
@@ -100,7 +100,72 @@ class RoleChecker:
         return current_user
 
 
+def get_portal_session(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)]
+) -> dict:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = decode_access_token(credentials.credentials)
+        employee_id = payload.get("sub")
+        company_id = payload.get("company_id")
+        token_type = payload.get("type")
+        
+        if not employee_id or not company_id or token_type != "portal":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid portal token")
+            
+        # Check revocation & expiration
+        from models.employees import OnboardingPortalToken
+        from datetime import datetime, timezone
+        from uuid import UUID
+        
+        # Bypass RLS to check validity of portal session
+        with tenant_context(auth_mode="true"):
+            portal_token = db.scalar(
+                select(OnboardingPortalToken).where(
+                    OnboardingPortalToken.employee_id == UUID(employee_id),
+                    OnboardingPortalToken.company_id == UUID(company_id),
+                    OnboardingPortalToken.is_revoked.is_(False),
+                    OnboardingPortalToken.expires_at > datetime.now(timezone.utc)
+                )
+            )
+            if not portal_token:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Portal session revoked or expired")
+    except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise exc
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired portal token") from exc
+
+    # Set tenant context variable so RLS applies to all subsequent queries in this request thread
+    tenant_id_var.set(company_id)
+    set_tenant_context(db, company_id)
+    
+    return {
+        "employee_id": UUID(employee_id),
+        "company_id": UUID(company_id),
+        "scopes": payload.get("scopes", [])
+    }
+
+
+def get_portal_db(
+    portal_session: Annotated[dict, Depends(get_portal_session)]
+) -> Generator[Session, None, None]:
+    db = SessionLocal()
+    company_id = str(portal_session["company_id"])
+    tenant_id_var.set(company_id)
+    try:
+        set_tenant_context(db, company_id)
+        yield db
+    finally:
+        tenant_id_var.set("")
+        db.close()
+
+
 TenantDb = Annotated[Session, Depends(get_tenant_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
 RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]
+PortalSession = Annotated[dict, Depends(get_portal_session)]
+PortalDb = Annotated[Session, Depends(get_portal_db)]
+
