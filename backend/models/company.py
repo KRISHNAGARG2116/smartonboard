@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
-from models.enums import CompanyStatus
+from models.enums import CompanyStatus, VerificationState, TrustLevel
 
 
 class Company(Base):
@@ -20,6 +20,22 @@ class Company(Base):
         default=CompanyStatus.ACTIVE,
         nullable=False,
     )
+    verification_state: Mapped[VerificationState] = mapped_column(
+        Enum(VerificationState, name="verification_state", values_callable=lambda x: [e.value for e in x]),
+        default=VerificationState.PENDING_VERIFICATION,
+        nullable=False,
+    )
+    trust_level: Mapped[TrustLevel] = mapped_column(
+        Enum(TrustLevel, name="trust_level", values_callable=lambda x: [e.value for e in x]),
+        default=TrustLevel.NONE,
+        nullable=False,
+    )
+    domain_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    website_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    identity_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    is_verified_recruiter: Mapped[bool] = mapped_column(default=False, nullable=False)
+    is_verified_company: Mapped[bool] = mapped_column(default=False, nullable=False)
+    is_trusted_employer: Mapped[bool] = mapped_column(default=False, nullable=False)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -56,6 +72,7 @@ class Company(Base):
     onboarding_task_reminders: Mapped[list["OnboardingTaskReminder"]] = relationship("OnboardingTaskReminder", back_populates="company", cascade="all, delete-orphan")
     onboarding_task_escalations: Mapped[list["OnboardingTaskEscalation"]] = relationship("OnboardingTaskEscalation", back_populates="company", cascade="all, delete-orphan")
     onboarding_activity_logs: Mapped[list["OnboardingActivityLog"]] = relationship("OnboardingActivityLog", back_populates="company", cascade="all, delete-orphan")
+    trust_metrics: Mapped["CompanyTrustMetrics"] = relationship("CompanyTrustMetrics", back_populates="company", uselist=False, cascade="all, delete-orphan")
 
 
 

@@ -4,6 +4,19 @@ import enum
 class UserRole(str, enum.Enum):
     OWNER = "owner"
     RECRUITER = "recruiter"
+    CANDIDATE = "candidate"
+
+
+class VerificationState(str, enum.Enum):
+    PENDING_VERIFICATION = "pending_verification"
+    VERIFIED_RECRUITER = "verified_recruiter"
+    VERIFIED_COMPANY = "verified_company"
+    SUSPENDED = "suspended"
+
+
+class TrustLevel(str, enum.Enum):
+    NONE = "none"
+    TRUSTED_EMPLOYER = "trusted_employer"
 
 
 class CompanyStatus(str, enum.Enum):

@@ -14,8 +14,8 @@ class User(Base):
     __table_args__ = (UniqueConstraint("company_id", "email", name="uq_users_company_email"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -36,3 +36,5 @@ class User(Base):
     candidate_notes: Mapped[list["CandidateNote"]] = relationship("CandidateNote", back_populates="user", cascade="all, delete-orphan")
     interviews: Mapped[list["Interview"]] = relationship("Interview", back_populates="interviewer", cascade="all, delete-orphan")
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="grader", cascade="all, delete-orphan")
+    candidate_profile: Mapped["CandidateProfile | None"] = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    verification_tokens: Mapped[list["VerificationToken"]] = relationship("VerificationToken", back_populates="user", cascade="all, delete-orphan")

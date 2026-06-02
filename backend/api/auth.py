@@ -14,7 +14,7 @@ from core.security import create_access_token, create_refresh_token, hash_passwo
 from core.slug import unique_slug
 from db.session import get_db, tenant_context, tenant_id_var
 from models import Company, User
-from models.enums import CompanyStatus, UserRole
+from models.enums import CompanyStatus, UserRole, VerificationState, TrustLevel
 from models.session import UserSession, RevokedToken
 from schemas.auth import AuthResponse, LoginRequest, RegisterRequest, UserResponse, SessionResponse, RevokeSessionRequest
 from schemas.company import CompanyResponse, CompanyUpdateRequest

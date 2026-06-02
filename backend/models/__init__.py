@@ -61,6 +61,10 @@ from models.employees import (
     OnboardingTaskEscalation,
     OnboardingActivityLog,
 )
+from models.company_trust_metrics import CompanyTrustMetrics
+from models.candidate_profile import CandidateProfile
+from models.verification_token import VerificationToken
+from models.application_snapshot import ApplicationSnapshot
 
 
 
@@ -132,6 +136,10 @@ __all__ = [
     "OnboardingTaskReminder",
     "OnboardingTaskEscalation",
     "OnboardingActivityLog",
+    "CompanyTrustMetrics",
+    "CandidateProfile",
+    "VerificationToken",
+    "ApplicationSnapshot",
 ]
 
 
