@@ -137,3 +137,90 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
         if hasattr(request.state, "quota_warning") and request.state.quota_warning:
             response.headers["X-Quota-Warning"] = request.state.quota_warning
         return response
+
+
+class ContentSecurityPolicyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        csp_directives = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "connect-src 'self' https://api.groq.com; "
+            "frame-ancestors 'none'; "
+            "form-action 'self';"
+        )
+        response.headers["Content-Security-Policy"] = csp_directives
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+
+def sanitize_dict(d: dict) -> dict:
+    import bleach
+    cleaned = {}
+    for k, v in d.items():
+        if isinstance(v, str):
+            cleaned[k] = bleach.clean(v, tags=[], attributes={}, strip=True)
+        elif isinstance(v, dict):
+            cleaned[k] = sanitize_dict(v)
+        elif isinstance(v, list):
+            cleaned[k] = [
+                bleach.clean(item, tags=[], attributes={}, strip=True) if isinstance(item, str)
+                else (sanitize_dict(item) if isinstance(item, dict) else item)
+                for item in v
+            ]
+        else:
+            cleaned[k] = v
+    return cleaned
+
+
+class RequestSanitizationMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["method"] in ("POST", "PUT", "PATCH"):
+            headers = dict(scope.get("headers", []))
+            content_type = headers.get(b"content-type", b"").decode("latin1")
+            if "application/json" in content_type:
+                body_parts = []
+                more_body = True
+                while more_body:
+                    message = await receive()
+                    body_parts.append(message.get("body", b""))
+                    more_body = message.get("more_body", False)
+                
+                full_body = b"".join(body_parts)
+                new_body = full_body
+                if full_body:
+                    try:
+                        data = json.loads(full_body.decode("utf-8"))
+                        sanitized_data = sanitize_dict(data)
+                        new_body = json.dumps(sanitized_data).encode("utf-8")
+                    except Exception:
+                        pass
+                
+                # Update content-length header
+                new_headers = []
+                for k, v in scope.get("headers", []):
+                    if k.lower() == b"content-length":
+                        new_headers.append((k, str(len(new_body)).encode("ascii")))
+                    else:
+                        new_headers.append((k, v))
+                scope["headers"] = new_headers
+                
+                async def new_receive():
+                    return {
+                        "type": "http.request",
+                        "body": new_body,
+                        "more_body": False
+                    }
+                
+                await self.app(scope, new_receive, send)
+                return
+        
+        await self.app(scope, receive, send)

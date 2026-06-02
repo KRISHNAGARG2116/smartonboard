@@ -171,6 +171,48 @@ def register(
     )
 
 
+def is_ip_blocked(ip: str) -> bool:
+    import redis
+    try:
+        r = redis.from_url(get_settings().redis_url)
+        return bool(r.get(f"lockout:blocked:{ip}"))
+    except Exception:
+        return False
+
+
+def record_failed_login(ip: str):
+    import redis
+    try:
+        r = redis.from_url(get_settings().redis_url)
+        key = f"lockout:failed:{ip}"
+        attempts = r.incr(key)
+        if attempts == 1:
+            r.expire(key, 300)  # 5 minutes window
+        if attempts >= 5:
+            r.setex(f"lockout:blocked:{ip}", 300, 1)  # block for 5 minutes
+    except Exception:
+        pass
+
+
+def clear_failed_logins(ip: str):
+    import redis
+    try:
+        r = redis.from_url(get_settings().redis_url)
+        r.delete(f"lockout:failed:{ip}")
+        r.delete(f"lockout:blocked:{ip}")
+    except Exception:
+        pass
+
+
+class OTPSendRequest(BaseModel):
+    phone_number: str
+
+
+class OTPVerifyRequest(BaseModel):
+    phone_number: str
+    code: str
+
+
 @router.post("/login", response_model=AuthResponse)
 @limiter.limit("10/minute")
 def login(
@@ -180,6 +222,27 @@ def login(
     db: Annotated[Session, Depends(get_db)]
 ):
     dummy_hash = "$2b$12$L7p.yF7T24Q.8Wk7Qz9.4ux7R6j8q9b0n1o2p3q4r5s6t7u8v9w0x"
+    ip = request.client.host if request.client else "127.0.0.1"
+
+    # ATO failed login lockout check
+    if is_ip_blocked(ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. This IP is temporarily locked out."
+        )
+
+    # Prevent session fixation: revoke pre-existing session if refresh token cookie is present
+    refresh_token_cookie = request.cookies.get("refresh_token")
+    if refresh_token_cookie:
+        try:
+            incoming_hash = hashlib.sha256(refresh_token_cookie.encode()).hexdigest()
+            stmt = select(UserSession).where(UserSession.refresh_token_hash == incoming_hash)
+            old_session = db.scalar(stmt)
+            if old_session:
+                db.delete(old_session)
+                db.commit()
+        except Exception:
+            pass
 
     with tenant_context(auth_mode="true"):
         user = db.scalar(
@@ -193,36 +256,41 @@ def login(
         )
 
     if user is None:
+        record_failed_login(ip)
         # Audit log login failure
         from core.audit import log_audit_event
         log_audit_event(
             db=db,
             action="auth.login_failed",
             actor_type="UNAUTHENTICATED",
-            ip_address=request.client.host if request.client else None,
+            ip_address=ip,
             user_agent=request.headers.get("user-agent"),
-            metadata={"email": body.email, "password": body.password}
+            metadata={"email": body.email, "event": "login_failed"}
         )
         verify_password(body.password, dummy_hash)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     if not verify_password(body.password, user.password_hash):
+        record_failed_login(ip)
         # Audit log login failure
         from core.audit import log_audit_event
         log_audit_event(
             db=db,
             action="auth.login_failed",
             actor_type="UNAUTHENTICATED",
-            ip_address=request.client.host if request.client else None,
+            ip_address=ip,
             user_agent=request.headers.get("user-agent"),
-            metadata={"email": body.email, "password": body.password}
+            metadata={"email": body.email, "event": "login_failed"}
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+    # Clear failed logins on success
+    clear_failed_logins(ip)
 
     access_token, refresh_token = create_user_session_and_tokens(
         db=db,
         user=user,
-        ip_address=request.client.host if request.client else None,
+        ip_address=ip,
         user_agent=request.headers.get("user-agent"),
         response=response
     )
@@ -235,7 +303,7 @@ def login(
         actor_type="RECRUITER",
         actor_id=user.id,
         company_id=user.company_id,
-        ip_address=request.client.host if request.client else None,
+        ip_address=ip,
         user_agent=request.headers.get("user-agent"),
         metadata={"email": user.email}
     )
@@ -251,6 +319,139 @@ def login(
             company_id=user.company_id,
         ),
     )
+
+
+@router.post("/otp/send")
+@limiter.limit("5/minute")
+def send_otp(
+    request: Request,
+    body: OTPSendRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    import redis
+    import random
+    import os
+    
+    phone = body.phone_number.strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+
+    # Limit verify triggers: 1 trigger request per minute per phone number
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        rate_key = f"otp:rate:{phone}"
+        if r.get(rate_key):
+            raise HTTPException(status_code=429, detail="Please wait 1 minute before requesting another OTP.")
+        
+        # Generate 6-digit code
+        code = f"{random.randint(100000, 999999)}"
+        
+        # Store in Redis: key = otp:{phone}, value = code:attempts, expire = 5 minutes
+        r.setex(f"otp:code:{phone}", 300, f"{code}:0")
+        
+        # Set rate limit key for 60 seconds
+        r.setex(rate_key, 60, "1")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare OTP storage: {exc}")
+
+    # Send SMS (using Twilio client if configured, otherwise stubbed)
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    from_phone = os.getenv("TWILIO_FROM_PHONE")
+    
+    if account_sid and auth_token and from_phone:
+        try:
+            from twilio.rest import Client
+            client = Client(account_sid, auth_token)
+            client.messages.create(
+                body=f"Your SmartOnboard verification code is: {code}. It expires in 5 minutes.",
+                from_=from_phone,
+                to=phone
+            )
+            print(f"OTP successfully sent via Twilio to {phone}")
+        except Exception as err:
+            print(f"Twilio API error: {err}. Falling back to logging.")
+            print(f"MOCK SMS OTP for {phone}: {code}")
+    else:
+        print(f"MOCK SMS OTP for {phone}: {code}")
+
+    # Log audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.otp_sent",
+        actor_type="UNAUTHENTICATED",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": phone}
+    )
+    db.commit()
+
+    return {"success": True, "message": "OTP code sent successfully"}
+
+
+@router.post("/otp/verify")
+@limiter.limit("5/minute")
+def verify_otp(
+    request: Request,
+    body: OTPVerifyRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    import redis
+    
+    phone = body.phone_number.strip()
+    code = body.code.strip()
+    
+    if not phone or not code:
+        raise HTTPException(status_code=400, detail="Phone number and code are required")
+        
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        otp_key = f"otp:code:{phone}"
+        stored = r.get(otp_key)
+        
+        if not stored:
+            raise HTTPException(status_code=400, detail="OTP expired or not requested")
+            
+        stored_code, attempts_str = stored.decode("utf-8").split(":")
+        attempts = int(attempts_str)
+        
+        if attempts >= 3:
+            r.delete(otp_key)  # Lockout/Clear code after 3 failed attempts
+            raise HTTPException(status_code=403, detail="Too many failed attempts. Please request a new OTP.")
+            
+        if stored_code != code:
+            attempts += 1
+            if attempts >= 3:
+                r.delete(otp_key)
+                raise HTTPException(status_code=403, detail="Too many failed attempts. Please request a new OTP.")
+            r.setex(otp_key, 300, f"{stored_code}:{attempts}")
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+            
+        # Code matches! Clear the verification entry
+        r.delete(otp_key)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Verification service exception: {exc}")
+
+    # Log audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.otp_verified",
+        actor_type="UNAUTHENTICATED",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": phone}
+    )
+    db.commit()
+
+    return {"success": True, "message": "Phone verified successfully"}
 
 
 @router.post("/refresh", response_model=AuthResponse)

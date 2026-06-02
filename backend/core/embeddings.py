@@ -35,7 +35,12 @@ class EmbeddingService:
         Since our HuggingFace embeddings are pre-normalized, the dot product
         is mathematically equivalent to the cosine similarity.
         """
-        if len(v1) != len(v2) or not v1 or not v2:
+        if hasattr(v1, "tolist"):
+            v1 = v1.tolist()
+        if hasattr(v2, "tolist"):
+            v2 = v2.tolist()
+
+        if v1 is None or v2 is None or len(v1) != len(v2) or not v1 or not v2:
             return 0.0
         return sum(a * b for a, b in zip(v1, v2))
 

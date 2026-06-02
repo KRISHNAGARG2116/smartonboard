@@ -9,14 +9,9 @@ from db.base import Base
 
 
 def get_embedding_column_type():
-    """Dynamically returns BGE 384 Vector type if pgvector is available, otherwise falls back to ARRAY(Float)."""
-    if os.getenv("USE_PGVECTOR", "true").lower() == "false":
-        return ARRAY(Float)
-    try:
-        from pgvector.sqlalchemy import Vector
-        return Vector(384)
-    except ImportError:
-        return ARRAY(Float)
+    """Returns BGE 384 Vector type. pgvector is the primary vector storage architecture."""
+    from pgvector.sqlalchemy import Vector
+    return Vector(384)
 
 
 class CandidateEmbedding(Base):

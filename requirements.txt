@@ -16,3 +16,6 @@ langchain-google-genai>=1.0.0
 langchain-groq>=0.2.0
 langgraph>=0.1.0
 pypdf>=3.0.0
+bleach>=6.0.0
+sentry-sdk>=2.0.0
+python-json-logger>=4.0.0

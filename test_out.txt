@@ -4,156 +4,28 @@ rootdir: /Users/krishnagarg/smartonboard-main
 configfile: pyproject.toml
 plugins: asyncio-1.4.0, langsmith-0.8.7, anyio-4.13.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 4 items / 3 deselected / 1 selected
+collected 18 items
 
-tests/test_dynamic_escalations.py F                                      [100%]
+tests/test_upload_security.py ........                                   [ 44%]
+tests/test_ai_semantic_search.py ......                                  [ 77%]
+tests/test_auth_security.py ....                                         [100%]
 
-=================================== FAILURES ===================================
-_________ test_structured_auto_progression_and_sla_resolution_on_exit __________
-tests/test_dynamic_escalations.py:348: in test_structured_auto_progression_and_sla_resolution_on_exit
-    assert resp_sc.status_code == 201
-E   assert 404 == 201
-E    +  where 404 = <Response [404 Not Found]>.status_code
----------------------------- Captured stderr setup -----------------------------
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
------------------------------ Captured stderr call -----------------------------
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='7e8ca27c-a557-44d0-a2ff-e14b7676f1db', auth_mode='false'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
------------------------------- Captured log call -------------------------------
-WARNING  kombu.connection:connection.py:671 No hostname was supplied. Reverting to default 'localhost'
---------------------------- Captured stderr teardown ---------------------------
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
-RCA_DEBUG: tenant_id='', auth_mode='true'
 =============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11: DeprecationWarning: pythonjsonlogger.jsonlogger has been moved to pythonjsonlogger.json
+    warnings.warn(
+
 .venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
   /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
+
+backend/schemas/webhook.py:55
+  /Users/krishnagarg/smartonboard-main/backend/schemas/webhook.py:55: PydanticDeprecatedSince20: `min_items` is deprecated and will be removed, use `min_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    active_events: list[str] = Field(..., min_items=1, description="List of events to subscribe to")
 
 backend/schemas/audit.py:5
   /Users/krishnagarg/smartonboard-main/backend/schemas/audit.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
@@ -163,11 +35,74 @@ backend/api/router.py:13
   /Users/krishnagarg/smartonboard-main/backend/api/router.py:13: FastAPIDeprecationWarning: `example` has been deprecated, please use `examples` instead
     from api.intelligence import router as intelligence_router
 
-.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
-  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
-    from starlette.testclient import TestClient as TestClient  # noqa
+backend/schemas/enterprise.py:22
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:22: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyIPWhitelistResponse(BaseModel):
+
+backend/schemas/enterprise.py:49
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:49: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySMTPSettingsResponse(BaseModel):
+
+backend/schemas/enterprise.py:77
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:77: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySubscriptionPlanResponse(BaseModel):
+
+backend/schemas/enterprise.py:96
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:96: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyUsageLedgerResponse(BaseModel):
+
+tests/test_auth_security.py::test_company_suspension_blocks_protected_routes
+tests/test_auth_security.py::test_login_timing_decoy_triggered
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py:254: PasslibHashWarning: encountered a bcrypt hash with incorrectly set padding bits; you may want to use bcrypt.normhash() to fix this; this will be an error under Passlib 2.0
+    warn(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED tests/test_dynamic_escalations.py::test_structured_auto_progression_and_sla_resolution_on_exit
-================= 1 failed, 3 deselected, 4 warnings in 2.80s ==================
+======================= 18 passed, 12 warnings in 20.85s =======================
+--- Logging error ---
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/logging/__init__.py", line 1113, in emit
+    stream.write(msg + self.terminator)
+ValueError: I/O operation on closed file.
+Call stack:
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 383, in close_session
+    client.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_client.py", line 1270, in close
+    self._transport.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 262, in close
+    self._pool.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 353, in close
+    self._close_connections(closing_connections)
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 345, in _close_connections
+    connection.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 172, in close
+    with Trace("close", logger, None, {}):
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 52, in __enter__
+    self.trace(f"{self.name}.started", info)
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 47, in trace
+    self.logger.debug(message)
+Message: 'close.started'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/logging/__init__.py", line 1113, in emit
+    stream.write(msg + self.terminator)
+ValueError: I/O operation on closed file.
+Call stack:
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 383, in close_session
+    client.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_client.py", line 1270, in close
+    self._transport.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 262, in close
+    self._pool.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 353, in close
+    self._close_connections(closing_connections)
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 345, in _close_connections
+    connection.close()
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 172, in close
+    with Trace("close", logger, None, {}):
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 64, in __exit__
+    self.trace(f"{self.name}.complete", info)
+  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 47, in trace
+    self.logger.debug(message)
+Message: 'close.complete'
+Arguments: ()

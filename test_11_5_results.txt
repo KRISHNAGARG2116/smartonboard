@@ -1,0 +1,487 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.5, pytest-9.0.3, pluggy-1.6.0 -- /Users/krishnagarg/smartonboard-main/.venv/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/krishnagarg/smartonboard-main
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, langsmith-0.8.7, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 5 items
+
+tests/test_milestone_11_5.py::test_content_security_policy_headers PASSED [ 20%]
+tests/test_milestone_11_5.py::test_html_input_sanitization_xss FAILED    [ 40%]
+tests/test_milestone_11_5.py::test_account_takeover_ip_lockout PASSED    [ 60%]
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout FAILED [ 80%]
+tests/test_milestone_11_5.py::test_quarantined_files_db_logging FAILED   [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_html_input_sanitization_xss _______________________
+
+api_client = <starlette.testclient.TestClient object at 0x10f8db0d0>
+
+    def test_html_input_sanitization_xss(api_client):
+        """Verify that incoming JSON body requests automatically sanitize HTML tags via bleach."""
+        # Register request payload containing XSS injection payload
+        malicious_payload = {
+            "company_name": "Injected Corp <script>alert('xss')</script>",
+            "email": "xss@corp.com",
+            "password": "super-secure-password-123",
+            "full_name": "<img src=x onerror=alert('xss')> John XSS"
+        }
+    
+        # We patch register inside DB session to inspect what is written
+        with patch("api.auth.create_user_session_and_tokens") as mock_tokens, \
+             patch("core.audit.log_audit_event") as mock_audit:
+            mock_tokens.return_value = ("access", "refresh")
+    
+            response = api_client.post("/api/v1/auth/register", json=malicious_payload)
+            assert response.status_code == 201
+    
+            # Verify JSON response and database/mock arguments contain stripped strings
+            res_data = response.json()
+            assert "<script>" not in res_data["user"]["full_name"]
+>           assert "onerror" not in res_data["user"]["full_name"]
+E           assert 'onerror' not in "<img src=x onerror=alert('xss')> John XSS"
+E             
+E             'onerror' is contained here:
+E               <img src=x onerror=alert('xss')> John XSS
+E             ?            +++++++
+
+tests/test_milestone_11_5.py:58: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+----------------------------- Captured stdout call -----------------------------
+2026-06-02 22:00:08,206 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:08,361 - passlib.handlers.bcrypt - DEBUG - detected 'bcrypt' backend, version '4.0.1'
+2026-06-02 22:00:08,361 - passlib.handlers.bcrypt - DEBUG - 'bcrypt' backend lacks $2$ support, enabling workaround
+2026-06-02 22:00:08,806 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/register "HTTP/1.1 201 Created"
+----------------------------- Captured stderr call -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='aab5c371-4b3f-4fbe-95b3-f0d8200a5746', auth_mode='false'
+RCA_DEBUG: tenant_id='aab5c371-4b3f-4fbe-95b3-f0d8200a5746', auth_mode='false'
+RCA_DEBUG: tenant_id='aab5c371-4b3f-4fbe-95b3-f0d8200a5746', auth_mode='false'
+------------------------------ Captured log call -------------------------------
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:625 detected 'bcrypt' backend, version '4.0.1'
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:406 'bcrypt' backend lacks $2$ support, enabling workaround
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/register "HTTP/1.1 201 Created"
+--------------------------- Captured stderr teardown ---------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+__________________ test_otp_verification_throttle_and_lockout __________________
+
+api_client = <starlette.testclient.TestClient object at 0x1180c3ed0>
+
+    def test_otp_verification_throttle_and_lockout(api_client):
+        """Verify OTP limit verify triggers (1/min) and 3-strike verification lockout."""
+        import redis
+        from core.config import get_settings
+    
+        phone = "+15550199"
+        settings = get_settings()
+        r = redis.from_url(settings.redis_url)
+    
+        # Clear keys first
+        r.delete(f"otp:code:{phone}")
+        r.delete(f"otp:rate:{phone}")
+    
+        # First OTP request is successful
+        response1 = api_client.post("/api/v1/auth/otp/send", json={"phone_number": phone})
+        assert response1.status_code == 200
+        assert response1.json()["success"] is True
+    
+        # Immediate second OTP request triggers 429 throttle lockout (1/minute limit)
+        response2 = api_client.post("/api/v1/auth/otp/send", json={"phone_number": phone})
+        assert response2.status_code == 429
+        assert "wait 1 minute" in response2.json()["detail"]
+    
+        # Check 3-strike verify attempts limit lockout
+        # Stored key format is "code:attempts"
+        r.setex(f"otp:code:{phone}", 300, "123456:0")
+    
+        # Try invalid code 3 times
+        for i in range(3):
+            verify_resp = api_client.post("/api/v1/auth/otp/verify", json={"phone_number": phone, "code": "000000"})
+            if i < 2:
+                assert verify_resp.status_code == 400
+                assert "Invalid verification code" in verify_resp.json()["detail"]
+            else:
+                # 3rd failed attempt deletes key and throws lockout 403
+>               assert verify_resp.status_code == 403
+E               assert 400 == 403
+E                +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests/test_milestone_11_5.py:125: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+----------------------------- Captured stdout call -----------------------------
+2026-06-02 22:00:09,034 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-02 22:00:09,036 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,041 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+MOCK SMS OTP for +15550199: 606641
+2026-06-02 22:00:09,048 - security - INFO - AUDIT EVENT: action=auth.otp_sent company_id=None actor_type=UNAUTHENTICATED actor_id=None
+2026-06-02 22:00:09,050 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/otp/send "HTTP/1.1 200 OK"
+2026-06-02 22:00:09,050 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,054 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-02 22:00:09,056 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/otp/send "HTTP/1.1 429 Too Many Requests"
+2026-06-02 22:00:09,057 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,062 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-02 22:00:09,064 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+2026-06-02 22:00:09,064 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,068 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-02 22:00:09,070 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+2026-06-02 22:00:09,070 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,074 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-02 22:00:09,076 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+----------------------------- Captured stderr call -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+------------------------------ Captured log call -------------------------------
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     security:audit.py:108 AUDIT EVENT: action=auth.otp_sent company_id=None actor_type=UNAUTHENTICATED actor_id=None
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/otp/send "HTTP/1.1 200 OK"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/otp/send "HTTP/1.1 429 Too Many Requests"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/otp/verify "HTTP/1.1 400 Bad Request"
+--------------------------- Captured stderr teardown ---------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+______________________ test_quarantined_files_db_logging _______________________
+
+api_client = <starlette.testclient.TestClient object at 0x11822b810>
+db_session = <sqlalchemy.orm.session.Session object at 0x10ffd7a90>
+
+    def test_quarantined_files_db_logging(api_client, db_session):
+        """Verify that uploading files to async endpoints correctly creates a record in quarantined_files table."""
+        valid_pdf_data = b"%PDF-1.4\n%%EOF"
+        files = {"file": ("resume.pdf", valid_pdf_data, "application/pdf")}
+        data = {"job_role": "Rust Engineer"}
+    
+        with patch("celery_worker.scan_and_promote_resume_task.delay") as mock_celery_task:
+            mock_task_instance = MagicMock()
+            mock_task_instance.id = "mocked-celery-id-999"
+            mock_celery_task.return_value = mock_task_instance
+    
+            response = api_client.post("/api/screen/upload", files=files, data=data)
+            assert response.status_code == 202
+            q_file_id = response.json()["quarantine_file_id"]
+    
+            # Verify database record
+            q_rec = db_session.get(QuarantinedFile, q_file_id)
+>           assert q_rec is not None
+E           assert None is not None
+
+tests/test_milestone_11_5.py:149: AssertionError
+---------------------------- Captured stderr setup -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+----------------------------- Captured stdout call -----------------------------
+2026-06-02 22:00:09,210 - celery.utils.functional - DEBUG - 
+def scan_and_promote_resume_task(self, quarantine_file_id, job_id=0, evaluation_id=1, job_role=2, job_description=3):
+    return 1
+
+2026-06-02 22:00:09,213 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_part_begin with no data
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_header_field with data[36:55]
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_header_value with data[57:83]
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_header_end with no data
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_headers_finished with no data
+2026-06-02 22:00:09,216 - python_multipart.multipart - DEBUG - Calling on_part_data with data[87:100]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_part_end with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_part_begin with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_field with data[138:157]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_value with data[159:204]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_end with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_field with data[206:218]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_value with data[220:235]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_header_end with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_headers_finished with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_part_data with data[239:253]
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_part_end with no data
+2026-06-02 22:00:09,217 - python_multipart.multipart - DEBUG - Calling on_end with no data
+2026-06-02 22:00:09,229 - httpx - INFO - HTTP Request: POST http://testserver/api/screen/upload "HTTP/1.1 202 Accepted"
+----------------------------- Captured stderr call -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+------------------------------ Captured log call -------------------------------
+DEBUG    celery.utils.functional:functional.py:375 
+def scan_and_promote_resume_task(self, quarantine_file_id, job_id=0, evaluation_id=1, job_role=2, job_description=3):
+    return 1
+
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_part_begin with no data
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_field with data[36:55]
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_value with data[57:83]
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_header_end with no data
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_headers_finished with no data
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_part_data with data[87:100]
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_part_end with no data
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_part_begin with no data
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_field with data[138:157]
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_value with data[159:204]
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_header_end with no data
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_field with data[206:218]
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_header_value with data[220:235]
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_header_end with no data
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_headers_finished with no data
+DEBUG    python_multipart.multipart:multipart.py:649 Calling on_part_data with data[239:253]
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_part_end with no data
+DEBUG    python_multipart.multipart:multipart.py:652 Calling on_end with no data
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/screen/upload "HTTP/1.1 202 Accepted"
+--------------------------- Captured stderr teardown ---------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11: DeprecationWarning: pythonjsonlogger.jsonlogger has been moved to pythonjsonlogger.json
+    warnings.warn(
+
+.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/schemas/webhook.py:55
+  /Users/krishnagarg/smartonboard-main/backend/schemas/webhook.py:55: PydanticDeprecatedSince20: `min_items` is deprecated and will be removed, use `min_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    active_events: list[str] = Field(..., min_items=1, description="List of events to subscribe to")
+
+backend/schemas/audit.py:5
+  /Users/krishnagarg/smartonboard-main/backend/schemas/audit.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditLogResponse(BaseModel):
+
+backend/api/router.py:13
+  /Users/krishnagarg/smartonboard-main/backend/api/router.py:13: FastAPIDeprecationWarning: `example` has been deprecated, please use `examples` instead
+    from api.intelligence import router as intelligence_router
+
+backend/schemas/enterprise.py:22
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:22: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyIPWhitelistResponse(BaseModel):
+
+backend/schemas/enterprise.py:49
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:49: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySMTPSettingsResponse(BaseModel):
+
+backend/schemas/enterprise.py:77
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:77: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySubscriptionPlanResponse(BaseModel):
+
+backend/schemas/enterprise.py:96
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:96: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyUsageLedgerResponse(BaseModel):
+
+tests/test_milestone_11_5.py::test_account_takeover_ip_lockout
+  /Users/krishnagarg/smartonboard-main/backend/api/auth.py:192: DeprecationWarning: Call to deprecated setex. (Use 'set' instead.) -- Deprecated since version 2.6.12.
+    r.setex(f"lockout:blocked:{ip}", 300, 1)  # block for 5 minutes
+
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+  /Users/krishnagarg/smartonboard-main/backend/api/auth.py:351: DeprecationWarning: Call to deprecated setex. (Use 'set' instead.) -- Deprecated since version 2.6.12.
+    r.setex(f"otp:code:{phone}", 300, f"{code}:0")
+
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+  /Users/krishnagarg/smartonboard-main/backend/api/auth.py:354: DeprecationWarning: Call to deprecated setex. (Use 'set' instead.) -- Deprecated since version 2.6.12.
+    r.setex(rate_key, 60, "1")
+
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+  /Users/krishnagarg/smartonboard-main/tests/test_milestone_11_5.py:115: DeprecationWarning: Call to deprecated setex. (Use 'set' instead.) -- Deprecated since version 2.6.12.
+    r.setex(f"otp:code:{phone}", 300, "123456:0")
+
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout
+  /Users/krishnagarg/smartonboard-main/backend/api/auth.py:429: DeprecationWarning: Call to deprecated setex. (Use 'set' instead.) -- Deprecated since version 2.6.12.
+    r.setex(otp_key, 300, f"{stored_code}:{attempts}")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_milestone_11_5.py::test_html_input_sanitization_xss - assert 'onerror' not in "<img src=x onerror=alert('xss')> John XSS"
+  
+  'onerror' is contained here:
+    <img src=x onerror=alert('xss')> John XSS
+  ?            +++++++
+FAILED tests/test_milestone_11_5.py::test_otp_verification_throttle_and_lockout - assert 400 == 403
+ +  where 400 = <Response [400 Bad Request]>.status_code
+FAILED tests/test_milestone_11_5.py::test_quarantined_files_db_logging - assert None is not None
+=================== 3 failed, 2 passed, 17 warnings in 2.38s ===================

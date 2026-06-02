@@ -17,11 +17,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-if not os.getenv("GROQ_API_KEY"):
-    print(
-        "WARNING: GROQ_API_KEY is not set. "
-        "AI pipeline requests will fail until you add it to a .env file in the project root."
+# Initialize structured logging configuration
+from core.logging_config import setup_logging
+setup_logging()
+
+# Initialize Sentry Error Monitoring if DSN is configured
+import sentry_sdk
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
     )
+    print("Sentry SDK initialized successfully for API server")
 
 from api.router import v1_router
 from db.session import SessionLocal, engine, tenant_id_var
@@ -86,13 +96,21 @@ async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExc
 
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
-from core.middleware import IPWhitelistMiddleware
+from core.middleware import IPWhitelistMiddleware, ContentSecurityPolicyMiddleware, RequestSanitizationMiddleware
 
 app.add_middleware(IPWhitelistMiddleware)
+app.add_middleware(ContentSecurityPolicyMiddleware)
+app.add_middleware(RequestSanitizationMiddleware)
+
+cors_origins_str = os.getenv("ALLOWED_CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+if cors_origins_str == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -181,7 +199,29 @@ async def screen_text(request: Request, body: ScreenRequest):
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
-@app.post("/api/screen/upload")
+def get_or_create_sandbox_company(db) -> uuid.UUID:
+    from models.company import Company
+    from models.enums import CompanyStatus
+    from sqlalchemy import select
+    
+    # Query for any company
+    company = db.scalar(select(Company).limit(1))
+    if company:
+        return company.id
+        
+    # Create default sandbox company
+    sandbox = Company(
+        name="Sandbox Company",
+        slug="sandbox",
+        status=CompanyStatus.ACTIVE,
+        settings={}
+    )
+    db.add(sandbox)
+    db.flush()
+    return sandbox.id
+
+
+@app.post("/api/screen/upload", status_code=202)
 @limiter.limit("5/minute")
 async def screen_upload(
     request: Request,
@@ -203,90 +243,74 @@ async def screen_upload(
         if not content:
             raise HTTPException(status_code=400, detail="Empty file uploaded")
 
-        # 3. Quarantine Phase
-        quarantine_path = storage_service.save_quarantine(content, file.filename or "file.dat")
-
-        try:
-            # 4. Malware Dynamic & Static Scan
-            try:
-                scan_file_for_malware(content)
-            except ValueError as val_err:
-                print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}': {val_err}")
-                from core.audit import log_audit_event
-                from db.session import SessionLocal
-                with SessionLocal() as db:
-                    log_audit_event(
-                        db=db,
-                        action="file.scan_failure",
-                        actor_type="UNAUTHENTICATED",
-                        resource_type="quarantine",
-                        ip_address=request.client.host if request.client else None,
-                        user_agent=request.headers.get("user-agent"),
-                        metadata={"filename": file.filename, "error": str(val_err), "event": "malware_detected"}
-                    )
-                raise HTTPException(status_code=400, detail=str(val_err))
-            except RuntimeError as run_err:
-                print(f"SECURITY EVENT: Malware scanner failure in production: {run_err}")
-                raise HTTPException(status_code=500, detail="Security scanning service failure")
-
-            # 5. File Signature Verification
-            try:
-                validate_file_signature(content, file.filename or "")
-            except ValueError as sig_err:
-                print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
-                from core.audit import log_audit_event
-                from db.session import SessionLocal
-                with SessionLocal() as db:
-                    log_audit_event(
-                        db=db,
-                        action="file.signature_failure",
-                        actor_type="UNAUTHENTICATED",
-                        resource_type="quarantine",
-                        ip_address=request.client.host if request.client else None,
-                        user_agent=request.headers.get("user-agent"),
-                        metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
-                    )
-                raise HTTPException(status_code=400, detail=str(sig_err))
-
-            # 6. Promotion Phase
-            tenant_id = tenant_id_var.get() or "unauthenticated"
-            permanent_path = storage_service.promote_file(quarantine_path, tenant_id)
-            
+        # 3. Magic Bytes Signature & Static Malware Validation in Request Thread
+        from core.malware import EICAR_SIGNATURE
+        if EICAR_SIGNATURE in content:
+            print(f"SECURITY EVENT: Malware detected in uploaded file '{file.filename}' via EICAR static signature")
             from core.audit import log_audit_event
-            from db.session import SessionLocal
             with SessionLocal() as db:
                 log_audit_event(
                     db=db,
-                    action="file.promoted",
+                    action="file.scan_failure",
                     actor_type="UNAUTHENTICATED",
-                    company_id=tenant_id if tenant_id != "unauthenticated" else None,
-                    resource_type="uploads",
-                    resource_id=permanent_path.name,
+                    resource_type="quarantine",
                     ip_address=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
-                    metadata={"filename": file.filename, "size": len(content)}
+                    metadata={"filename": file.filename, "error": "Malware detected: EICAR test signature found.", "event": "malware_detected"}
                 )
+                db.commit()
+            raise HTTPException(status_code=400, detail="Malware detected: EICAR test signature found.")
 
-        except Exception:
-            # Clean up quarantine if any step fails
-            storage_service.delete_file(quarantine_path)
-            raise
-
-        # 7. Safe Extraction Phase
         try:
-            resume_text = extract_text_from_file_bytes(content, file.filename or "")
-        except ValueError as val_err:
-            raise HTTPException(status_code=400, detail=str(val_err))
+            validate_file_signature(content, file.filename or "")
+        except ValueError as sig_err:
+            print(f"SECURITY EVENT: Invalid file signature in uploaded file '{file.filename}': {sig_err}")
+            from core.audit import log_audit_event
+            with SessionLocal() as db:
+                log_audit_event(
+                    db=db,
+                    action="file.signature_failure",
+                    actor_type="UNAUTHENTICATED",
+                    resource_type="quarantine",
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
+                )
+                db.commit()
+            raise HTTPException(status_code=400, detail=str(sig_err))
 
-        if not resume_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract text from file")
+        # 4. Save to quarantine staging directory
+        quarantine_path = storage_service.save_quarantine(content, file.filename or "file.dat")
 
-        result = _screen_text(
-            resume_text=resume_text,
+        # 5. Write record in quarantined_files database table
+        from models.quarantine import QuarantinedFile
+        with SessionLocal() as db:
+            company_id = get_or_create_sandbox_company(db)
+            q_rec = QuarantinedFile(
+                company_id=company_id,
+                filename=file.filename or "file.dat",
+                quarantine_path=str(quarantine_path),
+                is_safe=None  # Pending
+            )
+            db.add(q_rec)
+            db.flush()
+            q_file_id = q_rec.id
+            db.commit()
+
+        # 6. Trigger background Celery task
+        from celery_worker import scan_and_promote_resume_task
+        task = scan_and_promote_resume_task.delay(
+            quarantine_file_id=str(q_file_id),
             job_role=job_role,
-            job_description=job_description,
+            job_description=job_description
         )
-        return {"success": True, "analysis": result, "filename": file.filename}
+
+        return {
+            "task_id": task.id,
+            "quarantine_file_id": str(q_file_id),
+            "status": "PENDING"
+        }
+
     except HTTPException:
         raise
     except Exception as e:

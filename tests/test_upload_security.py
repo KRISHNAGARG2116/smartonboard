@@ -26,16 +26,18 @@ def test_valid_pdf_accepted(api_client):
     files = {"file": ("resume.pdf", valid_pdf_data, "application/pdf")}
     data = {"job_role": "Software Engineer"}
 
-    with patch("server._screen_text") as mock_screen, \
-         patch("server.extract_text_from_file_bytes") as mock_extract:
-        mock_screen.return_value = "Mocked screening result"
-        mock_extract.return_value = "Extracted PDF text content"
+    with patch("celery_worker.scan_and_promote_resume_task.delay") as mock_celery_task:
+        mock_task_instance = MagicMock()
+        mock_task_instance.id = "mocked-task-id-123"
+        mock_celery_task.return_value = mock_task_instance
         
         response = api_client.post("/api/screen/upload", files=files, data=data)
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-        assert response.json()["filename"] == "resume.pdf"
-        mock_screen.assert_called_once()
+        assert response.status_code == 202
+        res_data = response.json()
+        assert res_data["task_id"] == "mocked-task-id-123"
+        assert "quarantine_file_id" in res_data
+        assert res_data["status"] == "PENDING"
+        mock_celery_task.assert_called_once()
 
 
 def test_valid_docx_accepted(api_client):
@@ -49,16 +51,18 @@ def test_valid_docx_accepted(api_client):
     files = {"file": ("resume.docx", valid_docx_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     data = {"job_role": "Software Engineer"}
 
-    # Mock extract_text_from_file_bytes to avoid trying to parse invalid zip structure as XML
-    with patch("server._screen_text") as mock_screen, \
-         patch("server.extract_text_from_file_bytes") as mock_extract:
-        mock_screen.return_value = "Mocked screening result"
-        mock_extract.return_value = "Extracted text content"
+    with patch("celery_worker.scan_and_promote_resume_task.delay") as mock_celery_task:
+        mock_task_instance = MagicMock()
+        mock_task_instance.id = "mocked-task-id-456"
+        mock_celery_task.return_value = mock_task_instance
         
         response = api_client.post("/api/screen/upload", files=files, data=data)
-        assert response.status_code == 200
-        assert response.json()["success"] is True
-        mock_screen.assert_called_once()
+        assert response.status_code == 202
+        res_data = response.json()
+        assert res_data["task_id"] == "mocked-task-id-456"
+        assert "quarantine_file_id" in res_data
+        assert res_data["status"] == "PENDING"
+        mock_celery_task.assert_called_once()
 
 
 def test_fake_pdf_rejected(api_client):

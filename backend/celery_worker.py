@@ -8,6 +8,21 @@ from sqlalchemy import select, delete
 # Add backend directory to python import path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# Initialize structured logging configuration
+from core.logging_config import setup_logging
+setup_logging()
+
+# Initialize Sentry Error Monitoring if DSN is configured
+import sentry_sdk
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=1.0,
+    )
+    print("Sentry SDK initialized successfully for Celery worker")
+
 from core.celery_app import celery_app
 from db.session import tenant_context, SessionLocal
 from pipeline import process_candidate
@@ -704,6 +719,114 @@ from tasks.escalations import check_sla_breaches_task, check_approval_escalation
 from tasks.webhooks import dispatch_webhook_event_task, purge_expired_delivery_logs
 from tasks.smtp import reverify_all_smtp_settings_task
 from tasks.billing import aggregate_usage_billing_period_task
+
+
+@celery_app.task(bind=True, max_retries=5)
+def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = None, evaluation_id: str = None, job_role: str = None, job_description: str = None):
+    """
+    Asynchronously scans a quarantined file via ClamAV, promotes it if safe,
+    and executes the screening or full recruitment parsing pipeline.
+    """
+    from db.session import SessionLocal, tenant_context
+    from models.quarantine import QuarantinedFile
+    from core.malware import scan_file_for_malware
+    from core.signature import extract_text_from_file_bytes
+    from core.storage import LocalStorageService
+    from pathlib import Path
+    import uuid
+
+    db = SessionLocal()
+    try:
+        q_file = db.get(QuarantinedFile, uuid.UUID(quarantine_file_id))
+        if not q_file:
+            logger.error(f"Quarantined file with ID {quarantine_file_id} not found.")
+            return {"success": False, "error": "Quarantined file not found"}
+
+        company_id = str(q_file.company_id)
+
+        STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent / "storage"
+        storage_service = LocalStorageService(STORAGE_BASE_DIR)
+
+        q_path = Path(q_file.quarantine_path)
+        if not q_path.is_absolute():
+            q_path = STORAGE_BASE_DIR / q_path
+
+        if not q_path.exists():
+            q_file.is_safe = False
+            q_file.error_message = "File not found in quarantine storage"
+            db.commit()
+            return {"success": False, "error": "File not found"}
+
+        file_bytes = q_path.read_bytes()
+
+        # 1. Malware Scan
+        try:
+            scan_file_for_malware(file_bytes)
+            q_file.is_safe = True
+            db.flush()
+        except ValueError as val_err:
+            q_file.is_safe = False
+            q_file.error_message = str(val_err)
+            db.commit()
+            storage_service.delete_file(q_path)
+            
+            # Log audit event
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="file.scan_failure",
+                actor_type="UNAUTHENTICATED",
+                company_id=q_file.company_id,
+                resource_type="quarantine",
+                metadata={"filename": q_file.filename, "error": str(val_err), "event": "malware_detected"}
+            )
+            db.commit()
+            return {"success": False, "error": str(val_err)}
+        except Exception as exc:
+            db.rollback()
+            countdown = (2 ** self.request.retries) * 5
+            logger.warning(f"Transient scan failure (retry {self.request.retries}/5) for task. Retrying in {countdown}s. Error: {exc}")
+            raise self.retry(exc=exc, countdown=countdown)
+
+        # 2. Promote the file
+        permanent_path = storage_service.promote_file(q_path, company_id)
+        
+        # Log promotion compliance audit
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="file.promoted",
+            actor_type="UNAUTHENTICATED",
+            company_id=q_file.company_id,
+            resource_type="uploads",
+            resource_id=permanent_path.name,
+            metadata={"filename": q_file.filename, "size": len(file_bytes)}
+        )
+        db.commit()
+
+        # 3. Choose pipeline depending on job_id presence
+        if job_id is None:
+            # screening playground workflow
+            from agents.screening_agent import screen_resume_text as _screen_text
+            resume_text = extract_text_from_file_bytes(file_bytes, q_file.filename)
+            result = _screen_text(
+                resume_text=resume_text,
+                job_role=job_role or "Software Engineer",
+                job_description=job_description or "",
+            )
+            return {"success": True, "analysis": result, "filename": q_file.filename}
+        else:
+            # recruitment workflow: reuse process_resume_async logic
+            relative_path = f"uploads/{company_id}/{permanent_path.name}"
+            db.close() # Close current session since process_resume_async opens its own
+            return process_resume_async(self, relative_path, company_id, str(job_id), str(evaluation_id))
+
+    except Exception as exc:
+        db.rollback()
+        logger.error(f"Permanent failure in scan_and_promote_resume_task: {exc}")
+        raise exc
+    finally:
+        db.close()
 
 
 

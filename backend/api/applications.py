@@ -353,72 +353,41 @@ async def create_application_async(
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Empty file uploaded")
 
-    # 2. Synchronous Antivirus & Signature Validation (Quarantine Phase)
-    quarantine_path = storage_service.save_quarantine(pdf_bytes, file.filename or "file.dat")
-    try:
-        # Malware Dynamic & Static Scan
-        try:
-            scan_file_for_malware(pdf_bytes)
-        except ValueError as val_err:
-            from core.audit import log_audit_event
-            log_audit_event(
-                db=db,
-                action="file.scan_failure",
-                actor_type="RECRUITER",
-                actor_id=current_user.id,
-                company_id=current_user.company_id,
-                resource_type="quarantine",
-                ip_address=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                metadata={"filename": file.filename, "error": str(val_err), "event": "malware_detected"}
-            )
-            raise HTTPException(status_code=400, detail=str(val_err))
-        except RuntimeError as run_err:
-            raise HTTPException(status_code=500, detail="Security scanning service failure")
-
-        # File Signature Verification
-        try:
-            validate_file_signature(pdf_bytes, file.filename or "")
-        except ValueError as sig_err:
-            from core.audit import log_audit_event
-            log_audit_event(
-                db=db,
-                action="file.signature_failure",
-                actor_type="RECRUITER",
-                actor_id=current_user.id,
-                company_id=current_user.company_id,
-                resource_type="quarantine",
-                ip_address=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
-            )
-            raise HTTPException(status_code=400, detail=str(sig_err))
-
-        # 3. Promotion Phase
-        permanent_path = storage_service.promote_file(quarantine_path, str(current_user.company_id))
-        
-        # Log promotion compliance audit
+    # 2. Magic Bytes Signature & Static Malware Validation in Request Thread
+    from core.malware import EICAR_SIGNATURE
+    if EICAR_SIGNATURE in pdf_bytes:
         from core.audit import log_audit_event
         log_audit_event(
             db=db,
-            action="file.promoted",
+            action="file.scan_failure",
             actor_type="RECRUITER",
             actor_id=current_user.id,
             company_id=current_user.company_id,
-            resource_type="uploads",
-            resource_id=permanent_path.name,
+            resource_type="quarantine",
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
-            metadata={"filename": file.filename, "size": len(pdf_bytes)}
+            metadata={"filename": file.filename, "error": "Malware detected: EICAR test signature found.", "event": "malware_detected"}
         )
+        raise HTTPException(status_code=400, detail="Malware detected: EICAR test signature found.")
 
-    except HTTPException:
-        raise
-    except Exception as exc:
-        storage_service.delete_file(quarantine_path)
-        raise HTTPException(status_code=500, detail="Secure file handling failure") from exc
+    try:
+        validate_file_signature(pdf_bytes, file.filename or "")
+    except ValueError as sig_err:
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="file.signature_failure",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            company_id=current_user.company_id,
+            resource_type="quarantine",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"filename": file.filename, "error": str(sig_err), "event": "invalid_signature"}
+        )
+        raise HTTPException(status_code=400, detail=str(sig_err))
 
-    # 4. Job Validation
+    # 3. Job Validation
     job = db.scalar(
         select(Job).where(
             Job.id == job_id,
@@ -432,19 +401,34 @@ async def create_application_async(
     from core.quota import check_quota_pre_flight
     check_quota_pre_flight(db, current_user.company_id, "candidates_processed")
 
-    # 5. Dispatch task to Celery worker queue
+    # 4. Save to quarantine staging directory
+    quarantine_path = storage_service.save_quarantine(pdf_bytes, file.filename or "file.dat")
+
+    # 5. Write record in quarantined_files database table
+    from models.quarantine import QuarantinedFile
+    q_rec = QuarantinedFile(
+        company_id=current_user.company_id,
+        filename=file.filename or "file.dat",
+        quarantine_path=str(quarantine_path),
+        is_safe=None  # Pending
+    )
+    db.add(q_rec)
+    db.flush()
+    q_file_id = q_rec.id
+    db.commit()
+
+    # 6. Dispatch task to Celery worker queue
+    from celery_worker import scan_and_promote_resume_task
     evaluation_id = str(uuid.uuid4())
-    relative_path = f"uploads/{current_user.company_id}/{permanent_path.name}"
-    
-    task = process_resume_async.delay(
-        relative_path,
-        str(current_user.company_id),
-        str(job_id),
-        evaluation_id
+    task = scan_and_promote_resume_task.delay(
+        quarantine_file_id=str(q_file_id),
+        job_id=str(job_id),
+        evaluation_id=evaluation_id
     )
 
     return {
         "task_id": task.id,
+        "quarantine_file_id": str(q_file_id),
         "status": "PENDING"
     }
 

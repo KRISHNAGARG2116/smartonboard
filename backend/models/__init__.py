@@ -3,6 +3,7 @@ from models.candidate import Candidate
 from models.company import Company
 from models.job import Job
 from models.user import User
+from models.quarantine import QuarantinedFile
 from models.session import UserSession, RevokedToken
 from models.audit import AuditLog
 from models.note import CandidateNote
@@ -70,6 +71,7 @@ __all__ = [
     "Job",
     "Candidate",
     "Application",
+    "QuarantinedFile",
     "UserSession",
     "RevokedToken",
     "AuditLog",
