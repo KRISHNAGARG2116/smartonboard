@@ -74,6 +74,70 @@ def get_current_user(
     return user
 
 
+def get_current_candidate(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    """Authenticate a candidate user from JWT.
+
+    Candidates have no company_id and no tenant context.
+    The JWT must contain role=candidate.
+    """
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = payload.get("sub")
+        role = payload.get("role")
+        jti = payload.get("jti")
+        session_id = payload.get("session_id")
+
+        if not user_id or not jti:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        if role != UserRole.CANDIDATE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This endpoint requires candidate authentication",
+            )
+
+        # Check if access token is blacklisted
+        from models.session import RevokedToken, UserSession
+        from datetime import datetime, timezone
+        from uuid import UUID
+
+        revoked = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
+        if revoked:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
+        # Check and update session activity
+        if session_id:
+            session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
+            if not session or session.is_revoked or session.expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has expired or is revoked")
+
+            session.last_active = datetime.now(timezone.utc)
+            db.add(session)
+            db.commit()
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+
+    # Candidates bypass RLS - query under auth_mode
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.id == UUID(user_id),
+                User.role == UserRole.CANDIDATE,
+                User.is_active.is_(True),
+            )
+        )
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Candidate not found or inactive")
+    return user
+
+
 def get_tenant_db(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> Generator[Session, None, None]:
@@ -164,8 +228,10 @@ def get_portal_db(
 
 TenantDb = Annotated[Session, Depends(get_tenant_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentCandidate = Annotated[User, Depends(get_current_candidate)]
 RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
 RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]
 PortalSession = Annotated[dict, Depends(get_portal_session)]
 PortalDb = Annotated[Session, Depends(get_portal_db)]
+
 

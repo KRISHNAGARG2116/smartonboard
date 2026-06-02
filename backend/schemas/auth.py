@@ -1,14 +1,40 @@
 import uuid
 from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
+    """Recruiter registration request."""
     company_name: str = Field(min_length=2, max_length=255)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=255)
+
+
+class CandidateRegisterRequest(BaseModel):
+    """Candidate registration request - no company required."""
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=255)
+
+
+class CandidateLoginRequest(BaseModel):
+    """Candidate login request - email + password."""
+    email: EmailStr
+    password: str
+
+
+class CandidateOTPRequest(BaseModel):
+    """Request to send an email OTP to a candidate."""
+    email: EmailStr
+
+
+class CandidateOTPVerifyRequest(BaseModel):
+    """Verify an email OTP for a candidate."""
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
 
 
 class LoginRequest(BaseModel):
@@ -26,12 +52,10 @@ class UserResponse(BaseModel):
     email: str
     full_name: str
     role: str
-    company_id: uuid.UUID
+    company_id: Optional[uuid.UUID] = None
 
     model_config = {"from_attributes": True}
 
-
-from typing import Optional
 
 class AuthResponse(BaseModel):
     access_token: str
