@@ -2,6 +2,8 @@ import os
 import pytest
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+import dns.resolver
 
 # Allow importing backend modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
@@ -10,6 +12,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 os.environ["USE_PGVECTOR"] = "false"
 # Force Celery to execute tasks synchronously and in-process for all tests
 os.environ["CELERY_TASK_ALWAYS_EAGER"] = "true"
+
+# Global DNS mock for dummy domains to prevent API register failures in integration tests
+_original_resolve = dns.resolver.resolve
+
+def _mock_dns_resolve(qname, rdtype="A", *args, **kwargs):
+    qname_str = str(qname).lower().strip()
+    if "nonexistent" in qname_str:
+        raise dns.resolver.NXDOMAIN(f"Mocked NXDOMAIN for {qname_str}")
+    if rdtype == "MX":
+        mock_mx = MagicMock()
+        mock_mx.exchange = f"mail.{qname_str}."
+        return [mock_mx]
+    return [MagicMock()]
+
+dns.resolver.resolve = _mock_dns_resolve
+
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
@@ -64,6 +82,14 @@ def db_session(db_engine):
     session = SessionTest()
     session.execute(text("SELECT set_config('app.bypass_audit_immutability', 'false', false)"))
     
+    # Reset rate limits / lockout blocks in Redis for each test
+    import redis
+    try:
+        r = redis.from_url(settings.redis_url)
+        r.flushall()
+    except Exception:
+        pass
+
     try:
         yield session
     finally:

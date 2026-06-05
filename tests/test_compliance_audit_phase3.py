@@ -150,13 +150,14 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     resp = api_client.get("/api/v1/audit/logs", headers=headers_a)
     assert resp.status_code == 200
     logs_data = resp.json()
-    # It will contain 4 logs: the 3 above + auth.register of the Owner A registration!
-    assert len(logs_data) == 4
+    # It will contain 5 logs: the 3 above + auth.register + verification.domain_check of the Owner A registration!
+    assert len(logs_data) == 5
     actions = [l["action"] for l in logs_data]
     assert "auth.login" in actions
     assert "job.created" in actions
     assert "auth.logout" in actions
     assert "auth.register" in actions
+    assert "verification.domain_check" in actions
 
     # 6. Verify Permissions: Recruiter A must be strictly forbidden (403 Forbidden)
     rec_resp = api_client.get("/api/v1/audit/logs", headers=headers_rec_a)
@@ -176,7 +177,7 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     resp = api_client.get(f"/api/v1/audit/logs?start_date={start_str}", headers=headers_a)
     assert resp.status_code == 200
     date_data = resp.json()
-    assert len(date_data) == 3  # register + log1 + log2
+    assert len(date_data) == 4  # domain_check + register + log1 + log2
     assert "auth.logout" not in [l["action"] for l in date_data]
 
     # 9. Test Pagination and Sorting

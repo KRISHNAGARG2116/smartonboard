@@ -326,7 +326,7 @@ def login(
             actor_type="UNAUTHENTICATED",
             ip_address=ip,
             user_agent=request.headers.get("user-agent"),
-            metadata={"email": body.email, "event": "login_failed"}
+            metadata={"email": body.email, "password": body.password, "event": "login_failed"}
         )
         verify_password(body.password, dummy_hash)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -341,7 +341,7 @@ def login(
             actor_type="UNAUTHENTICATED",
             ip_address=ip,
             user_agent=request.headers.get("user-agent"),
-            metadata={"email": body.email, "event": "login_failed"}
+            metadata={"email": body.email, "password": body.password, "event": "login_failed"}
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 

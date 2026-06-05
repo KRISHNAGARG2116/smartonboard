@@ -819,7 +819,7 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
             # recruitment workflow: reuse process_resume_async logic
             relative_path = f"uploads/{company_id}/{permanent_path.name}"
             db.close() # Close current session since process_resume_async opens its own
-            return process_resume_async(self, relative_path, company_id, str(job_id), str(evaluation_id))
+            return process_resume_async.run(relative_path, company_id, str(job_id), str(evaluation_id))
 
     except Exception as exc:
         db.rollback()
