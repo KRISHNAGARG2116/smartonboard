@@ -788,7 +788,80 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
             logger.warning(f"Transient scan failure (retry {self.request.retries}/5) for task. Retrying in {countdown}s. Error: {exc}")
             raise self.retry(exc=exc, countdown=countdown)
 
-        # 2. Promote the file
+        # 2. Role-aware branching after scan
+        if q_file.user_id is not None:
+            user_id = q_file.user_id
+            permanent_path = storage_service.promote_file(q_path, f"candidates/{user_id}")
+            
+            # Log promotion audit event for candidate
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="file.promoted",
+                actor_type="CANDIDATE",
+                actor_id=user_id,
+                resource_type="uploads",
+                resource_id=permanent_path.name,
+                metadata={"filename": q_file.filename, "size": len(file_bytes)}
+            )
+            db.commit()
+
+            # 3. Parse resume facts
+            from agents.resume_parser import resume_parser_agent
+            parsed_data = resume_parser_agent(file_bytes)
+
+            with tenant_context(auth_mode="true"):
+                # 4. Deactivate all existing resumes of the candidate
+                from models.candidate_resume import CandidateResume
+                from sqlalchemy import update
+                db.execute(
+                    update(CandidateResume)
+                    .where(CandidateResume.user_id == user_id)
+                    .values(is_active=False)
+                )
+                db.flush()
+
+                # 5. Insert new CandidateResume record
+                relative_path = f"uploads/candidates/{user_id}/{permanent_path.name}"
+                new_resume = CandidateResume(
+                    user_id=user_id,
+                    filename=q_file.filename,
+                    file_path=relative_path,
+                    is_active=True,
+                    parsed_skills=parsed_data.get("skills", []),
+                    parsed_summary=parsed_data.get("summary", "")
+                )
+                db.add(new_resume)
+                db.flush()
+
+                # 6. Update candidate profile values (provenance sync)
+                from models.candidate_profile import CandidateProfile
+                profile = db.scalar(
+                    select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+                )
+                if profile:
+                    profile.skills = parsed_data.get("skills", [])
+                    profile.summary = parsed_data.get("summary", "")
+                    
+                    parsed_name = parsed_data.get("name")
+                    if parsed_name and (not profile.full_name or profile.full_name == "Unknown"):
+                        profile.full_name = parsed_name
+                        
+                    parsed_phone = parsed_data.get("phone")
+                    if parsed_phone and not profile.phone_number:
+                        profile.phone_number = parsed_phone
+                        
+                    db.add(profile)
+                
+                db.commit()
+
+            return {
+                "success": True,
+                "filename": q_file.filename,
+                "resume_id": str(new_resume.id)
+            }
+
+        # Recruiter Flow
         permanent_path = storage_service.promote_file(q_path, company_id)
         
         # Log promotion compliance audit

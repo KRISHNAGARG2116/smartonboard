@@ -237,3 +237,30 @@ export interface CandidateMeResponse {
 
 export const fetchCandidateMe = () => api.get<CandidateMeResponse>('/v1/auth/candidate/me').then(r => r.data.user)
 
+export interface CandidateResume {
+  id: string
+  filename: string
+  file_path: string
+  is_active: boolean
+  parsed_skills: string[]
+  parsed_summary: string
+  created_at: string
+}
+
+export const fetchCandidateResumes = () =>
+  api.get<CandidateResume[]>('/v1/auth/candidate/resumes').then(r => r.data)
+
+export const uploadCandidateResume = (formData: FormData) =>
+  api.post<{ task_id: string; quarantine_file_id: string; status: string }>('/v1/auth/candidate/resumes/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }).then(r => r.data)
+
+export const toggleCandidateResumeActive = (resumeId: string) =>
+  api.post<{ success: boolean; message: string }>(`/v1/auth/candidate/resumes/${resumeId}/toggle-active`).then(r => r.data)
+
+export const deleteCandidateResume = (resumeId: string) =>
+  api.delete<{ success: boolean; message: string }>(`/v1/auth/candidate/resumes/${resumeId}`).then(r => r.data)
+
+

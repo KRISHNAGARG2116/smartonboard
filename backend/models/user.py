@@ -38,3 +38,4 @@ class User(Base):
     scorecards: Mapped[list["Scorecard"]] = relationship("Scorecard", back_populates="grader", cascade="all, delete-orphan")
     candidate_profile: Mapped["CandidateProfile | None"] = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     verification_tokens: Mapped[list["VerificationToken"]] = relationship("VerificationToken", back_populates="user", cascade="all, delete-orphan")
+    candidate_resumes: Mapped[list["CandidateResume"]] = relationship("CandidateResume", back_populates="user", cascade="all, delete-orphan")

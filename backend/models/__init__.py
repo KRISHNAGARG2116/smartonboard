@@ -65,6 +65,7 @@ from models.company_trust_metrics import CompanyTrustMetrics
 from models.candidate_profile import CandidateProfile
 from models.verification_token import VerificationToken
 from models.application_snapshot import ApplicationSnapshot
+from models.candidate_resume import CandidateResume
 
 
 
@@ -140,6 +141,7 @@ __all__ = [
     "CandidateProfile",
     "VerificationToken",
     "ApplicationSnapshot",
+    "CandidateResume",
 ]
 
 

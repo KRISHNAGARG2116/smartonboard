@@ -1,24 +1,38 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import CandidateLayout from '../components/CandidateLayout'
+import { fetchCandidateResumes } from '../api'
 
 export default function CandidateDashboard() {
   const { user } = useAuth()
+  const [resumesCount, setResumesCount] = useState(0)
+
+  useEffect(() => {
+    fetchCandidateResumes()
+      .then(resumes => setResumesCount(resumes.length))
+      .catch(() => {})
+  }, [])
 
   // Placeholder data for foundation phase
   const stats = {
-    resumesUploaded: 1,
+    resumesUploaded: resumesCount,
     maxResumes: 3,
     activeApplications: 2,
     scheduledInterviews: 1,
     emailVerified: true,
     phoneVerified: false,
-    profileCompletion: 65,
+    profileCompletion: resumesCount > 0 ? 80 : 50,
   }
 
   const pendingTasks = [
     { name: 'Verify your phone number via SMS OTP', route: '/candidate/profile', type: 'verification' },
-    { name: 'Upload a secondary backup resume', route: '/candidate/resumes', type: 'resume' },
+    ...(resumesCount === 0 
+      ? [{ name: 'Upload your primary resume to start matching', route: '/candidate/resumes', type: 'resume' }]
+      : resumesCount < 3 
+        ? [{ name: 'Upload a secondary backup resume', route: '/candidate/resumes', type: 'resume' }]
+        : []
+    ),
     { name: 'Complete your profile information details', route: '/candidate/profile', type: 'profile' }
   ]
 
