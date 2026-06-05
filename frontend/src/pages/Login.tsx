@@ -4,10 +4,11 @@ import AppLayout from '../components/AppLayout'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, loginCandidate } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isCandidate, setIsCandidate] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -16,8 +17,13 @@ export default function Login() {
     setError(null)
     setSubmitting(true)
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      if (isCandidate) {
+        await loginCandidate(email, password)
+        navigate('/candidate/dashboard')
+      } else {
+        await login(email, password)
+        navigate('/dashboard')
+      }
     } catch {
       setError('Invalid email or password.')
     } finally {
@@ -29,9 +35,34 @@ export default function Login() {
     <AppLayout>
       <div className="container" style={{ maxWidth: 420, padding: 'var(--space-16) var(--space-6)' }}>
         <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Sign in</h1>
-        <p className="text-secondary" style={{ marginBottom: 'var(--space-8)' }}>
-          Access your company recruitment pipeline.
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-6)' }}>
+          {isCandidate ? 'Access your candidate command center.' : 'Access your company recruitment pipeline.'}
         </p>
+
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
+          <button
+            type="button"
+            className={!isCandidate ? 'btn btn--primary' : 'btn btn--secondary'}
+            style={{ flex: 1, fontSize: 'var(--text-sm)' }}
+            onClick={() => {
+              setIsCandidate(false)
+              setError(null)
+            }}
+          >
+            Hiring Talent
+          </button>
+          <button
+            type="button"
+            className={isCandidate ? 'btn btn--primary' : 'btn btn--secondary'}
+            style={{ flex: 1, fontSize: 'var(--text-sm)' }}
+            onClick={() => {
+              setIsCandidate(true)
+              setError(null)
+            }}
+          >
+            Looking for Job
+          </button>
+        </div>
 
         {error && (
           <div className="banner banner--error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
@@ -69,7 +100,12 @@ export default function Login() {
         </form>
 
         <p className="text-secondary" style={{ marginTop: 'var(--space-5)', fontSize: 'var(--text-sm)' }}>
-          No account? <Link to="/register" className="text-accent">Create your company workspace</Link>
+          No account?{' '}
+          {isCandidate ? (
+            <Link to="/register?role=candidate" className="text-accent">Create a candidate account</Link>
+          ) : (
+            <Link to="/register" className="text-accent">Create your company workspace</Link>
+          )}
         </p>
       </div>
     </AppLayout>

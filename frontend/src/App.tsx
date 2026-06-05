@@ -12,6 +12,12 @@ import CandidateDirectory from './pages/CandidateDirectory'
 import PipelineBoard from './pages/PipelineBoard'
 import EmployeeDirectory from './pages/EmployeeDirectory'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
+import CandidateDashboard from './pages/CandidateDashboard'
+import ResumeLibrary from './pages/ResumeLibrary'
+import CandidateJobFeed from './pages/CandidateJobFeed'
+import CandidateApplications from './pages/CandidateApplications'
+import CandidateInterviews from './pages/CandidateInterviews'
+import CandidateProfilePage from './pages/CandidateProfilePage'
 
 function App() {
   return (
@@ -27,7 +33,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -35,7 +41,7 @@ function App() {
             <Route
               path="/candidates"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
                   <CandidateDirectory />
                 </ProtectedRoute>
               }
@@ -43,7 +49,7 @@ function App() {
             <Route
               path="/pipeline"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
                   <PipelineBoard />
                 </ProtectedRoute>
               }
@@ -51,7 +57,7 @@ function App() {
             <Route
               path="/employees"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
                   <EmployeeDirectory />
                 </ProtectedRoute>
               }
@@ -59,8 +65,58 @@ function App() {
             <Route
               path="/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
                   <AnalyticsDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Candidate Workspace Routes */}
+            <Route
+              path="/candidate/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/resumes"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <ResumeLibrary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/jobs"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateJobFeed />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/applications"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateApplications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/interviews"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateInterviews />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/profile"
+              element={
+                <ProtectedRoute allowedRoles={['candidate']}>
+                  <CandidateProfilePage />
                 </ProtectedRoute>
               }
             />

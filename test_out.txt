@@ -4,12 +4,141 @@ rootdir: /Users/krishnagarg/smartonboard-main
 configfile: pyproject.toml
 plugins: asyncio-1.4.0, langsmith-0.8.7, anyio-4.13.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 18 items
+collected 2 items / 1 deselected / 1 selected
 
-tests/test_upload_security.py ........                                   [ 44%]
-tests/test_ai_semantic_search.py ......                                  [ 77%]
-tests/test_auth_security.py ....                                         [100%]
+tests/test_candidate_auth.py F                                           [100%]
 
+=================================== FAILURES ===================================
+__________________ test_candidate_registration_and_login_flow __________________
+tests/test_candidate_auth.py:68: in test_candidate_registration_and_login_flow
+    assert me_data["email"] == "candidate_test@example.com"
+           ^^^^^^^^^^^^^^^^
+E   KeyError: 'email'
+---------------------------- Captured stdout setup -----------------------------
+2026-06-05 21:57:22,724 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+---------------------------- Captured stderr setup -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+------------------------------ Captured log setup ------------------------------
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+----------------------------- Captured stdout call -----------------------------
+2026-06-05 21:57:22,729 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-05 21:57:22,962 - passlib.handlers.bcrypt - DEBUG - detected 'bcrypt' backend, version '4.0.1'
+2026-06-05 21:57:22,962 - passlib.handlers.bcrypt - DEBUG - 'bcrypt' backend lacks $2$ support, enabling workaround
+2026-06-05 21:57:23,450 - security - INFO - AUDIT EVENT: action=auth.candidate_registered company_id=None actor_type=CANDIDATE actor_id=bd08685d-8f54-4afd-ae13-9f8153b93615
+2026-06-05 21:57:23,452 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/register/candidate "HTTP/1.1 201 Created"
+2026-06-05 21:57:23,459 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-05 21:57:23,466 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-05 21:57:23,894 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-05 21:57:23,908 - security - INFO - AUDIT EVENT: action=auth.candidate_login company_id=None actor_type=CANDIDATE actor_id=bd08685d-8f54-4afd-ae13-9f8153b93615
+2026-06-05 21:57:23,910 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/login/candidate "HTTP/1.1 200 OK"
+2026-06-05 21:57:23,911 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-05 21:57:23,930 - httpx - INFO - HTTP Request: GET http://testserver/api/v1/auth/candidate/me "HTTP/1.1 200 OK"
+----------------------------- Captured stderr call -----------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='false'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+------------------------------ Captured log call -------------------------------
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:625 detected 'bcrypt' backend, version '4.0.1'
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:406 'bcrypt' backend lacks $2$ support, enabling workaround
+INFO     security:audit.py:108 AUDIT EVENT: action=auth.candidate_registered company_id=None actor_type=CANDIDATE actor_id=bd08685d-8f54-4afd-ae13-9f8153b93615
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/register/candidate "HTTP/1.1 201 Created"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+INFO     security:audit.py:108 AUDIT EVENT: action=auth.candidate_login company_id=None actor_type=CANDIDATE actor_id=bd08685d-8f54-4afd-ae13-9f8153b93615
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/login/candidate "HTTP/1.1 200 OK"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver/api/v1/auth/candidate/me "HTTP/1.1 200 OK"
+--------------------------- Captured stderr teardown ---------------------------
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
+RCA_DEBUG: tenant_id='', auth_mode='true'
 =============================== warnings summary ===============================
 .venv/lib/python3.11/site-packages/fastapi/testclient.py:1
   /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
@@ -51,58 +180,7 @@ backend/schemas/enterprise.py:96
   /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:96: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
     class CompanyUsageLedgerResponse(BaseModel):
 
-tests/test_auth_security.py::test_company_suspension_blocks_protected_routes
-tests/test_auth_security.py::test_login_timing_decoy_triggered
-  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py:254: PasslibHashWarning: encountered a bcrypt hash with incorrectly set padding bits; you may want to use bcrypt.normhash() to fix this; this will be an error under Passlib 2.0
-    warn(
-
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 18 passed, 12 warnings in 20.85s =======================
---- Logging error ---
-Traceback (most recent call last):
-  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/logging/__init__.py", line 1113, in emit
-    stream.write(msg + self.terminator)
-ValueError: I/O operation on closed file.
-Call stack:
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 383, in close_session
-    client.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_client.py", line 1270, in close
-    self._transport.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 262, in close
-    self._pool.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 353, in close
-    self._close_connections(closing_connections)
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 345, in _close_connections
-    connection.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 172, in close
-    with Trace("close", logger, None, {}):
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 52, in __enter__
-    self.trace(f"{self.name}.started", info)
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 47, in trace
-    self.logger.debug(message)
-Message: 'close.started'
-Arguments: ()
---- Logging error ---
-Traceback (most recent call last):
-  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/logging/__init__.py", line 1113, in emit
-    stream.write(msg + self.terminator)
-ValueError: I/O operation on closed file.
-Call stack:
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 383, in close_session
-    client.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_client.py", line 1270, in close
-    self._transport.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 262, in close
-    self._pool.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 353, in close
-    self._close_connections(closing_connections)
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 345, in _close_connections
-    connection.close()
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 172, in close
-    with Trace("close", logger, None, {}):
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 64, in __exit__
-    self.trace(f"{self.name}.complete", info)
-  File "/Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/httpcore/_trace.py", line 47, in trace
-    self.logger.debug(message)
-Message: 'close.complete'
-Arguments: ()
+=========================== short test summary info ============================
+FAILED tests/test_candidate_auth.py::test_candidate_registration_and_login_flow
+================= 1 failed, 1 deselected, 10 warnings in 3.23s =================

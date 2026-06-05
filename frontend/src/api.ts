@@ -116,7 +116,7 @@ export interface User {
   email: string
   full_name: string
   role: string
-  company_id: string
+  company_id: string | null
 }
 
 export interface AuthResponse {
@@ -210,4 +210,30 @@ export const fetchSyncMetrics = () =>
 
 export const resolveTaskEscalation = (taskId: string, notes: string) =>
   api.post(`/v1/employees/tasks/${taskId}/escalations/resolve`, { resolution_notes: notes }).then(r => r.data)
+
+// --- Phase B Candidate Authentication ---
+
+export const registerCandidate = (data: {
+  email: string
+  password: string
+  full_name: string
+}) => api.post<AuthResponse>('/v1/auth/register/candidate', data).then(r => r.data)
+
+export const loginCandidate = (data: { email: string; password: string }) =>
+  api.post<AuthResponse>('/v1/auth/login/candidate', data).then(r => r.data)
+
+export interface CandidateMeResponse {
+  user: User
+  profile: {
+    id: string
+    full_name: string
+    phone_number: string | null
+    phone_verified: boolean
+    email_verified: boolean
+    location: string | null
+    profile_status: string | null
+  } | null
+}
+
+export const fetchCandidateMe = () => api.get<CandidateMeResponse>('/v1/auth/candidate/me').then(r => r.data.user)
 

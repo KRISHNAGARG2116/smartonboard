@@ -1,11 +1,39 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { fetchMe, getAuthToken, login as apiLogin, register as apiRegister, setAuthToken, type User } from '../api'
+import {
+  fetchMe,
+  getAuthToken,
+  login as apiLogin,
+  register as apiRegister,
+  setAuthToken,
+  type User,
+  loginCandidate as apiLoginCandidate,
+  registerCandidate as apiRegisterCandidate,
+  fetchCandidateMe
+} from '../api'
+
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonPayload)
+  } catch {
+    return null
+  }
+}
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (data: { company_name: string; email: string; password: string; full_name: string }) => Promise<void>
+  loginCandidate: (email: string, password: string) => Promise<void>
+  registerCandidate: (data: { email: string; password: string; full_name: string }) => Promise<void>
   logout: () => void
 }
 
@@ -23,8 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      const me = await fetchMe()
-      setUser(me)
+      const decoded = parseJwt(token)
+      if (decoded && decoded.role === 'candidate') {
+        const me = await fetchCandidateMe()
+        setUser(me)
+      } else {
+        const me = await fetchMe()
+        setUser(me)
+      }
     } catch {
       setAuthToken(null)
       setUser(null)
@@ -49,14 +83,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user)
   }, [])
 
+  const loginCandidate = useCallback(async (email: string, password: string) => {
+    const res = await apiLoginCandidate({ email, password })
+    setAuthToken(res.access_token)
+    setUser(res.user)
+  }, [])
+
+  const registerCandidate = useCallback(async (data: { email: string; password: string; full_name: string }) => {
+    const res = await apiRegisterCandidate(data)
+    setAuthToken(res.access_token)
+    setUser(res.user)
+  }, [])
+
   const logout = useCallback(() => {
     setAuthToken(null)
     setUser(null)
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, loginCandidate, registerCandidate, logout }),
+    [user, loading, login, register, loginCandidate, registerCandidate, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
