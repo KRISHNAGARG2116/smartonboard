@@ -26,6 +26,7 @@ from api.candidate_auth import router as candidate_auth_router
 from api.candidate_resumes import router as candidate_resumes_router
 from api.candidate_jobs import router as candidate_jobs_router
 from api.candidate_applications import router as candidate_applications_router
+from api.candidate_interviews import router as candidate_interviews_router
 
 
 v1_router = APIRouter(prefix="/api/v1")
@@ -34,6 +35,7 @@ v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(candidate_resumes_router)
 v1_router.include_router(candidate_jobs_router)
 v1_router.include_router(candidate_applications_router)
+v1_router.include_router(candidate_interviews_router)
 
 v1_router.include_router(auth_router)
 v1_router.include_router(companies_router)

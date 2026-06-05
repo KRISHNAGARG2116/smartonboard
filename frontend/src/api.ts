@@ -298,5 +298,81 @@ export const fetchJobFeed = (page = 1, limit = 10) =>
 export const applyToJob = (jobId: string, resumeId: string) =>
   api.post<ApplyResponse>('/v1/applications/apply', { job_id: jobId, resume_id: resumeId }).then(r => r.data)
 
+// --- Phase F Applications & Interviews ---
+
+export interface ApplicationSnapshotData {
+  id: string
+  resume_snapshot: {
+    id: string
+    filename: string
+    file_path: string
+    parsed_skills: string[]
+    parsed_summary: string
+    created_at: string
+  }
+  candidate_snapshot: {
+    full_name: string
+    email: string
+    phone_number: string | null
+    location: string | null
+    skills: string[]
+    summary: string
+  }
+  created_at: string
+}
+
+export interface CandidateApplicationItem {
+  id: string
+  company_id: string
+  company_name: string
+  job_id: string
+  job_title: string
+  job_department: string
+  status: string
+  created_at: string
+  updated_at: string
+  snapshot: ApplicationSnapshotData | null
+}
+
+export interface CandidateInterviewSlot {
+  id: string
+  start_time: string
+  end_time: string
+  status: string
+}
+
+export interface CandidateInterviewItem {
+  id: string
+  title: string
+  stage: string
+  scheduled_at: string
+  duration_minutes: number
+  video_link: string | null
+  is_cancelled: boolean
+  company_name: string
+  job_title: string
+  interviewer_name: string
+  slot: CandidateInterviewSlot | null
+}
+
+export const fetchMyApplications = () =>
+  api.get<CandidateApplicationItem[]>('/v1/applications/me').then(r => r.data)
+
+export const withdrawApplication = (applicationId: string) =>
+  api.post<{ success: boolean; message: string; notification_draft: any }>(`/v1/applications/${applicationId}/withdraw`).then(r => r.data)
+
+export const fetchMyInterviews = () =>
+  api.get<CandidateInterviewItem[]>('/v1/candidate/interviews').then(r => r.data)
+
+export const cancelCandidateBooking = (slotId: string) =>
+  api.post<{ status: string; message: string }>(`/v1/candidate/bookings/${slotId}/cancel`).then(r => r.data)
+
+export const rescheduleCandidateBooking = (slotId: string, newStartTime: string) =>
+  api.post<{ status: string; slot_id: string; start_time: string; end_time: string }>(
+    `/v1/candidate/bookings/${slotId}/reschedule`,
+    { new_start_time: newStartTime }
+  ).then(r => r.data)
+
+
 
 
