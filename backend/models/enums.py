@@ -37,6 +37,7 @@ class ApplicationStatus(str, enum.Enum):
     OFFER = "offer"
     HIRED = "hired"
     REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
 
 
 class InsightGenerationStatus(str, enum.Enum):

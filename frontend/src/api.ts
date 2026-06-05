@@ -263,4 +263,40 @@ export const toggleCandidateResumeActive = (resumeId: string) =>
 export const deleteCandidateResume = (resumeId: string) =>
   api.delete<{ success: boolean; message: string }>(`/v1/auth/candidate/resumes/${resumeId}`).then(r => r.data)
 
+// --- Phase E Job Feed & Applications ---
+
+export interface JobFeedItem {
+  id: string
+  company_id: string
+  company_name: string
+  title: string
+  department: string
+  description: string
+  status: string
+  start_date: string | null
+  applicability_score: number
+  matching_skills: string[]
+  missing_skills: string[]
+}
+
+export interface JobFeedResponse {
+  total: number
+  page: number
+  limit: number
+  results: JobFeedItem[]
+}
+
+export interface ApplyResponse {
+  success: boolean
+  application_id: string
+  status: string
+}
+
+export const fetchJobFeed = (page = 1, limit = 10) =>
+  api.get<JobFeedResponse>('/v1/jobs/feed', { params: { page, limit } }).then(r => r.data)
+
+export const applyToJob = (jobId: string, resumeId: string) =>
+  api.post<ApplyResponse>('/v1/applications/apply', { job_id: jobId, resume_id: resumeId }).then(r => r.data)
+
+
 

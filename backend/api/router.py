@@ -21,8 +21,20 @@ from api.webhooks import router as webhooks_router
 from api.enterprise import router as enterprise_router
 from api.employees import router as employees_router
 
+# Dedicated Candidate Routers
+from api.candidate_auth import router as candidate_auth_router
+from api.candidate_resumes import router as candidate_resumes_router
+from api.candidate_jobs import router as candidate_jobs_router
+from api.candidate_applications import router as candidate_applications_router
+
 
 v1_router = APIRouter(prefix="/api/v1")
+
+# Mount candidate routers first to prevent path parameter shadowing (e.g. /jobs/feed matching /jobs/{job_id})
+v1_router.include_router(candidate_resumes_router)
+v1_router.include_router(candidate_jobs_router)
+v1_router.include_router(candidate_applications_router)
+
 v1_router.include_router(auth_router)
 v1_router.include_router(companies_router)
 v1_router.include_router(jobs_router)
@@ -43,6 +55,7 @@ v1_router.include_router(committees_router)
 v1_router.include_router(webhooks_router)
 v1_router.include_router(enterprise_router)
 v1_router.include_router(employees_router)
+
 
 
 

@@ -1,0 +1,158 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.5, pytest-9.0.3, pluggy-1.6.0 -- /Users/krishnagarg/smartonboard-main/.venv/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /Users/krishnagarg/smartonboard-main
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, langsmith-0.8.7, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... 2026-06-06 02:24:22,389 - passlib.utils.compat - DEBUG - loaded lazy attr 'SafeConfigParser': <class 'configparser.ConfigParser'>
+2026-06-06 02:24:22,389 - passlib.utils.compat - DEBUG - loaded lazy attr 'NativeStringIO': <class '_io.StringIO'>
+2026-06-06 02:24:22,389 - passlib.utils.compat - DEBUG - loaded lazy attr 'BytesIO': <class '_io.BytesIO'>
+2026-06-06 02:24:22,392 - passlib.registry - DEBUG - registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+collected 2 items / 1 deselected / 1 selected
+
+tests/test_candidate_job_feed.py::test_job_feed_and_apply_flow 2026-06-06 02:24:23,583 - redis.connection - DEBUG - Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+2026-06-06 02:24:23,588 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-06 02:24:23,820 - passlib.handlers.bcrypt - DEBUG - detected 'bcrypt' backend, version '4.0.1'
+2026-06-06 02:24:23,820 - passlib.handlers.bcrypt - DEBUG - 'bcrypt' backend lacks $2$ support, enabling workaround
+2026-06-06 02:24:24,304 - security - INFO - AUDIT EVENT: action=auth.candidate_registered company_id=None actor_type=CANDIDATE actor_id=831729f7-1cc0-4827-96c4-3aef9c1f48b8
+2026-06-06 02:24:24,306 - httpx - INFO - HTTP Request: POST http://testserver/api/v1/auth/register/candidate "HTTP/1.1 201 Created"
+ALL USERS: [{'id': '831729f7-1cc0-4827-96c4-3aef9c1f48b8', 'email': 'candidate_feed_test@example.com', 'role': <UserRole.CANDIDATE: 'candidate'>}]
+ALL SESSIONS: [{'id': 'e3bda5e8-bff6-4625-8f65-36b0d4b6d26a', 'user_id': '831729f7-1cc0-4827-96c4-3aef9c1f48b8', 'is_revoked': False, 'expires_at': datetime.datetime(2026, 6, 12, 20, 54, 24, 286355, tzinfo=zoneinfo.ZoneInfo(key='Etc/UTC'))}]
+2026-06-06 02:24:24,333 - asyncio - DEBUG - Using selector: KqueueSelector
+2026-06-06 02:24:24,337 - httpx - INFO - HTTP Request: GET http://testserver/api/v1/jobs/feed "HTTP/1.1 401 Unauthorized"
+STATUS CODE: 401
+RESPONSE JSON: {'detail': 'Invalid token'}
+FAILED
+
+=================================== FAILURES ===================================
+_________________________ test_job_feed_and_apply_flow _________________________
+
+api_client = <starlette.testclient.TestClient object at 0x10f654b50>
+db_session = <sqlalchemy.orm.session.Session object at 0x10fe99190>
+
+    def test_job_feed_and_apply_flow(api_client, db_session):
+        # 1. Setup candidate account
+        reg_payload = {
+            "email": "candidate_feed_test@example.com",
+            "password": "securepassword123",
+            "full_name": "Test Candidate",
+        }
+        resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
+        assert resp.status_code == 201
+        cand_data = resp.json()
+        cand_token = cand_data["access_token"]
+        cand_headers = {"Authorization": f"Bearer {cand_token}"}
+        cand_user_id = uuid.UUID(cand_data["user"]["id"])
+    
+        # Update candidate profile skills
+        with tenant_context(auth_mode="true"):
+            profile = db_session.scalar(
+                select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
+            )
+            assert profile is not None
+            profile.skills = ["Python", "Docker"]
+            db_session.add(profile)
+    
+            # Add a test resume
+            resume = CandidateResume(
+                user_id=cand_user_id,
+                filename="my_resume.pdf",
+                file_path="uploads/candidates/my_resume.pdf",
+                is_active=True,
+                parsed_skills=["Python", "Docker"],
+                parsed_summary="Experienced developer profile."
+            )
+            db_session.add(resume)
+    
+            # Setup Company and Active Job
+            company = Company(
+                name="Feed Test Corp",
+                slug="feed-test-corp"
+            )
+            db_session.add(company)
+            db_session.flush()
+    
+            job = Job(
+                company_id=company.id,
+                title="Senior Python Architect",
+                description="Looking for an engineer with skills in Python, Docker, and Kubernetes.",
+                status=JobStatus.OPEN,
+                settings={}
+            )
+            db_session.add(job)
+            db_session.commit()
+            db_session.refresh(resume)
+            db_session.refresh(job)
+    
+        # 2. Test GET /jobs/feed
+        with tenant_context(auth_mode="true"):
+            users_list = db_session.scalars(select(User)).all()
+            sessions_list = db_session.scalars(select(UserSession)).all()
+            print("ALL USERS:", [{"id": str(u.id), "email": u.email, "role": u.role} for u in users_list])
+            print("ALL SESSIONS:", [{"id": str(s.id), "user_id": str(s.user_id), "is_revoked": s.is_revoked, "expires_at": s.expires_at} for s in sessions_list])
+    
+        resp = api_client.get("/api/v1/jobs/feed", headers=cand_headers)
+        print("STATUS CODE:", resp.status_code)
+        print("RESPONSE JSON:", resp.json())
+>       assert resp.status_code == 200
+E       assert 401 == 200
+E        +  where 401 = <Response [401 Unauthorized]>.status_code
+
+tests/test_candidate_job_feed.py:129: AssertionError
+------------------------------ Captured log setup ------------------------------
+DEBUG    redis.connection:connection.py:648 Failed to enable maintenance notifications: unknown subcommand 'MAINT_NOTIFICATIONS'. Try CLIENT HELP.
+------------------------------ Captured log call -------------------------------
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:625 detected 'bcrypt' backend, version '4.0.1'
+DEBUG    passlib.handlers.bcrypt:bcrypt.py:406 'bcrypt' backend lacks $2$ support, enabling workaround
+INFO     security:audit.py:108 AUDIT EVENT: action=auth.candidate_registered company_id=None actor_type=CANDIDATE actor_id=831729f7-1cc0-4827-96c4-3aef9c1f48b8
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/api/v1/auth/register/candidate "HTTP/1.1 201 Created"
+DEBUG    asyncio:selector_events.py:54 Using selector: KqueueSelector
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver/api/v1/jobs/feed "HTTP/1.1 401 Unauthorized"
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/pythonjsonlogger/jsonlogger.py:11: DeprecationWarning: pythonjsonlogger.jsonlogger has been moved to pythonjsonlogger.json
+    warnings.warn(
+
+.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /Users/krishnagarg/smartonboard-main/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/schemas/webhook.py:55
+  /Users/krishnagarg/smartonboard-main/backend/schemas/webhook.py:55: PydanticDeprecatedSince20: `min_items` is deprecated and will be removed, use `min_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    active_events: list[str] = Field(..., min_items=1, description="List of events to subscribe to")
+
+backend/schemas/audit.py:5
+  /Users/krishnagarg/smartonboard-main/backend/schemas/audit.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AuditLogResponse(BaseModel):
+
+backend/api/router.py:13
+  /Users/krishnagarg/smartonboard-main/backend/api/router.py:13: FastAPIDeprecationWarning: `example` has been deprecated, please use `examples` instead
+    from api.intelligence import router as intelligence_router
+
+backend/schemas/enterprise.py:22
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:22: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyIPWhitelistResponse(BaseModel):
+
+backend/schemas/enterprise.py:49
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:49: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySMTPSettingsResponse(BaseModel):
+
+backend/schemas/enterprise.py:77
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:77: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanySubscriptionPlanResponse(BaseModel):
+
+backend/schemas/enterprise.py:96
+  /Users/krishnagarg/smartonboard-main/backend/schemas/enterprise.py:96: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CompanyUsageLedgerResponse(BaseModel):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_candidate_job_feed.py::test_job_feed_and_apply_flow - assert 401 == 200
+ +  where 401 = <Response [401 Unauthorized]>.status_code
+================= 1 failed, 1 deselected, 10 warnings in 2.19s =================

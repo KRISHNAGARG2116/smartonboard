@@ -121,6 +121,7 @@ def get_current_candidate(
             db.add(session)
             db.commit()
     except JWTError as exc:
+        print("JWT_DECODE_ERROR_DETAILS:", str(exc), type(exc))
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 
     # Candidates bypass RLS - query under auth_mode
