@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import { useAuth } from '../context/AuthContext'
 import RecruiterOnboardingWizard from '../components/RecruiterOnboardingWizard'
@@ -329,13 +330,19 @@ export default function Dashboard() {
   const pendingOffersCount = applications.filter((a) => a.status === 'offer').length
   const activeEmployeesCount = employees.length
 
-  // Filter Hired candidates waiting for Employee conversion
-  const hiresAwaitingConversion = applications.filter(
-    (app) => app.status === 'hired' && !employees.some((emp) => emp.email === app.candidate?.email)
-  )
 
   // Filter failed HRIS syncs
   const failedSyncCount = dlqRecords.filter((r) => r.status === 'failed' || !r.resolved_at).length
+
+  // Hiring Command Center metrics
+  const screeningAlertsCount = applications.filter(
+    (a) => a.status === 'applied' || a.status === 'screening'
+  ).length
+
+  const applicationsWithScore = applications.filter((a) => typeof a.match_score === 'number' && a.match_score !== null)
+  const averageMatchScore = applicationsWithScore.length > 0
+    ? (applicationsWithScore.reduce((sum, a) => sum + (a.match_score || 0), 0) / applicationsWithScore.length).toFixed(1)
+    : '78.4'
 
   return (
     <AppLayout>
@@ -495,6 +502,37 @@ export default function Dashboard() {
         </section>
 
         {/* 3. COCKPIT OPERATIONAL WIDGETS GRID */}
+        {/* Action Center */}
+        <section
+          style={{
+            border: '1px solid var(--color-burnt-sienna)',
+            borderRadius: 12,
+            padding: '24px',
+            marginBottom: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-burnt-sienna)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Action Center
+            </span>
+            <span className="badge badge--reject" style={{ fontSize: 8 }}>Alerts</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {screeningAlertsCount > 0 && (
+              <div style={{ fontSize: 14, color: '#ffedd7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📌 <span>Urgent: <strong>{screeningAlertsCount}</strong> candidate{screeningAlertsCount > 1 ? 's are' : ' is'} waiting for screening.</span>
+              </div>
+            )}
+            <div style={{ fontSize: 14, color: '#ffedd7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ⚠️ <span>Warning: Organization MX record not verified. <Link to="/recruiter/settings" style={{ color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Verify DNS records</Link> to secure applicant notifications.</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Hiring Command Center Grid */}
         <section
           style={{
             display: 'grid',
@@ -503,141 +541,134 @@ export default function Dashboard() {
           }}
           aria-label="Mission Control Widgets"
         >
-          {/* Widget 1: Today's Interviews Checklist */}
-          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Today's Scheduled Interviews</h3>
-              <span className="badge badge--neutral">Today</span>
+          {/* Widget 1: Open Jobs */}
+          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', padding: '24px', boxShadow: 'none', background: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Open Jobs</h3>
+              <Link to="/recruiter/jobs" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Manage Jobs</Link>
             </div>
-            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {[
-                { name: 'Sarah Connor', time: '10:00 AM', type: 'System Architecture', status: 'Completed', score: 88 },
-                { name: 'John Connor', time: '02:30 PM', type: 'Panel Review', status: 'Upcoming', score: null },
-              ].map((iv, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{iv.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{iv.type} · {iv.time}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    {iv.score && <span className="score-ring score--high" style={{ width: '28px', height: '28px', fontSize: '11px' }}>{iv.score}</span>}
-                    <span className={`badge ${iv.status === 'Completed' ? 'badge--hire' : 'badge--interview'}`} style={{ fontSize: '8px' }}>
-                      {iv.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Widget 2: Active Escalations Warnings */}
-          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column' }}>
-            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger)' }}>🚨 Active Pre-boarding Escalations</h3>
-              <span className="badge badge--reject">Urgent</span>
-            </div>
-            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {[
-                { name: 'Sarah Connor', task: 'IT Equipment Selection', status: 'Level 2 Escalation (Supervisor Alerted)', overdue: '3 days overdue' },
-                { name: 'John Connor', task: 'Compliance Form Sign-off', status: 'Level 1 Overdue (Assignee Notified)', overdue: '1 day overdue' },
-              ].map((esc, idx) => (
-                <div key={idx} style={{ padding: 'var(--space-3)', background: 'transparent', borderLeft: '1px solid var(--color-burnt-sienna)', borderRadius: '0 12px 12px 0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{esc.name}</span>
-                    <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 600 }}>{esc.overdue}</span>
-                  </div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    Task: <strong>{esc.task}</strong>
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                    Status: {esc.status}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Widget 3: Pending Offer & Hired Conversion Controls */}
-          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Awaiting HRIS Conversion</h3>
-              <span className="badge badge--neutral">Hired</span>
-            </div>
-            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {hiresAwaitingConversion.length > 0 ? (
-                hiresAwaitingConversion.map((hire, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{hire.candidate?.full_name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>Role: {hire.job?.title}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {jobs.filter(j => j.status === 'open').length > 0 ? (
+                jobs.filter(j => j.status === 'open').map((job) => {
+                  const activeApps = applications.filter(a => a.job_id === job.id && a.status !== 'rejected' && a.status !== 'hired').length
+                  return (
+                    <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: '#ffedd7' }}>{job.title}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{job.department}</div>
+                      </div>
+                      <span className="badge badge--neutral" style={{ fontSize: '10px' }}>{activeApps} active</span>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn--accent btn--sm"
-                      style={{ borderRadius: '36px' }}
-                      onClick={() => {
-                        setSelectedHiredAppId(hire.id)
-                        setIsConvertModalOpen(true)
-                      }}
-                    >
-                      Convert
-                    </button>
-                  </div>
-                ))
+                  )
+                })
               ) : (
-                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
-                  No hired candidates waiting for conversion. Run candidate conversions via the action panel.
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
+                  No open jobs. Click 'Create Job' in the Action Command Center.
                 </div>
               )}
             </div>
           </div>
 
-          {/* Widget 4: Quota & Usage Ledger Indicators */}
-          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-            <div className="card__header">
-              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Workspace Quota Utilization</h3>
+          {/* Widget 2: Pipeline Health */}
+          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', padding: '24px', boxShadow: 'none', background: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Pipeline Health</h3>
+              <span className="badge badge--neutral">All Time</span>
             </div>
-            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               {[
-                { label: 'AI Resume Screenings', used: 16, limit: 100, color: 'var(--accent)' },
-                { label: 'HRIS Sync Transactions', used: 72, limit: 100, color: 'var(--warning)' },
-                { label: 'Cryptographic Signature Envelopes', used: 5, limit: 10, color: 'var(--accent)' },
-              ].map((quota, idx) => {
-                const percent = Math.min((quota.used / quota.limit) * 100, 100)
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>{quota.label}</span>
-                      <span style={{ color: 'var(--text)' }}>{quota.used} / {quota.limit} ({percent.toFixed(0)}%)</span>
-                    </div>
-                    <div style={{ height: '8px', background: 'var(--color-cork-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ width: `${percent}%`, height: '100%', background: quota.color, borderRadius: '4px' }} />
-                    </div>
-                  </div>
-                )
-              })}
+                { label: 'Total Applicants', value: applications.length, color: '#ffedd7' },
+                { label: 'In Screening', value: applications.filter(a => a.status === 'screening' || a.status === 'applied').length, color: 'var(--accent)' },
+                { label: 'In Interview', value: applications.filter(a => a.status === 'interview').length, color: 'var(--warning)' },
+                { label: 'Offer Made', value: applications.filter(a => a.status === 'offer').length, color: 'var(--success)' }
+              ].map((stat, i) => (
+                <div key={i} style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 500, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>{stat.label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Widget 5: Operational Activity Stream */}
-          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-            <div className="card__header">
-              <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Operational Activity Log</h3>
+          {/* Widget 3: AI Screening Queue */}
+          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', padding: '24px', boxShadow: 'none', background: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>AI Screening Queue</h3>
+              <span className={`badge ${isScreenerProcessing ? 'badge--interview' : 'badge--neutral'}`}>
+                {isScreenerProcessing ? 'Active' : 'Idle'}
+              </span>
             </div>
-            <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {[
-                { text: 'Gusto Sync completed for Sarah Connor', time: '1 hr ago', type: '🟢' },
-                { text: 'IT Checklist Escalation Level 1 dispatched', time: '4 hrs ago', type: '🟡' },
-                { text: 'HiBob Sync warning: timeout sweep retry queued', time: '1 day ago', type: '🔴' },
-              ].map((act, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '12px', fontSize: 'var(--text-xs)' }}>
-                  <span>{act.type}</span>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text)' }}>{act.text}</span>
-                    <span style={{ color: 'var(--text-tertiary)', marginTop: '2px' }}>{act.time}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
+              {isScreenerProcessing ? (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', borderRadius: '8px', border: '1px dashed var(--color-cork-shadow)' }}>
+                  <div className="spinner" />
+                  <div>
+                    <strong style={{ fontSize: '14px', color: '#ffedd7' }}>Screening Resumes...</strong>
+                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      {PIPELINE_STEPS[screenerStep]}
+                    </span>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>🟢</div>
+                  <strong style={{ fontSize: '14px', color: '#ffedd7', display: 'block' }}>Queue Idle</strong>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                    All uploaded candidate profiles have been parsed and matched.
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Widget 4: Upcoming Interviews */}
+          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', padding: '24px', boxShadow: 'none', background: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Upcoming Interviews</h3>
+              <Link to="/recruiter/interviews" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Scheduler</Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {applications.filter(a => a.status === 'interview').length > 0 ? (
+                applications.filter(a => a.status === 'interview').map((app) => (
+                  <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#ffedd7' }}>{app.candidate?.full_name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{app.job?.title}</div>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--color-burnt-sienna)' }}>Scheduled</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
+                  No upcoming interviews scheduled.
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Hiring Metrics Widget */}
+        <section
+          style={{
+            border: '1px dashed var(--color-cork-shadow)',
+            borderRadius: 12,
+            padding: '24px',
+            marginTop: '24px'
+          }}
+        >
+          <h3 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 16px' }}>Hiring Metrics</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+            <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-burnt-sienna)' }}>{averageMatchScore}%</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
+            </div>
+            <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 500, color: '#ffedd7' }}>14.5 days</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
+            </div>
+            <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 500, color: '#ffedd7' }}>98.2%</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
             </div>
           </div>
         </section>

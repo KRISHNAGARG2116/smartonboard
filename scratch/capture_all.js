@@ -96,12 +96,12 @@ async function main() {
 
   const pages = [
     { name: 'landing', url: 'http://localhost:5001/', auth: null },
-    { name: 'login', url: 'http://localhost:5001/login', auth: null },
-    { name: 'register', url: 'http://localhost:5001/register', auth: null },
-    { name: 'recruiter-dashboard', url: 'http://localhost:5001/dashboard', auth: 'recruiter' },
+    { name: 'login', url: mode === 'before' ? 'http://localhost:5001/login' : 'http://localhost:5001/recruiter/login', auth: null },
+    { name: 'register', url: mode === 'before' ? 'http://localhost:5001/register' : 'http://localhost:5001/recruiter/register', auth: null },
+    { name: 'recruiter-dashboard', url: mode === 'before' ? 'http://localhost:5001/dashboard' : 'http://localhost:5001/recruiter/dashboard', auth: 'recruiter' },
     { name: 'candidate-dashboard', url: 'http://localhost:5001/candidate/dashboard', auth: 'candidate' },
-    { name: 'candidate-directory', url: 'http://localhost:5001/candidates', auth: 'recruiter' },
-    { name: 'pipeline-board', url: 'http://localhost:5001/pipeline', auth: 'recruiter' },
+    { name: 'candidate-directory', url: mode === 'before' ? 'http://localhost:5001/candidates' : 'http://localhost:5001/recruiter/candidates', auth: 'recruiter' },
+    { name: 'pipeline-board', url: mode === 'before' ? 'http://localhost:5001/pipeline' : 'http://localhost:5001/recruiter/pipeline', auth: 'recruiter' },
     { name: 'resume-library', url: 'http://localhost:5001/candidate/resumes', auth: 'candidate' },
     { name: 'job-feed', url: 'http://localhost:5001/candidate/jobs', auth: 'candidate' },
     { name: 'candidate-applications', url: 'http://localhost:5001/candidate/applications', auth: 'candidate' },

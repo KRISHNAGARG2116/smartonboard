@@ -74,18 +74,18 @@ export default function Landing() {
               letterSpacing: '-0.03em',
               margin: 0,
               color: '#ffedd7',
-              maxWidth: '12ch'
+              maxWidth: '15ch'
             }}>
-              Verify.<br/>Screen.<br/>Hire.
+              Screen. Match.<br/>Interview. Recruit.
             </h1>
             <p style={{
               fontSize: 18,
-              lineHeight: 1.2,
+              lineHeight: 1.3,
               color: '#ffedd7',
               marginTop: 24,
               maxWidth: 480
             }}>
-              The verified hiring ecosystem designed strictly for resume screening, AI candidate matching, automated applicant verification, and interview scheduling.
+              The verified hiring ecosystem designed strictly for resume screening, AI candidate matching, applicant verification, interview scheduling, and recruiting workspace coordination.
             </p>
           </div>
 
