@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
 
-export default function Login() {
-  const { login, loginCandidate } = useAuth()
+export default function CandidateLogin() {
+  const { loginCandidate } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isCandidate, setIsCandidate] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -16,15 +15,10 @@ export default function Login() {
     setError(null)
     setSubmitting(true)
     try {
-      if (isCandidate) {
-        await loginCandidate(email, password)
-        navigate('/candidate/dashboard')
-      } else {
-        await login(email, password)
-        navigate('/dashboard')
-      }
+      await loginCandidate(email, password)
+      navigate('/candidate/dashboard')
     } catch {
-      setError('Invalid email or password.')
+      setError('Invalid candidate email or password.')
     } finally {
       setSubmitting(false)
     }
@@ -44,61 +38,19 @@ export default function Login() {
         <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: '#ffedd7', textDecoration: 'none', letterSpacing: '0.04em' }}>
           ORYZO
         </Link>
-        <Link to="/register" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
-          Create account
+        <Link to="/candidate/register" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
+          Create profile
         </Link>
       </nav>
 
       {/* Centered form container */}
       <div style={{ maxWidth: 400, margin: '0 auto', padding: '120px 24px 48px' }}>
         <h1 style={{ fontSize: 29, fontWeight: 500, lineHeight: 1.09, color: '#ffedd7', margin: 0, textAlign: 'left' }}>
-          Sign in
+          Candidate Sign In
         </h1>
         <p style={{ fontSize: 14, lineHeight: 1.33, color: '#6c5f51', margin: '8px 0 28px', textAlign: 'left' }}>
-          {isCandidate ? 'Access your candidate command center.' : 'Access your company recruitment pipeline.'}
+          Access your personal career matching hub and track applications.
         </p>
-
-        {/* Role toggle */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-          <button
-            type="button"
-            onClick={() => { setIsCandidate(false); setError(null) }}
-            style={{
-              flex: 1,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              cursor: 'pointer',
-              border: !isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
-              background: !isCandidate ? '#382416' : 'transparent',
-              color: '#ffedd7',
-              borderRadius: !isCandidate ? 36 : 22.5,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Hiring Talent
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsCandidate(true); setError(null) }}
-            style={{
-              flex: 1,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              cursor: 'pointer',
-              border: isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
-              background: isCandidate ? '#382416' : 'transparent',
-              color: '#ffedd7',
-              borderRadius: isCandidate ? 36 : 22.5,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Looking for Job
-          </button>
-        </div>
 
         {/* Error banner */}
         {error && (
@@ -143,7 +95,7 @@ export default function Login() {
                 marginBottom: 8,
               }}
             >
-              Email
+              Email Address
             </label>
             <input
               id="email"
@@ -151,7 +103,7 @@ export default function Login() {
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              placeholder="you@domain.com"
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -188,7 +140,6 @@ export default function Login() {
               id="password"
               type="password"
               required
-              minLength={8}
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -226,28 +177,19 @@ export default function Login() {
               transition: 'opacity 0.15s ease',
             }}
           >
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
         {/* Footer link */}
         <p style={{ marginTop: 20, fontSize: 14, lineHeight: 1.33, color: '#6c5f51' }}>
-          No account?{' '}
-          {isCandidate ? (
-            <Link
-              to="/register?role=candidate"
-              style={{ color: '#dc5000', textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              Create one
-            </Link>
-          ) : (
-            <Link
-              to="/register"
-              style={{ color: '#dc5000', textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              Create one
-            </Link>
-          )}
+          No profile?{' '}
+          <Link
+            to="/candidate/register"
+            style={{ color: '#dc5000', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            Create one
+          </Link>
         </p>
       </div>
     </div>

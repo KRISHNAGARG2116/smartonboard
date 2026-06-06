@@ -19,14 +19,16 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    const isCandidatePath = location.pathname.startsWith('/candidate');
+    const redirectLoginPath = isCandidatePath ? '/candidate/login' : '/recruiter/login';
+    return <Navigate to={redirectLoginPath} replace state={{ from: location.pathname }} />
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === 'candidate') {
       return <Navigate to="/candidate/dashboard" replace />
     } else {
-      return <Navigate to="/dashboard" replace />
+      return <Navigate to="/recruiter/dashboard" replace />
     }
   }
 

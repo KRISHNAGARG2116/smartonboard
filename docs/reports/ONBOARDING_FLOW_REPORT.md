@@ -18,18 +18,20 @@ A recruiter's dashboard experience starts with configuring their company workspa
 ```mermaid
 graph LR
     Start([Register]) --> Company[1. Create Company]
-    Company --> Verify[2. Verify Organization]
-    Verify --> Job[3. Create First Job]
-    Job --> Pipeline[4. Configure Pipeline]
-    Pipeline --> Ready([Start Recruiting])
+    Company --> Job[2. Post First Job]
+    Job --> Pipeline[3. Configure Pipeline]
+    Pipeline --> Invite[4. Invite Team]
+    Invite --> Ready([Complete])
 ```
 
 ### Flow Steps
 1. **Create Company**: Recruiter inputs basic organization details (Company name, headquarters location, website, scale).
-2. **Verify Organization**: Recruiter configures DNS/MX verification domains to establish recruiter verification status.
-3. **Create First Job**: Recruiter adds their first job opening (Title, Department, Job Description).
-4. **Configure Hiring Pipeline**: Recruiter chooses pipeline milestones (e.g., screening, technical exam, culture check, executive interview).
-5. **Start Recruiting**: Saves states, toggles `has_onboarded` to true, and drops them into the active Recruiter Dashboard.
+2. **Post First Job**: Recruiter adds their first job opening (Title, Department, Job Description).
+3. **Configure Hiring Pipeline**: Recruiter chooses pipeline milestones (e.g., screening, technical exam, culture check, executive interview).
+4. **Invite Team**: Recruiter sends invitation links to team members/co-recruiters.
+5. **Complete**: Saves states, toggles `has_onboarded` to true, and drops them into the active Recruiter Dashboard (Hiring Command Center).
+
+*Note: Organization DNS/MX verification has been moved out of the mandatory first-time onboarding flow and is located in the Company Settings / Verification Center under Recruiter Settings (`/recruiter/settings`).*
 
 ---
 

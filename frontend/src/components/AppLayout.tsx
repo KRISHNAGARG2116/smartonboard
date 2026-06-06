@@ -209,7 +209,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       category: 'System',
       action: () => {
         logout()
-        navigate('/login')
+        navigate('/recruiter/login')
       },
     },
   ]
@@ -469,36 +469,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           {/* Navigation Links */}
           <Link
-            to="/"
-            className={`btn btn--ghost btn--block ${pathname === '/' ? 'nav-link--active' : ''}`}
+            to="/recruiter/dashboard"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/dashboard' ? 'nav-link--active' : ''}`}
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
-            }}
-          >
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Landing Gateway</span>}
-          </Link>
-
-          <Link
-            to="/dashboard"
-            className={`btn btn--ghost btn--block ${pathname === '/dashboard' ? 'nav-link--active' : ''}`}
-            style={{
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-              borderLeft: pathname === '/dashboard' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+              borderLeft: pathname === '/recruiter/dashboard' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -509,19 +488,40 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <rect width="7" height="5" x="3" y="16" rx="1" />
               </svg>
             </span>
-            {!isSidebarCollapsed && <span>Mission Control</span>}
+            {!isSidebarCollapsed && <span>Dashboard</span>}
           </Link>
 
           <Link
-            to="/candidates"
-            className={`btn btn--ghost btn--block ${pathname === '/candidates' ? 'nav-link--active' : ''}`}
+            to="/recruiter/jobs"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/jobs' ? 'nav-link--active' : ''}`}
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/candidates' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+              borderLeft: pathname === '/recruiter/jobs' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+            }}
+          >
+            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+            </span>
+            {!isSidebarCollapsed && <span>Jobs</span>}
+          </Link>
+
+          <Link
+            to="/recruiter/candidates"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/candidates' ? 'nav-link--active' : ''}`}
+            style={{
+              justifyContent: 'flex-start',
+              padding: '10px 14px',
+              borderRadius: '0px',
+              fontSize: '13.5px',
+              fontWeight: 550,
+              borderLeft: pathname === '/recruiter/candidates' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -536,15 +536,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </Link>
 
           <Link
-            to="/pipeline"
-            className={`btn btn--ghost btn--block ${pathname === '/pipeline' ? 'nav-link--active' : ''}`}
+            to="/recruiter/pipeline"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/pipeline' ? 'nav-link--active' : ''}`}
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/pipeline' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+              borderLeft: pathname === '/recruiter/pipeline' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -554,86 +554,64 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <line x1="15" x2="15" y1="3" y2="21" />
               </svg>
             </span>
-            {!isSidebarCollapsed && <span>Kanban Board</span>}
+            {!isSidebarCollapsed && <span>Pipeline</span>}
           </Link>
 
-          {/* Legacy systems hidden from primary sidebar navigation */}
-          {false && (
-            <Link
-              to="/employees"
-              className={`btn btn--ghost btn--block ${pathname === '/employees' ? 'nav-link--active' : ''}`}
-              style={{
-                justifyContent: 'flex-start',
-                padding: '10px 14px',
-                borderRadius: '0px',
-                fontSize: '13.5px',
-                fontWeight: 550,
-              }}
-            >
-              <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </span>
-              {!isSidebarCollapsed && <span>Employees</span>}
-            </Link>
-          )}
-
-          {false && (
-            <Link
-              to="/analytics"
-              className={`btn btn--ghost btn--block ${pathname === '/analytics' ? 'nav-link--active' : ''}`}
-              style={{
-                justifyContent: 'flex-start',
-                padding: '10px 14px',
-                borderRadius: '0px',
-                fontSize: '13.5px',
-                fontWeight: 550,
-              }}
-            >
-              <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </svg>
-              </span>
-              {!isSidebarCollapsed && <span>Performance</span>}
-            </Link>
-          )}
-
-          {/* Section Divider */}
-          {!isSidebarCollapsed && (
-            <div
-              style={{
-                padding: 'var(--space-4) var(--space-4) var(--space-2)',
-                fontSize: '10px',
-                fontWeight: 700,
-                color: 'var(--text-tertiary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Control Center
-            </div>
-          )}
-
-          <div
-            className="btn btn--ghost btn--block"
-            onClick={() => {
-              navigate('/dashboard')
-              alert('Redirecting to dashboard system settings context...')
-            }}
+          <Link
+            to="/recruiter/interviews"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/interviews' ? 'nav-link--active' : ''}`}
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              cursor: 'pointer',
+              borderLeft: pathname === '/recruiter/interviews' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+            }}
+          >
+            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
+            </span>
+            {!isSidebarCollapsed && <span>Interviews</span>}
+          </Link>
+
+          <Link
+            to="/recruiter/analytics"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/analytics' ? 'nav-link--active' : ''}`}
+            style={{
+              justifyContent: 'flex-start',
+              padding: '10px 14px',
+              borderRadius: '0px',
+              fontSize: '13.5px',
+              fontWeight: 550,
+              borderLeft: pathname === '/recruiter/analytics' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
+            }}
+          >
+            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+            </span>
+            {!isSidebarCollapsed && <span>Analytics</span>}
+          </Link>
+
+          <Link
+            to="/recruiter/settings"
+            className={`btn btn--ghost btn--block ${pathname === '/recruiter/settings' ? 'nav-link--active' : ''}`}
+            style={{
+              justifyContent: 'flex-start',
+              padding: '10px 14px',
+              borderRadius: '0px',
+              fontSize: '13.5px',
+              fontWeight: 550,
+              borderLeft: pathname === '/recruiter/settings' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -642,8 +620,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
             </span>
-            {!isSidebarCollapsed && <span>System Settings</span>}
-          </div>
+            {!isSidebarCollapsed && <span>Settings</span>}
+          </Link>
 
           <div
             className="btn btn--ghost btn--block"
@@ -986,7 +964,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         className="btn btn--ghost btn--block"
                         onClick={() => {
                           logout()
-                          navigate('/login')
+                          navigate('/recruiter/login')
                           setIsUserMenuOpen(false)
                         }}
                         style={{
@@ -1004,10 +982,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <Link to="/login" className="btn btn--ghost btn--sm" style={{ borderRadius: '22.5px' }}>
+                  <Link to="/recruiter/login" className="btn btn--ghost btn--sm" style={{ borderRadius: '22.5px' }}>
                     Sign in
                   </Link>
-                  <Link to="/register" className="btn btn--primary btn--sm" style={{ borderRadius: '36px' }}>
+                  <Link to="/recruiter/register" className="btn btn--primary btn--sm" style={{ borderRadius: '36px' }}>
                     Get started
                   </Link>
                 </div>

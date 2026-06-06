@@ -104,6 +104,9 @@ async function main() {
     { name: 'pipeline-board', url: 'http://localhost:5001/pipeline', auth: 'recruiter' },
     { name: 'resume-library', url: 'http://localhost:5001/candidate/resumes', auth: 'candidate' },
     { name: 'job-feed', url: 'http://localhost:5001/candidate/jobs', auth: 'candidate' },
+    { name: 'candidate-applications', url: 'http://localhost:5001/candidate/applications', auth: 'candidate' },
+    { name: 'candidate-interviews', url: 'http://localhost:5001/candidate/interviews', auth: 'candidate' },
+    { name: 'candidate-profile', url: 'http://localhost:5001/candidate/profile', auth: 'candidate' },
   ];
 
   try {

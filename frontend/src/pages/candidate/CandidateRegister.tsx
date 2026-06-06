@@ -1,18 +1,13 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
-export default function Register() {
-  const { register, registerCandidate } = useAuth()
+export default function CandidateRegister() {
+  const { registerCandidate } = useAuth()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const initialIsCandidate = searchParams.get('role') === 'candidate'
-  
-  const [companyName, setCompanyName] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isCandidate, setIsCandidate] = useState(initialIsCandidate)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -21,13 +16,8 @@ export default function Register() {
     setError(null)
     setSubmitting(true)
     try {
-      if (isCandidate) {
-        await registerCandidate({ email, password, full_name: fullName })
-        navigate('/candidate/dashboard')
-      } else {
-        await register({ company_name: companyName, email, password, full_name: fullName })
-        navigate('/dashboard')
-      }
+      await registerCandidate({ email, password, full_name: fullName })
+      navigate('/candidate/dashboard')
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err &&
@@ -38,7 +28,6 @@ export default function Register() {
     }
   }
 
-  /* Shared label style */
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 10,
@@ -50,7 +39,6 @@ export default function Register() {
     marginBottom: 8,
   }
 
-  /* Shared input style */
   const inputStyle: React.CSSProperties = {
     width: '100%',
     background: 'transparent',
@@ -79,7 +67,7 @@ export default function Register() {
         <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: '#ffedd7', textDecoration: 'none', letterSpacing: '0.04em' }}>
           ORYZO
         </Link>
-        <Link to="/login" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
+        <Link to="/candidate/login" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
           Sign in
         </Link>
       </nav>
@@ -87,53 +75,11 @@ export default function Register() {
       {/* Centered form container */}
       <div style={{ maxWidth: 400, margin: '0 auto', padding: '120px 24px 48px' }}>
         <h1 style={{ fontSize: 29, fontWeight: 500, lineHeight: 1.09, color: '#ffedd7', margin: 0, textAlign: 'left' }}>
-          Create account
+          Create Candidate Profile
         </h1>
         <p style={{ fontSize: 14, lineHeight: 1.33, color: '#6c5f51', margin: '8px 0 28px', textAlign: 'left' }}>
-          {isCandidate ? 'Set up your candidate account on SmartOnboard.' : 'Set up your company on SmartOnboard.'}
+          Join the verified hiring ecosystem and showcase your matching skills.
         </p>
-
-        {/* Role toggle */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-          <button
-            type="button"
-            onClick={() => { setIsCandidate(false); setError(null) }}
-            style={{
-              flex: 1,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              cursor: 'pointer',
-              border: !isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
-              background: !isCandidate ? '#382416' : 'transparent',
-              color: '#ffedd7',
-              borderRadius: !isCandidate ? 36 : 22.5,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Hiring Talent
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsCandidate(true); setError(null) }}
-            style={{
-              flex: 1,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              cursor: 'pointer',
-              border: isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
-              background: isCandidate ? '#382416' : 'transparent',
-              color: '#ffedd7',
-              borderRadius: isCandidate ? 36 : 22.5,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Looking for Job
-          </button>
-        </div>
 
         {/* Error banner */}
         {error && (
@@ -164,23 +110,6 @@ export default function Register() {
             background: 'transparent',
           }}
         >
-          {/* Company name — recruiter only */}
-          {!isCandidate && (
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor="company" style={labelStyle}>
-                Company name
-              </label>
-              <input
-                id="company"
-                required
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                placeholder="Acme Corp"
-                style={inputStyle}
-              />
-            </div>
-          )}
-
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="fullName" style={labelStyle}>
               Your name
@@ -197,7 +126,7 @@ export default function Register() {
 
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="email" style={labelStyle}>
-              Email
+              Email Address
             </label>
             <input
               id="email"
@@ -205,7 +134,7 @@ export default function Register() {
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              placeholder="you@domain.com"
               style={inputStyle}
             />
           </div>
@@ -247,15 +176,15 @@ export default function Register() {
               transition: 'opacity 0.15s ease',
             }}
           >
-            {submitting ? 'Creating account…' : 'Create account'}
+            {submitting ? 'Creating profile…' : 'Create Profile'}
           </button>
         </form>
 
         {/* Footer link */}
         <p style={{ marginTop: 20, fontSize: 14, lineHeight: 1.33, color: '#6c5f51' }}>
-          Already have an account?{' '}
+          Already have a profile?{' '}
           <Link
-            to="/login"
+            to="/candidate/login"
             style={{ color: '#dc5000', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             Sign in

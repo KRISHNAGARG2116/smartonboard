@@ -109,27 +109,27 @@ Eliminates abstract decorative images, presenting clear value-focused messaging 
 |  ORYZO                                         [I'm Hiring]  [I'm Looking for Job]|
 +-----------------------------------------------------------------------------------+
 |                                                                                   |
-|                   Better Applicants. Better Hiring.                               |
-|          The AI-Powered verified hiring ecosystem designed to                     |
-|          maximize recruiter trust and candidate matching.                        |
+|                   Verify. Screen. Hire with Confidence.                           |
+|          The verified hiring ecosystem for resume screening, AI candidate         |
+|          matching, automated applicant verification, and interview scheduling.    |
 |                                                                                   |
 |          +----------------------------------+  +----------------------------------+ |
-|          | FOR WORKSPACES                   |  | FOR TALENT                       | |
+|          | FOR RECRUITERS                   |  | FOR CANDIDATES                   | |
 |          |                                  |  |                                  | |
 |          | I'M HIRING                       |  | I'M LOOKING FOR A JOB            | |
-|          | Publish jobs, parse resumes with |  | Parse your resume, check matching| |
-|          | AI, manage pipeline, verify.     |  | scores, and verify trust profile | |
+|          | Publish jobs, parse resumes with |  | Verify your profile, parse skills| |
+|          | AI, manage pipeline, schedule.   |  | check match scores, and apply.   | |
 |          |                                  |  |                                  | |
 |          | [ Start Recruiting ]             |  | [ Find Matching Jobs ]           | |
 |          +----------------------------------+  +----------------------------------+ |
 |                                                                                   |
 |  -------------------------------------------------------------------------------  |
 |                                                                                   |
-|   AI VERIFICATION     *     ACCURACY SCORING     *     ZERO TRUST RECRUITING     |
-|   Twilio SMS / Email        Applicability score        Locked recruiter workspaces|
+|   RESUME SCREENING     *     CANDIDATE MATCHING     *     INTERVIEW SCHEDULING    |
+|   Twilio SMS / Email OTP      Skills match score        Calendar coordination     |
 |                                                                                   |
 |  -------------------------------------------------------------------------------  |
-|   ORYZO AI - Verified Hiring Ecosystem                                            |
+|   ORYZO AI - Verified Hiring Platform                                             |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -164,9 +164,9 @@ Guides new users through essential profile configurations before showing the ful
 ```mermaid
 graph TD
     subgraph Recruiter Onboarding
-        R1[Create Company Details] --> R2[Input DNS/MX Domains]
-        R2 --> R3[Post First Job Opening]
-        R3 --> R4[Select Pipeline Workflow]
+        R1[Create Company Details] --> R2[Post First Job Opening]
+        R2 --> R3[Configure Pipeline Workflow]
+        R3 --> R4[Invite Team Members]
         R4 --> R5[Set Onboarding Complete]
     end
 
@@ -187,7 +187,7 @@ The Settings workspace is isolated to support configuration needs for each user 
 
 ### Recruiter Settings (`/recruiter/settings`)
 1. **Profile**: Personal name, email, credentials.
-2. **Company Settings**: Headquarters details, website, verification domains, and workspace members.
+2. **Company Settings**: Headquarters details, website, MX/DNS domain verification configurations, and workspace members.
 3. **Billing & Subscriptions**: Billing history, subscription indicator showing "Coming Soon" placeholder card.
 4. **Verification Policies**: Enforced security parameters (e.g. required SMS OTP for applicants).
 
@@ -230,8 +230,8 @@ graph TD
 
 ### Recruiter Journey
 - **User Person**: Sarah (Recruiting Manager)
-- **Phase 1: Entry & Setup**: Sarah lands on ORYZO, clicks "Start Recruiting", registers her company, and verifies her workspace email domain.
-- **Phase 2: Sourcing**:Sarah publishes a "Backend Engineer" job. She configures standard screening steps.
+- **Phase 1: Entry & Setup**: Sarah lands on ORYZO, clicks "Start Recruiting", registers her company, and completes the onboarding wizard by posting her first job opening, setting up her pipeline, and inviting team members.
+- **Phase 2: Sourcing**: Sarah's posted "Backend Engineer" job is published. She goes to Settings to verify the company's DNS/MX domain records.
 - **Phase 3: Screen & Match**: Sarah uploads applicant resumes to the queue. The parsing pipeline runs, calculating suitability percentages.
 - **Phase 4: Select & Close**: Sarah reviews the pipeline kanban board, schedules technical screening interviews, and tracks overall metrics.
 
