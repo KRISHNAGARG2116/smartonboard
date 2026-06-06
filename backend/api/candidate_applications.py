@@ -86,13 +86,24 @@ def apply_to_job(
             db.add(candidate)
             db.flush()
 
+        # Calculate real match score
+        from core.candidate_matching import calculate_candidate_job_match
+        candidate_skills = resume.parsed_skills if resume.parsed_skills else (profile.skills if profile else [])
+        match = calculate_candidate_job_match(
+            candidate_skills=candidate_skills,
+            job_title=job.title,
+            job_description=job.description,
+            job_settings=job.settings
+        )
+
         # 7. Create Application
         application = Application(
             company_id=job.company_id,
             job_id=job.id,
             candidate_id=candidate.id,
             status=ApplicationStatus.SUBMITTED,
-            source="candidate_portal"
+            source="candidate_portal",
+            match_score=float(match["applicability_score"])
         )
         db.add(application)
         db.flush()

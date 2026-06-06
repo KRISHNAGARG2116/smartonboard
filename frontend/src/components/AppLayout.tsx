@@ -155,7 +155,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       name: 'Go to Pipelines Board',
       shortcut: 'G P',
       category: 'Navigation',
-      action: () => navigate('/dashboard'),
+      action: () => navigate('/pipeline'),
     },
     {
       name: 'Go to Landing Gateway',
@@ -553,48 +553,53 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {!isSidebarCollapsed && <span>Kanban Board</span>}
           </Link>
 
-          <Link
-            to="/employees"
-            className={`btn btn--ghost btn--block ${pathname === '/employees' ? 'nav-link--active' : ''}`}
-            style={{
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Employees</span>}
-          </Link>
+          {/* Legacy systems hidden from primary sidebar navigation */}
+          {false && (
+            <Link
+              to="/employees"
+              className={`btn btn--ghost btn--block ${pathname === '/employees' ? 'nav-link--active' : ''}`}
+              style={{
+                justifyContent: 'flex-start',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                fontWeight: 550,
+              }}
+            >
+              <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </span>
+              {!isSidebarCollapsed && <span>Employees</span>}
+            </Link>
+          )}
 
-          <Link
-            to="/analytics"
-            className={`btn btn--ghost btn--block ${pathname === '/analytics' ? 'nav-link--active' : ''}`}
-            style={{
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Performance</span>}
-          </Link>
+          {false && (
+            <Link
+              to="/analytics"
+              className={`btn btn--ghost btn--block ${pathname === '/analytics' ? 'nav-link--active' : ''}`}
+              style={{
+                justifyContent: 'flex-start',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                fontWeight: 550,
+              }}
+            >
+              <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+              </span>
+              {!isSidebarCollapsed && <span>Performance</span>}
+            </Link>
+          )}
 
           {/* Section Divider */}
           {!isSidebarCollapsed && (

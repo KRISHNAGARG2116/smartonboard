@@ -87,15 +87,22 @@ export default function CandidateDirectory() {
         )
       },
       {
-        key: 'ai_score', // Custom field simulated from backend AI scores
+        key: 'match_score',
         header: 'AI Match Score',
         sortable: true,
         render: (app) => {
-          // Simulate dynamic AI score based on application hash or local seeding
-          const simulatedScore = Math.abs(app.id.charCodeAt(0) + app.id.charCodeAt(5)) % 40 + 60
+          const score = app.match_score
+          if (score === undefined || score === null) {
+            return (
+              <span className="badge badge--neutral" style={{ fontSize: '10px', padding: '4px 8px' }}>
+                N/A
+              </span>
+            )
+          }
+          const roundedScore = Math.round(score)
           return (
-            <span className={`score-ring ${scoreClass(simulatedScore)}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>
-              {simulatedScore}
+            <span className={`score-ring ${scoreClass(roundedScore)}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>
+              {roundedScore}
             </span>
           )
         }

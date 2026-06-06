@@ -154,6 +154,7 @@ export interface Application {
   source: string
   created_at: string
   updated_at: string
+  match_score?: number | null
   candidate?: { id: string; full_name: string; email: string; phone: string | null }
   job?: { id: string; title: string; department: string }
 }
@@ -210,6 +211,9 @@ export const fetchSyncMetrics = () =>
 
 export const resolveTaskEscalation = (taskId: string, notes: string) =>
   api.post(`/v1/employees/tasks/${taskId}/escalations/resolve`, { resolution_notes: notes }).then(r => r.data)
+
+export const retryDlqRecord = (id: string) =>
+  api.post(`/v1/employees/dlq/${id}/retry`).then(r => r.data)
 
 // --- Phase B Candidate Authentication ---
 
