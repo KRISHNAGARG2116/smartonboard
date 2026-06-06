@@ -110,17 +110,17 @@ export default function CandidateDashboard() {
                 gap: 'var(--space-4)' 
               }}
             >
-              {/* Resumes Count Card */}
+              {/* Resume Library Card */}
               <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', transition: 'transform 150ms ease' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', fontWeight: 600 }}>Resumes</span>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', fontWeight: 600 }}>Resume Status</span>
                   <span style={{ fontSize: '18px' }}>📄</span>
                 </div>
                 <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 800, marginTop: 'var(--space-3)' }}>
                   {stats.resumesUploaded} <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 500 }}>/ {stats.maxResumes}</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                  Active & verified in library
+                  Active resume documents
                 </div>
               </Link>
 
@@ -148,9 +148,33 @@ export default function CandidateDashboard() {
                   {stats.scheduledInterviews}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                  Upcoming live calendar events
+                  Upcoming calendar events
                 </div>
               </Link>
+            </div>
+
+            {/* Career Progress Tracker */}
+            <div className="card card__body">
+              <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+                Career Progress Pipeline
+              </h3>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                borderTop: '1px dashed var(--color-cork-shadow)',
+                paddingTop: 12
+              }}>
+                <span style={{ color: 'var(--text)', fontWeight: 600 }}>1. Register &bull; OK</span>
+                <span style={{ color: stats.resumesUploaded > 0 ? 'var(--text)' : 'var(--color-burnt-sienna)', fontWeight: 600 }}>
+                  2. Upload Resume {stats.resumesUploaded > 0 ? '&bull; OK' : ''}
+                </span>
+                <span style={{ color: stats.phoneVerified ? 'var(--text)' : 'var(--color-burnt-sienna)', fontWeight: 600 }}>
+                  3. Verify Profile {stats.phoneVerified ? '&bull; OK' : ''}
+                </span>
+                <span>4. Sourcing &bull; Active</span>
+              </div>
             </div>
 
             {/* Verification Status & Action Checklist */}
@@ -194,6 +218,50 @@ export default function CandidateDashboard() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+
+            {/* Recommended Jobs Card */}
+            <div className="card">
+              <div className="card__header">
+                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Recommended Matching Jobs</h3>
+              </div>
+              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div style={{
+                  border: '1px solid var(--color-cork-shadow)',
+                  borderRadius: 12,
+                  padding: 16,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <h4 style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Lead Frontend Engineer</h4>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Required: React, TypeScript, TailwindCSS</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>94% Match</div>
+                    <Link to="/candidate/jobs" style={{ fontSize: 12, color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>View details</Link>
+                  </div>
+                </div>
+
+                <div style={{
+                  border: '1px solid var(--color-cork-shadow)',
+                  borderRadius: 12,
+                  padding: 16,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <h4 style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Senior Fullstack Developer</h4>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Required: Node.js, Python, PostgreSQL</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>88% Match</div>
+                    <Link to="/candidate/jobs" style={{ fontSize: 12, color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>View details</Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
