@@ -171,29 +171,29 @@ export default function CandidateProfilePage() {
         <div className="dashboard-grid">
           {/* Main Form Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <form onSubmit={handleSave} className="card">
-              <div className="card__header">
-                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Personal Information</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            <form onSubmit={handleSave} className="card" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
+              <div className="card__header" style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Personal Information</h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-grey-brown)', marginTop: '4px', margin: 0 }}>
                   Manage your public profile settings and contact credentials.
                 </p>
               </div>
 
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-6)' }}>
                 {successMsg && (
-                  <div className="banner banner--success" style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: '8px', fontSize: 'var(--text-sm)' }}>
+                  <div className="banner banner--success" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', fontSize: '12px' }}>
                     ✅ {successMsg}
                   </div>
                 )}
 
                 {errorMsg && (
-                  <div className="banner banner--error" style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
+                  <div className="banner banner--error" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', fontSize: '12px', marginBottom: 'var(--space-2)' }}>
                     ❌ {errorMsg}
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="fullName">Full Name</label>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="fullName" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Full Name</label>
                   <input
                     id="fullName"
                     type="text"
@@ -201,24 +201,46 @@ export default function CandidateProfilePage() {
                     className="form-input"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    style={{
+                      padding: '10px 0px',
+                      borderRadius: '0px',
+                      border: 'none',
+                      borderBottom: '1px solid var(--color-warm-cream)',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: '15px',
+                      fontFamily: 'inherit',
+                      width: '100%'
+                    }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="email">Email Address</label>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="email" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Email Address</label>
                   <input
                     id="email"
                     type="email"
                     disabled
                     className="form-input"
                     value={email}
-                    style={{ background: 'var(--bg-subtle)', cursor: 'not-allowed' }}
+                    style={{
+                      padding: '10px 0px',
+                      borderRadius: '0px',
+                      border: 'none',
+                      borderBottom: '1px solid var(--color-cork-shadow)',
+                      background: 'transparent',
+                      color: 'var(--color-grey-brown)',
+                      fontSize: '15px',
+                      fontFamily: 'inherit',
+                      width: '100%',
+                      cursor: 'not-allowed'
+                    }}
                   />
-                  <p className="form-hint">Your email is managed by your sign-in settings.</p>
+                  <p className="form-hint" style={{ fontSize: '10px', color: 'var(--color-grey-brown)', margin: 0 }}>Your email is managed by your sign-in settings.</p>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="phone">Phone Number</label>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="phone" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Phone Number</label>
                   <input
                     id="phone"
                     type="tel"
@@ -226,12 +248,23 @@ export default function CandidateProfilePage() {
                     className="form-input"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    style={{
+                      padding: '10px 0px',
+                      borderRadius: '0px',
+                      border: 'none',
+                      borderBottom: '1px solid var(--color-warm-cream)',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: '15px',
+                      fontFamily: 'inherit',
+                      width: '100%'
+                    }}
                   />
-                  <p className="form-hint">Used for SMS OTP verification checks.</p>
+                  <p className="form-hint" style={{ fontSize: '10px', color: 'var(--color-grey-brown)', margin: 0 }}>Used for SMS OTP verification checks.</p>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="location">Location</label>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label htmlFor="location" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Location</label>
                   <input
                     id="location"
                     type="text"
@@ -239,11 +272,22 @@ export default function CandidateProfilePage() {
                     className="form-input"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
+                    style={{
+                      padding: '10px 0px',
+                      borderRadius: '0px',
+                      border: 'none',
+                      borderBottom: '1px solid var(--color-warm-cream)',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: '15px',
+                      fontFamily: 'inherit',
+                      width: '100%'
+                    }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
-                  <button type="submit" className="btn btn--accent" disabled={submitting}>
+                  <button type="submit" className="btn btn--accent" disabled={submitting} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '12px 24px', fontWeight: 500, boxShadow: 'none' }}>
                     {submitting ? 'Saving changes…' : 'Save Profile'}
                   </button>
                 </div>
@@ -254,56 +298,56 @@ export default function CandidateProfilePage() {
           {/* Right Sidebar Status Column */}
           <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             {/* Status Summary */}
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-6) var(--space-4)' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-6) var(--space-4)', background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
               <div
                 style={{
                   width: '72px',
                   height: '72px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                  background: 'var(--color-dark-cork)',
                   margin: '0 auto var(--space-4)',
                   display: 'grid',
                   placeItems: 'center',
-                  color: 'var(--text-inverse)',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 800,
-                  boxShadow: 'var(--shadow-md)'
+                  color: 'var(--text)',
+                  fontSize: '24px',
+                  fontWeight: 500,
+                  boxShadow: 'none'
                 }}
               >
                 {fullName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || 'C'}
               </div>
-              <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 750 }}>{fullName || 'Candidate'}</h4>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px' }}>{email}</p>
+              <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{fullName || 'Candidate'}</h4>
+              <p style={{ fontSize: '12px', color: 'var(--color-grey-brown)', marginTop: '4px', margin: 0 }}>{email}</p>
 
-              <div style={{ borderTop: '1px solid var(--border)', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)' }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 'var(--space-2)' }}>
+              <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
                   Profile Completion
                 </div>
-                <div style={{ background: 'var(--border)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                  <div style={{ background: 'var(--accent)', height: '100%', width: `${profileCompletion}%` }} />
+                <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '0px', overflow: 'hidden', width: '100%' }}>
+                  <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${profileCompletion}%` }} />
                 </div>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', marginTop: 'var(--space-2)' }}>
                   {profileCompletion}% Complete
                 </div>
               </div>
             </div>
 
             {/* Verification Badges */}
-            <div className="card">
-              <div className="card__header">
-                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div className="card" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
+              <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
+                <h3 style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
                   Verification Status
                 </h3>
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-4)' }}>
                 {/* Email verification row */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                    <span style={{ fontWeight: 550 }}>Email Address</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                    <span style={{ fontWeight: 400, color: 'var(--text)' }}>Email Address</span>
                     {profile?.email_verified ? (
-                      <span className="badge badge--hire">Verified</span>
+                      <span className="badge" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
                     ) : (
-                      <span className="badge badge--reject">Unverified</span>
+                      <span className="badge" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Unverified</span>
                     )}
                   </div>
                   {!profile?.email_verified && (
@@ -311,23 +355,23 @@ export default function CandidateProfilePage() {
                       type="button"
                       onClick={handleSendEmailOtp}
                       className="btn btn--secondary btn--sm"
-                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px' }}
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
                     >
                       Verify Email
                     </button>
                   )}
                 </div>
 
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+                <hr style={{ border: 'none', borderTop: '1px dashed var(--color-cork-shadow)', margin: 0 }} />
 
                 {/* Phone verification row */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                    <span style={{ fontWeight: 550 }}>Phone Number</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                    <span style={{ fontWeight: 400, color: 'var(--text)' }}>Phone Number</span>
                     {profile?.phone_verified ? (
-                      <span className="badge badge--hire">Verified</span>
+                      <span className="badge" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
                     ) : (
-                      <span className="badge badge--reject">Unverified</span>
+                      <span className="badge" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Unverified</span>
                     )}
                   </div>
                   {!profile?.phone_verified && (
@@ -335,7 +379,7 @@ export default function CandidateProfilePage() {
                       type="button"
                       onClick={handleSendPhoneOtp}
                       className="btn btn--secondary btn--sm"
-                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px' }}
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
                       disabled={!phone}
                     >
                       Verify Phone
@@ -351,19 +395,19 @@ export default function CandidateProfilePage() {
       {/* Email Verification Modal */}
       {showEmailModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEmailModal(false)} />
-          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', overflow: 'hidden' }}>
-            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Verify Email</h3>
-              <button type="button" onClick={() => setShowEmailModal(false)} style={{ fontSize: '18px', cursor: 'pointer' }}>✕</button>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,9,4,0.7)' }} onClick={() => setShowEmailModal(false)} />
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--color-studio-black)', border: '1px solid var(--color-warm-cream)', borderRadius: '12px', boxShadow: 'none', overflow: 'hidden' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Verify Email</h3>
+              <button type="button" onClick={() => setShowEmailModal(false)} style={{ fontSize: '18px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--color-grey-brown)' }}>✕</button>
             </div>
-            <form onSubmit={handleVerifyEmailOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              {emailVerifyError && <div className="banner banner--error" style={{ fontSize: 'var(--text-xs)' }}>{emailVerifyError}</div>}
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            <form onSubmit={handleVerifyEmailOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-6)' }}>
+              {emailVerifyError && <div className="banner banner--error" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: 'var(--space-2)', borderRadius: '0px', fontSize: '12px' }}>{emailVerifyError}</div>}
+              <p style={{ fontSize: '14px', color: 'var(--color-grey-brown)', margin: 0, lineHeight: 1.33 }}>
                 We've sent a 6-digit code to <strong>{email}</strong>. Please enter it below to verify your email.
               </p>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="emailCode">Verification Code</label>
+              <div className="form-group" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label htmlFor="emailCode" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Verification Code</label>
                 <input
                   id="emailCode"
                   type="text"
@@ -373,12 +417,12 @@ export default function CandidateProfilePage() {
                   className="form-input"
                   value={emailCode}
                   onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
-                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-mono)' }}
+                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: '18px', fontFamily: 'var(--font-mono)', padding: '10px 0px', borderRadius: '0px', border: 'none', borderBottom: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', width: '100%' }}
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setShowEmailModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn--accent" disabled={emailVerifying}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowEmailModal(false)} style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={emailVerifying} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500, boxShadow: 'none' }}>
                   {emailVerifying ? 'Verifying...' : 'Verify'}
                 </button>
               </div>
@@ -390,19 +434,19 @@ export default function CandidateProfilePage() {
       {/* Phone Verification Modal */}
       {showPhoneModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowPhoneModal(false)} />
-          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', overflow: 'hidden' }}>
-            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Verify Phone</h3>
-              <button type="button" onClick={() => setShowPhoneModal(false)} style={{ fontSize: '18px', cursor: 'pointer' }}>✕</button>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,9,4,0.7)' }} onClick={() => setShowPhoneModal(false)} />
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--color-studio-black)', border: '1px solid var(--color-warm-cream)', borderRadius: '12px', boxShadow: 'none', overflow: 'hidden' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Verify Phone</h3>
+              <button type="button" onClick={() => setShowPhoneModal(false)} style={{ fontSize: '18px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--color-grey-brown)' }}>✕</button>
             </div>
-            <form onSubmit={handleVerifyPhoneOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              {phoneVerifyError && <div className="banner banner--error" style={{ fontSize: 'var(--text-xs)' }}>{phoneVerifyError}</div>}
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            <form onSubmit={handleVerifyPhoneOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-6)' }}>
+              {phoneVerifyError && <div className="banner banner--error" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: 'var(--space-2)', borderRadius: '0px', fontSize: '12px' }}>{phoneVerifyError}</div>}
+              <p style={{ fontSize: '14px', color: 'var(--color-grey-brown)', margin: 0, lineHeight: 1.33 }}>
                 We've sent a 6-digit SMS code to <strong>{phone}</strong>. Please enter it below to verify.
               </p>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="phoneCode">Verification Code</label>
+              <div className="form-group" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label htmlFor="phoneCode" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>Verification Code</label>
                 <input
                   id="phoneCode"
                   type="text"
@@ -412,12 +456,12 @@ export default function CandidateProfilePage() {
                   className="form-input"
                   value={phoneCode}
                   onChange={e => setPhoneCode(e.target.value.replace(/\D/g, ''))}
-                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-mono)' }}
+                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: '18px', fontFamily: 'var(--font-mono)', padding: '10px 0px', borderRadius: '0px', border: 'none', borderBottom: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', width: '100%' }}
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setShowPhoneModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn--accent" disabled={phoneVerifying}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowPhoneModal(false)} style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={phoneVerifying} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500, boxShadow: 'none' }}>
                   {phoneVerifying ? 'Verifying...' : 'Verify'}
                 </button>
               </div>

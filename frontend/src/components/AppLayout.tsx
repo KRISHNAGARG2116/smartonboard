@@ -176,7 +176,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       action: () => navigate('/candidate'),
     },
     {
-      name: 'Toggle Purple Dream (Dark) / Ocean Blue (Light)',
+      name: 'Toggle ORYZO Dark Theme',
       shortcut: 'T T',
       category: 'Actions',
       action: toggleTheme,
@@ -317,8 +317,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         }`}
         style={{
           width: isSidebarCollapsed ? '68px' : '260px',
-          background: 'var(--sidebar)',
-          borderRight: '1px solid var(--border)',
+          background: 'var(--bg)',
+          borderRight: '1px solid var(--color-cork-shadow)',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 240ms cubic-bezier(0.16, 1, 0.3, 1), background var(--duration-normal)',
@@ -346,17 +346,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
               width: '32px',
               height: '32px',
               minWidth: '32px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+              borderRadius: '0px',
+              background: '#382416',
               display: 'grid',
               placeItems: 'center',
-              color: 'var(--text-inverse)',
+              color: 'var(--text)',
               fontWeight: 800,
               fontSize: '14px',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+              boxShadow: 'none',
             }}
           >
-            SO
+            OR
           </div>
 
           {!isSidebarCollapsed && (
@@ -402,11 +402,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 left: '16px',
                 right: '16px',
                 zIndex: 220,
-                boxShadow: 'var(--shadow-lg)',
-                background: 'var(--surface)',
+                boxShadow: 'none',
+                background: 'var(--bg)',
                 borderRadius: '12px',
                 padding: 'var(--space-2)',
-                border: '1px solid var(--border)',
+                border: '1px dashed var(--color-cork-shadow)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -474,9 +474,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
+              borderLeft: pathname === '/' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -494,9 +495,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
+              borderLeft: pathname === '/dashboard' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -516,9 +518,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
+              borderLeft: pathname === '/candidates' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -538,9 +541,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
+              borderLeft: pathname === '/pipeline' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -561,7 +565,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               style={{
                 justifyContent: 'flex-start',
                 padding: '10px 14px',
-                borderRadius: '10px',
+                borderRadius: '0px',
                 fontSize: '13.5px',
                 fontWeight: 550,
               }}
@@ -585,7 +589,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               style={{
                 justifyContent: 'flex-start',
                 padding: '10px 14px',
-                borderRadius: '10px',
+                borderRadius: '0px',
                 fontSize: '13.5px',
                 fontWeight: 550,
               }}
@@ -626,7 +630,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
               cursor: 'pointer',
@@ -647,7 +651,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '10px',
+              borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
               cursor: 'pointer',
@@ -667,9 +671,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     fontSize: '10px',
                     fontWeight: 700,
                     padding: '2px 8px',
-                    borderRadius: '8px',
-                    background: 'var(--accent)',
-                    color: 'var(--text-inverse)',
+                    borderRadius: '0px',
+                    background: 'transparent',
+                    color: 'var(--color-burnt-sienna)',
+                    border: '1px solid var(--color-burnt-sienna)',
                   }}
                 >
                   {unreadCount}
@@ -696,12 +701,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              border: '1px solid var(--color-cork-shadow)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'var(--shadow-sm)',
+              boxShadow: 'none',
             }}
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -738,9 +743,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             top: 0,
             zIndex: 100,
             height: 'var(--header-h)',
-            background: 'var(--surface)',
-            borderBottom: '1px solid var(--border)',
-            backdropFilter: 'blur(12px)',
+            background: 'var(--bg)',
+            borderBottom: '1px solid var(--color-cork-shadow)',
+            backdropFilter: 'none',
             transition: 'background var(--duration-normal), border-color var(--duration-normal)',
           }}
         >
@@ -782,15 +787,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   alignItems: 'center',
                   gap: 'var(--space-3)',
                   padding: '9px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg-subtle)',
+                  borderRadius: '0px',
+                  border: '1px solid var(--color-cork-shadow)',
+                  background: 'transparent',
                   color: 'var(--text-secondary)',
                   fontSize: '13px',
                   cursor: 'pointer',
                   width: 'min(380px, 100%)',
                   textAlign: 'left',
-                  boxShadow: 'var(--shadow-sm)',
+                  boxShadow: 'none',
                   fontWeight: 500,
                 }}
               >
@@ -824,7 +829,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 type="button"
                 className="icon-btn"
                 onClick={toggleTheme}
-                title={theme === 'dark' ? 'Ocean Blue Light Theme' : 'Purple Dream Dark Theme'}
+                title={'ORYZO Dark Theme'}
                 style={{
                   width: '38px',
                   height: '38px',
@@ -904,10 +909,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       gap: 'var(--space-2)',
                       padding: '4px 14px 4px 4px',
                       borderRadius: '999px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
+                      border: '1px solid var(--color-cork-shadow)',
+                      background: 'transparent',
                       cursor: 'pointer',
-                      boxShadow: 'var(--shadow-sm)',
+                      boxShadow: 'none',
                     }}
                   >
                     <div
@@ -940,11 +945,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         right: 0,
                         width: '220px',
                         zIndex: 180,
-                        boxShadow: 'var(--shadow-lg)',
-                        background: 'var(--surface)',
-                        borderRadius: '14px',
+                        boxShadow: 'none',
+                        background: 'var(--bg)',
+                        borderRadius: '12px',
                         padding: 'var(--space-2)',
-                        border: '1px solid var(--border)',
+                        border: '1px dashed var(--color-cork-shadow)',
                       }}
                     >
                       <div
@@ -973,7 +978,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           borderRadius: '8px',
                         }}
                       >
-                        Theme: {theme === 'dark' ? 'Purple Dream' : 'Ocean Blue'}
+                        Theme: ORYZO Dark
                       </button>
 
                       <button
@@ -999,10 +1004,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <Link to="/login" className="btn btn--ghost btn--sm" style={{ borderRadius: '10px' }}>
+                  <Link to="/login" className="btn btn--ghost btn--sm" style={{ borderRadius: '22.5px' }}>
                     Sign in
                   </Link>
-                  <Link to="/register" className="btn btn--primary btn--sm" style={{ borderRadius: '10px' }}>
+                  <Link to="/register" className="btn btn--primary btn--sm" style={{ borderRadius: '36px' }}>
                     Get started
                   </Link>
                 </div>
@@ -1041,9 +1046,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               display: 'flex',
               flexDirection: 'column',
               width: 'min(460px, 100vw)',
-              borderRadius: '20px 0 0 20px',
-              borderLeft: '1px solid var(--border)',
-              background: 'var(--surface)',
+              borderRadius: '0px',
+              borderLeft: '1px solid var(--color-cork-shadow)',
+              background: 'var(--bg)',
               zIndex: 201,
             }}
           >
@@ -1102,9 +1107,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       flexDirection: 'column',
                       gap: '6px',
                       padding: 'var(--space-4)',
-                      borderRadius: '16px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--bg-subtle)',
+                      borderRadius: '12px',
+                      border: '1px dashed var(--color-cork-shadow)',
+                      background: 'transparent',
                       transition: 'transform var(--duration-fast)',
                     }}
                   >
@@ -1195,7 +1200,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <>
           <div
             className="drawer-backdrop"
-            style={{ background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)', zIndex: 300 }}
+            style={{ background: 'rgba(16, 9, 4, 0.7)', backdropFilter: 'none', zIndex: 300 }}
             onClick={() => setIsCommandPaletteOpen(false)}
           />
           <div
@@ -1214,10 +1219,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
               style={{
                 padding: 0,
                 overflow: 'hidden',
-                boxShadow: 'var(--shadow-lg)',
-                borderRadius: '20px',
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
+                boxShadow: 'none',
+                borderRadius: '12px',
+                border: '1px dashed var(--color-cork-shadow)',
+                background: 'var(--bg)',
               }}
               onKeyDown={handlePaletteKeyDown}
             >
@@ -1310,7 +1315,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                     justifyContent: 'flex-start',
                                     fontSize: '13.5px',
                                     padding: '10px var(--space-4)',
-                                    borderRadius: '10px',
+                                    borderRadius: '0px',
                                     textAlign: 'left',
                                     color: isSelected ? 'var(--accent)' : 'var(--text)',
                                     background: isSelected ? 'var(--accent-subtle)' : 'transparent',

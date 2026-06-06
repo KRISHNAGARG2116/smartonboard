@@ -85,15 +85,15 @@ export default function CandidateInterviews() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Card */}
-          <div className="card card__body" style={{ background: 'linear-gradient(135deg, var(--bg-subtle) 0%, var(--surface) 100%)', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>My Interviews</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 0 }}>
+          <div className="card card__body" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+            <h3 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 'var(--space-2)', lineHeight: 1.09, color: 'var(--text)' }}>My Interviews</h3>
+            <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', lineHeight: 1.33, marginBottom: 0 }}>
               Review your upcoming and past structured interview slots. Join video meetings or reschedule confirmed bookings.
             </p>
           </div>
 
           {error && (
-            <div className="card card__body" style={{ border: '1px solid var(--danger)', background: 'var(--danger-bg)', color: 'var(--text)', borderRadius: 'var(--radius-md)' }}>
+            <div className="card card__body" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', borderRadius: '0px' }}>
               <strong>Error:</strong> {error}
             </div>
           )}
@@ -109,10 +109,10 @@ export default function CandidateInterviews() {
               ))}
             </div>
           ) : interviews.length === 0 ? (
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
               <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>📅</span>
-              <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>No Interviews Scheduled</h4>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>
+              <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>No Interviews Scheduled</h4>
+              <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
                 Interviews will appear here once scheduled by recruiters or booked via scheduling links.
               </p>
             </div>
@@ -132,42 +132,43 @@ export default function CandidateInterviews() {
                       flexDirection: 'column',
                       gap: 'var(--space-3)',
                       borderRadius: '12px',
-                      border: '1px solid var(--border)',
+                      border: '1px dashed var(--color-cork-shadow)',
+                      background: 'transparent',
                       opacity: isCancelled ? 0.6 : 1
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                          <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, margin: 0 }}>{iv.title}</h4>
+                          <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{iv.title}</h4>
                           <span 
                             style={{ 
                               fontSize: '10px', 
-                              fontWeight: 750, 
+                              fontWeight: 500, 
                               padding: '2px 8px', 
                               borderRadius: '999px',
-                              background: isCancelled ? 'var(--danger-bg)' : isPast ? 'var(--bg-subtle)' : 'var(--success-bg)',
-                              color: isCancelled ? 'var(--danger)' : isPast ? 'var(--text-secondary)' : 'var(--success)',
-                              border: isCancelled ? '1px solid var(--danger)' : isPast ? '1px solid var(--border)' : '1px solid var(--success)'
+                              background: 'transparent',
+                              color: isCancelled ? 'var(--color-burnt-sienna)' : isPast ? 'var(--color-grey-brown)' : 'var(--text)',
+                              border: isCancelled ? '1px solid var(--color-burnt-sienna)' : isPast ? '1px solid var(--color-cork-shadow)' : '1px solid var(--color-warm-cream)'
                             }}
                           >
                             {isCancelled ? 'Cancelled' : isPast ? 'Past' : 'Confirmed'}
                           </span>
                         </div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', marginTop: '2px', margin: 0 }}>
+                        <p style={{ color: 'var(--color-grey-brown)', fontSize: '12px', marginTop: '2px', margin: 0 }}>
                           {iv.company_name} · Position: <strong>{iv.job_title}</strong>
                         </p>
                       </div>
                       
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                        <div>📅 <strong>{new Date(iv.scheduled_at).toLocaleString()}</strong></div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-grey-brown)', textAlign: 'right' }}>
+                        <div>📅 <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{new Date(iv.scheduled_at).toLocaleString()}</strong></div>
                         <div style={{ marginTop: '2px' }}>⏱️ Duration: {iv.duration_minutes} min</div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)', marginTop: 'var(--space-1)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                      <div style={{ fontSize: 'var(--text-xs)' }}>
-                        Interviewer: <strong>{iv.interviewer_name}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-3)', marginTop: 'var(--space-1)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-grey-brown)' }}>
+                        Interviewer: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{iv.interviewer_name}</strong>
                       </div>
                       
                       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -177,7 +178,7 @@ export default function CandidateInterviews() {
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="btn btn--primary btn--sm"
-                            style={{ borderRadius: '8px', padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                            style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '6px 12px', fontSize: '12px', boxShadow: 'none' }}
                           >
                             💻 Join Video Call
                           </a>
@@ -188,7 +189,7 @@ export default function CandidateInterviews() {
                             <button
                               type="button"
                               className="btn btn--secondary btn--sm"
-                              style={{ borderRadius: '8px', padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '6px 12px', fontSize: '12px' }}
                               onClick={() => setSelectedIv(iv)}
                             >
                               Reschedule
@@ -196,7 +197,7 @@ export default function CandidateInterviews() {
                             <button
                               type="button"
                               className="btn btn--ghost btn--sm"
-                              style={{ borderRadius: '8px', padding: '6px 12px', fontSize: 'var(--text-xs)', color: 'var(--danger)' }}
+                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-burnt-sienna)', background: 'transparent', padding: '6px 12px', fontSize: '12px', color: 'var(--color-burnt-sienna)' }}
                               disabled={cancellingId === iv.slot.id}
                               onClick={() => handleCancel(iv.slot!.id)}
                             >
@@ -224,8 +225,7 @@ export default function CandidateInterviews() {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(3px)',
+              background: 'rgba(16,9,4,0.7)',
               zIndex: 999
             }}
           />
@@ -236,12 +236,12 @@ export default function CandidateInterviews() {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               width: 'min(460px, 90vw)',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
+              background: 'var(--color-studio-black)',
+              border: '1px solid var(--color-warm-cream)',
+              borderRadius: '12px',
               padding: 'var(--space-6)',
               zIndex: 1000,
-              boxShadow: 'var(--shadow-lg)',
+              boxShadow: 'none',
               display: 'flex',
               flexDirection: 'column',
               gap: 'var(--space-4)'
@@ -249,35 +249,35 @@ export default function CandidateInterviews() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 800, margin: 0 }}>Reschedule Interview</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Reschedule Interview</h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-grey-brown)', marginTop: '2px', margin: 0 }}>
                   {selectedIv.title} with {selectedIv.interviewer_name}
                 </p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedIv(null)}
-                style={{ fontSize: '18px', padding: '4px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                style={{ fontSize: '18px', padding: '4px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--color-grey-brown)' }}
               >
                 ✕
               </button>
             </div>
 
             {rescheduleError && (
-              <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--danger)' }}>
+              <div style={{ background: 'transparent', color: 'var(--color-burnt-sienna)', padding: 'var(--space-3)', borderRadius: '0px', fontSize: '12px', border: '1px solid var(--color-burnt-sienna)' }}>
                 <strong>Reschedule Failed:</strong> {rescheduleError}
               </div>
             )}
 
             {rescheduleSuccess && (
-              <div style={{ background: 'var(--success-bg)', color: 'var(--success)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--success)', textAlign: 'center' }}>
+              <div style={{ background: 'transparent', color: 'var(--text)', padding: 'var(--space-3)', borderRadius: '0px', fontSize: '12px', border: '1px solid var(--color-warm-cream)', textAlign: 'center' }}>
                 {rescheduleSuccess}
               </div>
             )}
 
             <form onSubmit={handleRescheduleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="new-start-time" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                <label htmlFor="new-start-time" style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 500, color: 'var(--color-grey-brown)', letterSpacing: '0.05em' }}>
                   Choose New Date & Time:
                 </label>
                 <input
@@ -287,12 +287,13 @@ export default function CandidateInterviews() {
                   value={newStartTime}
                   onChange={(e) => setNewStartTime(e.target.value)}
                   style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-subtle)',
+                    padding: '10px 0px',
+                    borderRadius: '0px',
+                    border: 'none',
+                    borderBottom: '1px solid var(--color-warm-cream)',
+                    background: 'transparent',
                     color: 'var(--text)',
-                    fontSize: 'var(--text-sm)',
+                    fontSize: '15px',
                     fontFamily: 'inherit',
                     width: '100%'
                   }}
@@ -304,7 +305,7 @@ export default function CandidateInterviews() {
                   type="button"
                   className="btn btn--secondary"
                   onClick={() => setSelectedIv(null)}
-                  style={{ flex: 1, borderRadius: '10px' }}
+                  style={{ flex: 1, borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
                 >
                   Cancel
                 </button>
@@ -314,17 +315,18 @@ export default function CandidateInterviews() {
                   disabled={rescheduling || !newStartTime}
                   style={{ 
                     flex: 1, 
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                    color: 'var(--text-inverse)',
-                    fontWeight: 700
+                    borderRadius: '36px',
+                    background: 'var(--color-dark-cork)',
+                    color: 'var(--text)',
+                    fontWeight: 500,
+                    border: 'none',
+                    boxShadow: 'none'
                   }}
                 >
                   {rescheduling ? 'Rescheduling...' : 'Confirm'}
                 </button>
               </div>
             </form>
-
           </div>
         </>
       )}

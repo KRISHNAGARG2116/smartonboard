@@ -16,29 +16,27 @@ import {
   Pie,
   Cell
 } from 'recharts'
-import { useTheme } from '../context/ThemeContext'
 import { fetchSyncMetrics } from '../api'
 
 export default function AnalyticsDashboard() {
-  const { theme } = useTheme()
   useEffect(() => {
     fetchSyncMetrics().catch(() => {})
   }, [])
 
-  // Dynamic Theme Colors based on active theme
+  // ORYZO design tokens colors for charts
   const chartColors = useMemo(() => {
-    const isDark = theme === 'dark'
     return {
-      primary: isDark ? '#7C3AED' : '#2563EB', // Purple vs Royal Blue
-      accent: isDark ? '#22D3EE' : '#06B6D4',  // Cyan vs Teal
-      success: '#22C55E',
-      warning: '#F59E0B',
-      grid: isDark ? '#334155' : '#E2E8F0',
-      text: isDark ? '#94A3B8' : '#64748B',
-      tooltipBg: isDark ? '#1A1A2E' : '#FFFFFF',
-      tooltipBorder: isDark ? '#334155' : '#CBD5E1'
+      primary: '#ffedd7',       // Warm Cream
+      accent: '#dc5000',        // Burnt Sienna
+      success: '#ffedd7',       // Warm Cream
+      warning: '#6c5f51',       // Grey Brown
+      danger: '#dc5000',        // Burnt Sienna
+      grid: '#40372e',          // Cork Shadow
+      text: '#6c5f51',          // Grey Brown
+      tooltipBg: '#100904',     // Studio Black
+      tooltipBorder: '#40372e'  // Cork Shadow
     }
-  }, [theme])
+  }, [])
 
   // 1. Hiring Funnel Density
   const funnelData = [
@@ -75,7 +73,7 @@ export default function AnalyticsDashboard() {
     { name: 'Overdue Checklist Tasks', value: 18 },
     { name: 'Active Escalation Breaches', value: 10 }
   ]
-  const PIE_COLORS = [chartColors.success, chartColors.warning, '#EF4444']
+  const PIE_COLORS = [chartColors.primary, chartColors.warning, chartColors.accent]
 
   return (
     <AppLayout>
@@ -83,11 +81,11 @@ export default function AnalyticsDashboard() {
         
         {/* Title Header */}
         <header style={{ marginBottom: 'var(--space-8)' }}>
-          <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
             Executive Visibility Analytics
           </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
-            Expose pre-boarding velocities, funnels yield, and HRIS outbox sweeps quotas in curated {theme === 'dark' ? 'Purple Dream' : 'Ocean Blue'} colors.
+          <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
+            Expose pre-boarding velocities, funnels yield, and HRIS outbox sweeps quotas in curated ORYZO style.
           </p>
         </header>
 
@@ -102,15 +100,15 @@ export default function AnalyticsDashboard() {
           aria-label="Executive Metrics"
         >
           {[
-            { label: 'Total Candidates Processed', value: 120, pct: '+12% vs last month', color: chartColors.primary },
-            { label: 'Total Pre-boarding Hires', value: 8, pct: '100% conversion rate', color: chartColors.success },
-            { label: 'Active Employees Directory', value: 3, pct: 'Gusto / BambooHR sync active', color: chartColors.accent },
-            { label: 'Failed Outbox Sweeps (DLQ)', value: 0, pct: 'Outbox processors healthy', color: '#EF4444' }
+            { label: 'Total Candidates Processed', value: 120, pct: '+12% vs last month' },
+            { label: 'Total Pre-boarding Hires', value: 8, pct: '100% conversion rate' },
+            { label: 'Active Employees Directory', value: 3, pct: 'Gusto / BambooHR sync active' },
+            { label: 'Failed Outbox Sweeps (DLQ)', value: 0, pct: 'Outbox processors healthy' }
           ].map((card, idx) => (
-            <div key={idx} className="card" style={{ padding: 'var(--space-5)', border: '1px solid var(--border)', borderRadius: '16px', borderLeft: `4px solid ${card.color}` }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</span>
-              <strong style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', display: 'block', marginTop: '4px' }}>{card.value}</strong>
-              <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'block', marginTop: '6px' }}>{card.pct}</span>
+            <div key={idx} className="card" style={{ padding: 'var(--space-5)', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', background: 'transparent', boxShadow: 'none' }}>
+              <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</span>
+              <strong style={{ fontSize: '29px', fontWeight: 500, color: 'var(--text)', display: 'block', marginTop: '4px' }}>{card.value}</strong>
+              <span style={{ fontSize: '10px', color: 'var(--color-grey-brown)', display: 'block', marginTop: '6px' }}>{card.pct}</span>
             </div>
           ))}
         </section>
@@ -125,56 +123,56 @@ export default function AnalyticsDashboard() {
           aria-label="Analytics Visualizations"
         >
           {/* Graph 1: Hiring Funnel Conversion (Bar Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '18px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Hiring Funnel Yield (Applicant Density)</h3>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Hiring Funnel Yield (Applicant Density)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="name" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '8px', fontSize: '11px' }} />
-                  <Bar dataKey="value" fill={chartColors.primary} radius={[6, 6, 0, 0]} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                  <Bar dataKey="value" fill={chartColors.primary} radius={[0, 0, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Graph 2: Stage Velocity - Average Days (Area Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '18px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Average Days In Hiring Stage (Velocity)</h3>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Average Days In Hiring Stage (Velocity)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={velocityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="stage" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '8px', fontSize: '11px' }} />
-                  <Area type="monotone" dataKey="days" stroke={chartColors.accent} fill={chartColors.accent} fillOpacity={0.15} strokeWidth={2.5} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                  <Area type="monotone" dataKey="days" stroke={chartColors.accent} fill={chartColors.accent} fillOpacity={0.15} strokeWidth={1} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Graph 3: Offer Acceptance Yield (Line Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '18px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Offer Acceptance Rate Percentage (Yield)</h3>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Offer Acceptance Rate Percentage (Yield)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={offerAcceptanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="month" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} unit="%" />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '8px', fontSize: '11px' }} />
-                  <Line type="monotone" dataKey="rate" stroke={chartColors.success} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                  <Line type="monotone" dataKey="rate" stroke={chartColors.accent} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Graph 4: Onboarding Completion Distribution (Pie Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '18px', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-4)' }}>Onboarding Checklist Distribution</h3>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Onboarding Checklist Distribution</h3>
             <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: '50%', height: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -192,17 +190,17 @@ export default function AnalyticsDashboard() {
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '8px', fontSize: '11px' }} />
+                    <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
               {/* Legends */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%', fontSize: '11.5px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%', fontSize: '11px', fontWeight: 500 }}>
                 {onboardingCompletionData.map((d, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: PIE_COLORS[idx] }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>{d.name}: <strong>{d.value}%</strong></span>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '0px', background: PIE_COLORS[idx] }} />
+                    <span style={{ color: 'var(--color-grey-brown)' }}>{d.name}: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{d.value}%</strong></span>
                   </div>
                 ))}
               </div>

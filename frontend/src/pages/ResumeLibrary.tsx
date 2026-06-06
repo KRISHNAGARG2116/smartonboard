@@ -187,12 +187,12 @@ export default function ResumeLibrary() {
             <div 
               className="card card__body" 
               style={{ 
-                border: '1px solid var(--warning)', 
-                background: 'var(--warning-bg)', 
+                border: '1px dashed var(--color-cork-shadow)', 
+                background: 'transparent', 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 'var(--space-4)',
-                borderRadius: 'var(--radius-md)'
+                borderRadius: '12px'
               }}
             >
               <span style={{ fontSize: 'var(--text-2xl)' }}>⚠️</span>
@@ -209,9 +209,9 @@ export default function ResumeLibrary() {
             <div 
               className="card card__body" 
               style={{ 
-                border: '2px dashed var(--border)', 
-                background: 'var(--bg-subtle)', 
-                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--color-cork-shadow)', 
+                background: 'transparent', 
+                borderRadius: '12px',
                 padding: 'var(--space-8) var(--space-6)',
                 textAlign: 'center',
               }}
@@ -221,12 +221,13 @@ export default function ResumeLibrary() {
                   style={{ 
                     width: '56px', 
                     height: '56px', 
-                    borderRadius: '14px', 
-                    background: 'var(--warning-bg)', 
-                    color: 'var(--warning)',
+                    borderRadius: '12px', 
+                    background: 'transparent', 
+                    color: 'var(--text)',
                     display: 'grid',
                     placeItems: 'center',
-                    fontSize: '24px'
+                    fontSize: '24px',
+                    border: '1px dashed var(--color-cork-shadow)'
                   }}
                 >
                   🔒
@@ -245,9 +246,9 @@ export default function ResumeLibrary() {
             <div 
               className={`card ${dragActive ? 'drag-active' : ''}`}
               style={{
-                border: dragActive ? '2px dashed var(--accent)' : '2px dashed var(--border)',
-                background: dragActive ? 'var(--accent-subtle)' : 'var(--surface)',
-                borderRadius: 'var(--radius-md)',
+                border: dragActive ? '1px dashed var(--color-warm-cream)' : '1px dashed var(--color-cork-shadow)',
+                background: 'transparent',
+                borderRadius: '12px',
                 padding: 'var(--space-8) var(--space-6)',
                 textAlign: 'center',
                 cursor: 'pointer',
@@ -274,12 +275,13 @@ export default function ResumeLibrary() {
                   style={{ 
                     width: '56px', 
                     height: '56px', 
-                    borderRadius: '14px', 
-                    background: 'var(--bg-subtle)', 
-                    color: 'var(--accent)',
+                    borderRadius: '12px', 
+                    background: 'transparent', 
+                    color: 'var(--text)',
                     display: 'grid',
                     placeItems: 'center',
-                    fontSize: '24px'
+                    fontSize: '24px',
+                    border: '1px dashed var(--color-cork-shadow)'
                   }}
                 >
                   📤
@@ -343,8 +345,8 @@ export default function ResumeLibrary() {
                     <div 
                       style={{ 
                         padding: 'var(--space-4) var(--space-6)', 
-                        borderBottom: '1px solid var(--border)',
-                        background: 'var(--bg-subtle)',
+                        borderBottom: '1px dashed var(--color-cork-shadow)',
+                        background: 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between'
@@ -395,7 +397,7 @@ export default function ResumeLibrary() {
           cursor: pointer;
         }
         .drag-active {
-          box-shadow: var(--shadow-lg);
+          box-shadow: none;
         }
       `}</style>
     </CandidateLayout>
@@ -416,7 +418,7 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
     <div 
       style={{ 
         padding: 'var(--space-5) var(--space-6)', 
-        borderBottom: isLast ? 'none' : '1px solid var(--border)',
+        borderBottom: isLast ? 'none' : '1px dashed var(--color-cork-shadow)',
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-3)',
@@ -429,7 +431,7 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <span style={{ fontSize: '24px' }}>📄</span>
           <div>
-            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 750, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {resume.filename}
               {resume.is_active && <span className="badge badge--hire">Active</span>}
             </h4>
@@ -465,7 +467,7 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
             type="button" 
             className="btn btn--ghost btn--sm" 
             onClick={() => onDelete(resume.id)}
-            style={{ color: 'var(--danger)' }}
+            style={{ color: 'var(--text)' }}
           >
             Delete
           </button>
@@ -477,15 +479,15 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
       {expanded && (
         <div 
           style={{ 
-            background: 'var(--bg-subtle)', 
+            background: 'transparent', 
             padding: 'var(--space-4) var(--space-5)', 
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: '12px',
             fontSize: 'var(--text-xs)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--space-3)',
             marginTop: '4px',
-            border: '1px solid var(--border)'
+            border: '1px dashed var(--color-cork-shadow)'
           }}
         >
           {/* Summary Section */}
@@ -505,12 +507,13 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
                   <span 
                     key={skill} 
                     style={{ 
-                      background: 'var(--surface)', 
-                      border: '1px solid var(--border)',
+                      background: 'transparent', 
+                      border: '1px solid var(--color-cork-shadow)',
                       padding: '3px 8px',
                       borderRadius: '6px',
                       color: 'var(--text)',
-                      fontWeight: 550
+                      fontWeight: 500,
+                      fontSize: '10px'
                     }}
                   >
                     {skill}

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import AppLayout from '../components/AppLayout'
 import { useAuth } from '../context/AuthContext'
 
 export default function Register() {
@@ -39,103 +38,230 @@ export default function Register() {
     }
   }
 
+  /* Shared label style */
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 500,
+    color: '#6c5f51',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    lineHeight: 1.2,
+    marginBottom: 8,
+  }
+
+  /* Shared input style */
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    borderBottom: '1px solid #ffedd7',
+    borderRadius: 0,
+    padding: '8px 0',
+    fontSize: 15,
+    color: '#ffedd7',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    outline: 'none',
+    boxSizing: 'border-box',
+  }
+
   return (
-    <AppLayout>
-      <div className="container" style={{ maxWidth: 480, padding: 'var(--space-16) var(--space-6)' }}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
+    <div style={{ minHeight: '100vh', background: '#100904', color: '#ffedd7', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* Minimal top nav */}
+      <nav style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 56,
+        padding: '0 24px',
+        borderBottom: '1px solid #40372e',
+      }}>
+        <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: '#ffedd7', textDecoration: 'none', letterSpacing: '0.04em' }}>
+          ORYZO
+        </Link>
+        <Link to="/login" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
+          Sign in
+        </Link>
+      </nav>
+
+      {/* Centered form container */}
+      <div style={{ maxWidth: 400, margin: '0 auto', padding: '120px 24px 48px' }}>
+        <h1 style={{ fontSize: 29, fontWeight: 500, lineHeight: 1.09, color: '#ffedd7', margin: 0, textAlign: 'left' }}>
           Create account
         </h1>
-        <p className="text-secondary" style={{ marginBottom: 'var(--space-6)' }}>
+        <p style={{ fontSize: 14, lineHeight: 1.33, color: '#6c5f51', margin: '8px 0 28px', textAlign: 'left' }}>
           {isCandidate ? 'Set up your candidate account on SmartOnboard.' : 'Set up your company on SmartOnboard.'}
         </p>
 
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
+        {/* Role toggle */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
           <button
             type="button"
-            className={!isCandidate ? 'btn btn--primary' : 'btn btn--secondary'}
-            style={{ flex: 1, fontSize: 'var(--text-sm)' }}
-            onClick={() => {
-              setIsCandidate(false)
-              setError(null)
+            onClick={() => { setIsCandidate(false); setError(null) }}
+            style={{
+              flex: 1,
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              cursor: 'pointer',
+              border: !isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
+              background: !isCandidate ? '#382416' : 'transparent',
+              color: '#ffedd7',
+              borderRadius: !isCandidate ? 36 : 22.5,
+              transition: 'all 0.15s ease',
             }}
           >
             Hiring Talent
           </button>
           <button
             type="button"
-            className={isCandidate ? 'btn btn--primary' : 'btn btn--secondary'}
-            style={{ flex: 1, fontSize: 'var(--text-sm)' }}
-            onClick={() => {
-              setIsCandidate(true)
-              setError(null)
+            onClick={() => { setIsCandidate(true); setError(null) }}
+            style={{
+              flex: 1,
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              cursor: 'pointer',
+              border: isCandidate ? '1px solid transparent' : '1px solid #ffedd7',
+              background: isCandidate ? '#382416' : 'transparent',
+              color: '#ffedd7',
+              borderRadius: isCandidate ? 36 : 22.5,
+              transition: 'all 0.15s ease',
             }}
           >
             Looking for Job
           </button>
         </div>
 
+        {/* Error banner */}
         {error && (
-          <div className="banner banner--error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
+          <div
+            role="alert"
+            style={{
+              border: '1px solid #dc5000',
+              borderRadius: 12,
+              padding: '12px 16px',
+              marginBottom: 20,
+              color: '#dc5000',
+              fontSize: 14,
+              lineHeight: 1.33,
+              background: 'transparent',
+            }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="card card__body">
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            border: '1px solid #ffedd7',
+            borderRadius: 12,
+            padding: 24,
+            background: 'transparent',
+          }}
+        >
+          {/* Company name — recruiter only */}
           {!isCandidate && (
-            <div className="form-group">
-              <label className="form-label" htmlFor="company">Company name</label>
+            <div style={{ marginBottom: 20 }}>
+              <label htmlFor="company" style={labelStyle}>
+                Company name
+              </label>
               <input
                 id="company"
                 required
-                className="form-input"
                 value={companyName}
                 onChange={e => setCompanyName(e.target.value)}
+                placeholder="Acme Corp"
+                style={inputStyle}
               />
             </div>
           )}
-          <div className="form-group">
-            <label className="form-label" htmlFor="fullName">Your name</label>
+
+          <div style={{ marginBottom: 20 }}>
+            <label htmlFor="fullName" style={labelStyle}>
+              Your name
+            </label>
             <input
               id="fullName"
               required
-              className="form-input"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
+              placeholder="Jane Doe"
+              style={inputStyle}
             />
           </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">Email</label>
+
+          <div style={{ marginBottom: 20 }}>
+            <label htmlFor="email" style={labelStyle}>
+              Email
+            </label>
             <input
               id="email"
               type="email"
               required
-              className="form-input"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              style={inputStyle}
             />
           </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Password</label>
+
+          <div style={{ marginBottom: 24 }}>
+            <label htmlFor="password" style={labelStyle}>
+              Password
+            </label>
             <input
               id="password"
               type="password"
               required
               minLength={8}
-              className="form-input"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              style={inputStyle}
             />
-            <p className="form-hint">Minimum 8 characters</p>
+            <p style={{ fontSize: 10, lineHeight: 1.2, color: '#6c5f51', margin: '6px 0 0' }}>
+              Minimum 8 characters
+            </p>
           </div>
-          <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%',
+              padding: '14px 24px',
+              background: '#382416',
+              color: '#ffedd7',
+              border: 'none',
+              borderRadius: 36,
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.6 : 1,
+              transition: 'opacity 0.15s ease',
+            }}
+          >
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="text-secondary" style={{ marginTop: 'var(--space-5)', fontSize: 'var(--text-sm)' }}>
-          Already have an account? <Link to="/login" className="text-accent">Sign in</Link>
+        {/* Footer link */}
+        <p style={{ marginTop: 20, fontSize: 14, lineHeight: 1.33, color: '#6c5f51' }}>
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            style={{ color: '#dc5000', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            Sign in
+          </Link>
         </p>
       </div>
-    </AppLayout>
+    </div>
   )
 }

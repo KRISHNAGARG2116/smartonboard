@@ -113,29 +113,29 @@ export default function CandidateJobFeed() {
   const getMatchStyles = (score: number, isNoSkills: boolean) => {
     if (isNoSkills || score === 100) {
       return {
-        border: '1px solid var(--accent)',
-        background: 'var(--accent-subtle)',
-        color: 'var(--accent)',
+        border: '1px solid var(--color-warm-cream)',
+        background: 'transparent',
+        color: 'var(--text)',
         label: '100% Match'
       }
     } else if (score >= 80) {
       return {
-        border: '1px solid var(--success)',
-        background: 'var(--success-bg)',
-        color: 'var(--success)',
+        border: '1px solid var(--color-warm-cream)',
+        background: 'transparent',
+        color: 'var(--text)',
         label: `${score}% Match`
       }
     } else if (score >= 50) {
       return {
-        border: '1px solid var(--warning)',
-        background: 'var(--warning-bg)',
-        color: 'var(--warning)',
+        border: '1px solid var(--color-cork-shadow)',
+        background: 'transparent',
+        color: 'var(--text-secondary)',
         label: `${score}% Match`
       }
     } else {
       return {
-        border: '1px solid var(--border)',
-        background: 'var(--bg-subtle)',
+        border: '1px solid var(--color-cork-shadow)',
+        background: 'transparent',
         color: 'var(--text-secondary)',
         label: `${score}% Match`
       }
@@ -150,9 +150,9 @@ export default function CandidateJobFeed() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Dashboard section */}
-          <div className="card card__body" style={{ background: 'linear-gradient(135deg, var(--bg-subtle) 0%, var(--surface) 100%)', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>Explore Openings</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 0 }}>
+          <div className="card card__body" style={{ background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 500, marginBottom: 'var(--space-2)', color: 'var(--text)', lineHeight: 1.1 }}>Explore Openings</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: 0, lineHeight: 1.33 }}>
               Discover active job opportunities matching your background. Review applicability percentages driven by your active resume profile.
             </p>
           </div>
@@ -199,20 +199,16 @@ export default function CandidateJobFeed() {
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
                       borderRadius: '12px',
-                      border: '1px solid var(--border)',
-                      transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
+                      border: '1px dashed var(--color-cork-shadow)',
+                      transition: 'border-color 150ms ease',
                       cursor: 'pointer'
                     }}
                     onClick={() => setSelectedJob(job)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent)'
-                      e.currentTarget.style.boxShadow = 'var(--shadow-md)'
-                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.borderColor = 'var(--color-warm-cream)'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border)'
-                      e.currentTarget.style.boxShadow = 'none'
-                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.borderColor = 'var(--color-cork-shadow)'
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: 0, flex: 1, paddingRight: 'var(--space-4)' }}>
@@ -232,7 +228,7 @@ export default function CandidateJobFeed() {
                           {matchStyle.label}
                         </span>
                         {isApplied && (
-                          <span style={{ fontSize: '10px', fontWeight: 750, padding: '3px 8px', borderRadius: '999px', background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success)' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 500, padding: '3px 8px', borderRadius: '999px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--color-warm-cream)' }}>
                             Applied
                           </span>
                         )}
@@ -251,9 +247,10 @@ export default function CandidateJobFeed() {
                                 fontSize: '10px', 
                                 padding: '2px 8px', 
                                 borderRadius: '6px', 
-                                background: 'var(--success-bg)', 
-                                color: 'var(--success)',
-                                fontWeight: 550
+                                background: 'transparent', 
+                                color: 'var(--text)',
+                                border: '1px solid var(--color-cork-shadow)',
+                                fontWeight: 500
                               }}
                             >
                               ✓ {skill}
@@ -266,9 +263,10 @@ export default function CandidateJobFeed() {
                                 fontSize: '10px', 
                                 padding: '2px 8px', 
                                 borderRadius: '6px', 
-                                background: 'var(--bg-subtle)', 
+                                background: 'transparent', 
                                 color: 'var(--text-secondary)',
-                                fontWeight: 500
+                                border: '1px solid var(--color-cork-shadow)',
+                                fontWeight: 400
                               }}
                             >
                               ? {skill}
@@ -287,7 +285,7 @@ export default function CandidateJobFeed() {
                       <button 
                         type="button" 
                         className="btn btn--secondary btn--sm" 
-                        style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600 }}
+                        style={{ borderRadius: '22.5px', padding: '8px 16px', fontWeight: 500 }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedJob(job)
@@ -310,7 +308,7 @@ export default function CandidateJobFeed() {
                 className="btn btn--secondary btn--sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                style={{ borderRadius: '8px' }}
+                style={{ borderRadius: '22.5px' }}
               >
                 ← Previous
               </button>
@@ -322,7 +320,7 @@ export default function CandidateJobFeed() {
                 className="btn btn--secondary btn--sm"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                style={{ borderRadius: '8px' }}
+                style={{ borderRadius: '22.5px' }}
               >
                 Next →
               </button>
@@ -340,8 +338,7 @@ export default function CandidateJobFeed() {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(3px)',
+              background: 'rgba(16,9,4,0.7)',
               zIndex: 999,
               transition: 'opacity var(--duration-normal)'
             }}
@@ -356,12 +353,12 @@ export default function CandidateJobFeed() {
               right: 0,
               bottom: 0,
               width: 'min(560px, 100vw)',
-              background: 'var(--surface)',
-              borderLeft: '1px solid var(--border)',
+              background: 'var(--bg)',
+              borderLeft: '1px solid var(--color-cork-shadow)',
               display: 'flex',
               flexDirection: 'column',
               zIndex: 1000,
-              boxShadow: 'var(--shadow-lg)',
+              boxShadow: 'none',
               overflow: 'hidden'
             }}
           >
@@ -369,7 +366,7 @@ export default function CandidateJobFeed() {
             <div 
               style={{ 
                 padding: 'var(--space-6)', 
-                borderBottom: '1px solid var(--border)', 
+                borderBottom: '1px dashed var(--color-cork-shadow)', 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'flex-start' 
@@ -388,13 +385,14 @@ export default function CandidateJobFeed() {
                 className="icon-btn"
                 onClick={() => setSelectedJob(null)}
                 style={{ 
-                  border: '1px solid var(--border)', 
+                  border: '1px solid var(--color-cork-shadow)', 
                   borderRadius: '50%', 
                   width: '32px', 
                   height: '32px', 
                   display: 'grid', 
                   placeItems: 'center',
-                  background: 'var(--bg-subtle)'
+                  background: 'transparent',
+                  color: 'var(--text)'
                 }}
                 aria-label="Close Job Drawer"
               >
@@ -412,9 +410,9 @@ export default function CandidateJobFeed() {
                   alignItems: 'center', 
                   gap: 'var(--space-5)', 
                   padding: 'var(--space-4)', 
-                  background: 'var(--bg-subtle)', 
-                  borderRadius: '14px', 
-                  border: '1px solid var(--border)' 
+                  background: 'transparent', 
+                  borderRadius: '12px', 
+                  border: '1px dashed var(--color-cork-shadow)' 
                 }}
               >
                 {/* Visual Circular Ring */}
@@ -424,7 +422,7 @@ export default function CandidateJobFeed() {
                     width: '60px',
                     height: '60px',
                     borderRadius: '50%',
-                    background: `conic-gradient(var(--accent) ${selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%, var(--border) 0)`,
+                    background: `conic-gradient(var(--color-warm-cream) ${selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%, var(--color-cork-shadow) 0)`,
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0
@@ -435,7 +433,7 @@ export default function CandidateJobFeed() {
                       position: 'absolute',
                       inset: '5px',
                       borderRadius: '50%',
-                      background: 'var(--surface)',
+                      background: 'var(--bg)',
                       display: 'grid',
                       placeItems: 'center',
                       fontSize: 'var(--text-sm)',
@@ -468,7 +466,7 @@ export default function CandidateJobFeed() {
                     
                     {/* Matching */}
                     {selectedJob.matching_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-3)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--success)', display: 'block', marginBottom: '8px' }}>
                           ✓ Matching Skills ({selectedJob.matching_skills.length})
                         </span>
@@ -494,7 +492,7 @@ export default function CandidateJobFeed() {
 
                     {/* Missing */}
                     {selectedJob.missing_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-3)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
                           ? Missing Skills ({selectedJob.missing_skills.length})
                         </span>
@@ -506,9 +504,10 @@ export default function CandidateJobFeed() {
                                 fontSize: '10px', 
                                 padding: '2px 8px', 
                                 borderRadius: '6px', 
-                                background: 'var(--bg-subtle)', 
+                                background: 'transparent', 
                                 color: 'var(--text-secondary)',
-                                fontWeight: 500
+                                border: '1px solid var(--color-cork-shadow)',
+                                fontWeight: 400
                               }}
                             >
                               {skill}
@@ -533,10 +532,10 @@ export default function CandidateJobFeed() {
                     color: 'var(--text)', 
                     lineHeight: 1.6, 
                     whiteSpace: 'pre-wrap',
-                    background: 'var(--surface-inset)',
+                    background: 'transparent',
                     padding: 'var(--space-4)',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)'
+                    borderRadius: '12px',
+                    border: '1px dashed var(--color-cork-shadow)'
                   }}
                 >
                   {selectedJob.description}
@@ -544,7 +543,7 @@ export default function CandidateJobFeed() {
               </div>
 
               {/* Job Metadata Properties */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--bg-subtle)', padding: 'var(--space-4)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'transparent', padding: 'var(--space-4)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                 <div>
                   <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Target Start Date</span>
                   <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>
@@ -565,8 +564,8 @@ export default function CandidateJobFeed() {
             <div 
               style={{ 
                 padding: 'var(--space-6)', 
-                borderTop: '1px solid var(--border)', 
-                background: 'var(--bg-subtle)',
+                borderTop: '1px dashed var(--color-cork-shadow)', 
+                background: 'transparent',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 'var(--space-4)'
@@ -641,14 +640,15 @@ export default function CandidateJobFeed() {
                           onChange={(e) => setSelectedResumeId(e.target.value)}
                           className="form-select"
                           style={{ 
-                            padding: '10px 14px', 
-                            borderRadius: '10px', 
-                            fontSize: 'var(--text-sm)', 
-                            border: '1px solid var(--border)',
-                            background: 'var(--surface)',
-                            color: 'var(--text)',
-                            width: '100%'
-                          }}
+                          padding: '10px 14px', 
+                          borderRadius: '0px', 
+                          fontSize: '14px', 
+                          border: 'none',
+                          borderBottom: '1px solid var(--color-warm-cream)',
+                          background: 'transparent',
+                          color: 'var(--text)',
+                          width: '100%'
+                        }}
                         >
                           {resumes.map(r => (
                             <option key={r.id} value={r.id}>
@@ -687,14 +687,15 @@ export default function CandidateJobFeed() {
                           onClick={handleApply}
                           disabled={applying}
                           style={{ 
-                            width: '100%', 
-                            padding: '12px', 
-                            borderRadius: '10px', 
-                            fontWeight: 700,
-                            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                            color: 'var(--text-inverse)',
-                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
-                          }}
+                          width: '100%', 
+                          padding: '12px', 
+                          borderRadius: '36px', 
+                          fontWeight: 500,
+                          background: 'var(--color-dark-cork)',
+                          color: 'var(--text)',
+                          boxShadow: 'none',
+                          border: 'none'
+                        }}
                         >
                           {applying ? 'Submitting Application...' : 'Submit Application'}
                         </button>

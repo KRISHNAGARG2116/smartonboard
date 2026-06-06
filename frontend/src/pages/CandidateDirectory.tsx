@@ -56,20 +56,20 @@ export default function CandidateDirectory() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'var(--accent-muted)',
-              color: 'var(--accent)',
+              background: 'var(--color-dark-cork)',
+              color: 'var(--text)',
               display: 'grid',
               placeItems: 'center',
-              fontWeight: 700,
+              fontWeight: 500,
               fontSize: '12px'
             }}>
               {app.candidate?.full_name ? app.candidate.full_name[0] : 'C'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 700, color: 'var(--text)' }}>
+              <span style={{ fontWeight: 500, color: 'var(--text)' }}>
                 {app.candidate?.full_name || 'Unknown Candidate'}
               </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-grey-brown)' }}>
                 {app.candidate?.email || 'No Email'}
               </span>
             </div>
@@ -81,7 +81,7 @@ export default function CandidateDirectory() {
         header: 'Current Stage',
         sortable: true,
         render: (app) => (
-          <span className={`badge ${stageBadgeClass(app.status)}`} style={{ fontSize: '9px', fontWeight: 700 }}>
+          <span className={`badge ${stageBadgeClass(app.status)}`} style={{ fontSize: '9px', fontWeight: 500 }}>
             {app.status}
           </span>
         )
@@ -113,8 +113,8 @@ export default function CandidateDirectory() {
         sortable: true,
         render: (app) => (
           <div>
-            <div style={{ fontWeight: 600 }}>{app.job?.title || 'General Opening'}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{app.job?.department || 'Operations'}</div>
+            <div style={{ fontWeight: 500 }}>{app.job?.title || 'General Opening'}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-grey-brown)', marginTop: '2px' }}>{app.job?.department || 'Operations'}</div>
           </div>
         )
       },
@@ -135,7 +135,7 @@ export default function CandidateDirectory() {
         hideOnMobile: true,
         render: () => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--text)', color: 'var(--text-inverse)', display: 'grid', placeItems: 'center', fontWeight: 'bold', fontSize: '8px' }}>R</div>
+            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-dark-cork)', color: 'var(--text)', display: 'grid', placeItems: 'center', fontWeight: 500, fontSize: '8px' }}>R</div>
             <span>Sarah Recruiter</span>
           </div>
         )
@@ -147,7 +147,7 @@ export default function CandidateDirectory() {
           <button
             type="button"
             className="btn btn--secondary btn--sm"
-            style={{ borderRadius: '8px', padding: '4px 10px' }}
+            style={{ borderRadius: '22.5px', padding: '4px 10px' }}
             onClick={(e) => {
               e.stopPropagation()
               setSelectedApp(app)
@@ -228,10 +228,10 @@ export default function CandidateDirectory() {
         
         {/* Header Title */}
         <header style={{ marginBottom: 'var(--space-6)' }}>
-          <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
             Candidates Workspace Directory
           </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+          <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
             Expose and manage applicant portfolios, match metrics, and scheduled panels using our RLS-bounded search engine.
           </p>
         </header>

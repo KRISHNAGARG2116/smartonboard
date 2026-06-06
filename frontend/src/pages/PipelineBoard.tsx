@@ -124,10 +124,10 @@ export default function PipelineBoard() {
         
         {/* Header Title */}
         <header style={{ marginBottom: 'var(--space-6)' }}>
-          <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
             Hiring Pipeline Board
           </h1>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+          <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
             Expose applicant flow, drag and drop cards to trigger transitions, and manage panelists scorecards live.
           </p>
         </header>
@@ -164,9 +164,9 @@ export default function PipelineBoard() {
                 style={{
                   width: '280px',
                   minWidth: '280px',
-                  background: isHovered ? 'var(--accent-subtle)' : 'var(--bg-subtle)',
-                  borderRadius: '20px',
-                  border: isHovered ? '1.5px dashed var(--accent)' : '1px solid var(--border)',
+                  background: 'transparent',
+                  borderRadius: '12px',
+                  border: isHovered ? '1.5px dashed var(--color-burnt-sienna)' : '1px dashed var(--color-cork-shadow)',
                   padding: 'var(--space-4)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -177,17 +177,18 @@ export default function PipelineBoard() {
                 {/* Column Header Metadata */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                    <h3 style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0, color: 'var(--color-grey-brown)' }}>
                       {col.title}
                     </h3>
                     <span
                       style={{
-                        fontSize: '10.5px',
-                        fontWeight: 700,
+                        fontSize: '10px',
+                        fontWeight: 500,
                         padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: 'var(--border)',
-                        color: 'var(--text-secondary)'
+                        borderRadius: '0px',
+                        border: '1px solid var(--color-cork-shadow)',
+                        background: 'transparent',
+                        color: 'var(--text)'
                       }}
                     >
                       {metrics.count}
@@ -195,10 +196,10 @@ export default function PipelineBoard() {
                   </div>
 
                   {/* Aggregated Column Metrics */}
-                  <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '6px', fontWeight: 600 }}>
-                    <span>Avg AI: <strong style={{ color: 'var(--text-secondary)' }}>{metrics.avgScore}%</strong></span>
+                  <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: 'var(--color-grey-brown)', marginTop: '6px', fontWeight: 400 }}>
+                    <span>Avg AI: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{metrics.avgScore}%</strong></span>
                     <span>·</span>
-                    <span>Avg Time: <strong style={{ color: 'var(--text-secondary)' }}>{metrics.avgDays}d</strong></span>
+                    <span>Avg Time: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{metrics.avgDays}d</strong></span>
                   </div>
                 </div>
 
@@ -225,24 +226,24 @@ export default function PipelineBoard() {
                         onDragStart={(e) => handleDragStart(e, app.id)}
                         style={{
                           padding: 'var(--space-4)',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '16px',
-                          boxShadow: 'var(--shadow-sm)',
+                          background: 'transparent',
+                          border: '1px solid var(--color-cork-shadow)',
+                          borderRadius: '12px',
+                          boxShadow: 'none',
                           cursor: 'grab',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 'var(--space-2)',
-                          transition: 'transform var(--duration-fast), box-shadow var(--duration-fast)',
+                          transition: 'transform var(--duration-fast), border-color var(--duration-fast)',
                           position: 'relative'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.boxShadow = 'var(--shadow-md)'
+                          e.currentTarget.style.borderColor = 'var(--color-warm-cream)'
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = 'none'
-                          e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                          e.currentTarget.style.borderColor = 'var(--color-cork-shadow)'
                         }}
                       >
                         {/* Card Header: Avatar & AI score */}
@@ -252,16 +253,16 @@ export default function PipelineBoard() {
                               width: '24px',
                               height: '24px',
                               borderRadius: '50%',
-                              background: 'var(--accent-muted)',
-                              color: 'var(--accent)',
+                              background: 'var(--color-dark-cork)',
+                              color: 'var(--text)',
                               display: 'grid',
                               placeItems: 'center',
-                              fontWeight: 700,
+                              fontWeight: 500,
                               fontSize: '10px'
                             }}>
                               {app.candidate?.full_name ? app.candidate.full_name[0] : 'C'}
                             </div>
-                            <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+                            <strong style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
                               {app.candidate?.full_name}
                             </strong>
                           </div>
@@ -273,20 +274,20 @@ export default function PipelineBoard() {
 
                         {/* Job connection & Days Badge */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '11px', marginTop: '4px' }}>
-                          <span style={{ color: 'var(--text-secondary)', fontWeight: 550, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                          <span style={{ color: 'var(--color-grey-brown)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
                             {app.job?.title || 'General Opening'}
                           </span>
-                          <span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                          <span style={{ color: 'var(--color-grey-brown)', fontWeight: 400 }}>
                             {days}d here
                           </span>
                         </div>
 
                         {/* Card hover operational triggers */}
-                        <div style={{ display: 'flex', gap: '6px', marginTop: 'var(--space-2)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-2)' }}>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: 'var(--space-2)', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-2)' }}>
                           <button
                             type="button"
                             className="btn btn--secondary btn--sm btn--block"
-                            style={{ borderRadius: '8px', padding: '4px 6px', fontSize: '10px', flex: 1 }}
+                            style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
                             onClick={() => {
                               setSelectedApp(app)
                               setDrawerTab('overview')
@@ -298,7 +299,7 @@ export default function PipelineBoard() {
                             <button
                               type="button"
                               className="btn btn--secondary btn--sm btn--block"
-                              style={{ borderRadius: '8px', padding: '4px 6px', fontSize: '10px', flex: 1 }}
+                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
                               onClick={() => {
                                 setSelectedApp(app)
                                 setDrawerTab('interviews')
@@ -313,7 +314,7 @@ export default function PipelineBoard() {
                   })}
                   
                   {colApps.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', border: '1.5px dashed var(--border)', borderRadius: '12px' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--color-grey-brown)', fontSize: '12px', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
                       Drag cards here
                     </div>
                   )}

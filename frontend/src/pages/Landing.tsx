@@ -1,142 +1,731 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import AppLayout from '../components/AppLayout'
-
-const FEATURES = [
-  {
-    title: 'Batch resume screening',
-    desc: 'Upload multiple PDFs and compare candidates ranked by fit score against your job description.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Structured hiring decisions',
-    desc: 'Every candidate gets a Hire, Interview, or Reject recommendation with reasoning and interview questions.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Instant onboarding packages',
-    desc: 'Hire decisions trigger offer documents, 30-60-90 training plans, and welcome emails in one flow.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-      </svg>
-    ),
-  },
-]
+import { useAuth } from '../context/AuthContext'
+import heroImg from '../assets/oryzo_hero.png'
+import corkImg from '../assets/oryzo_cork_render.png'
 
 export default function Landing() {
+  const { user } = useAuth()
+  const [scrollOpacity, setScrollOpacity] = useState(1)
+
+  // Fade scroll prompt as user scrolls
+  useEffect(() => {
+    const handleScroll = () => {
+      const fade = Math.max(0, 1 - window.scrollY / 300)
+      setScrollOpacity(fade)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <AppLayout>
-      <section className="landing-hero container">
-        <p className="landing-hero__eyebrow">
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: 'var(--success)',
-            }}
-            aria-hidden="true"
-          />
-          AI recruitment pipeline
-        </p>
-        <h1 className="landing-hero__title">
-          Hire and onboard without the busywork.
-        </h1>
-        <p className="landing-hero__subtitle">
-          SmartOnboard runs your resumes through screening, scoring, and decision agents —
-          then generates onboarding artifacts for every hire. Built for HR teams who need
-          speed without sacrificing rigor.
-        </p>
-        <div className="landing-hero__actions">
-          <Link to="/register" className="btn btn--primary btn--lg">
-            Create your workspace
-          </Link>
-          <a href="#how-it-works" className="btn btn--secondary btn--lg">
-            See how it works
-          </a>
-        </div>
-      </section>
-
-      <section id="how-it-works" className="container landing-split">
-        <div>
-          <h2 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 'var(--space-4)' }}>
-            One pipeline from resume to offer
-          </h2>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-relaxed)', marginBottom: 'var(--space-8)' }}>
-            Drop in job details and resumes. The system parses, screens, scores, drafts
-            communication, and prepares onboarding — so your team reviews outcomes, not spreadsheets.
-          </p>
-          <div className="feature-list">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="feature-item">
-                <div className="feature-item__icon" aria-hidden="true">{f.icon}</div>
-                <div>
-                  <div className="feature-item__title">{f.title}</div>
-                  <p className="feature-item__desc">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="pipeline-preview" aria-hidden="true">
-          <div className="pipeline-preview__line">$ smartonboard run --role &quot;Senior Engineer&quot;</div>
-          <div className="pipeline-preview__line pipeline-preview__line--active">→ Parsing resume...</div>
-          <div className="pipeline-preview__line pipeline-preview__line--active">→ Screening against JD</div>
-          <div className="pipeline-preview__line">→ Scoring fit (84/100)</div>
-          <div className="pipeline-preview__line">→ Decision: INTERVIEW</div>
-          <div className="pipeline-preview__line">
-            <span className="pipeline-preview__cursor" />
-          </div>
-        </div>
-      </section>
-
-      <section className="container metrics-row" aria-label="Product capabilities">
-        <div className="metric">
-          <div className="metric__value">5</div>
-          <div className="metric__label">AI agents per candidate</div>
-        </div>
-        <div className="metric">
-          <div className="metric__value">PDF</div>
-          <div className="metric__label">Batch upload supported</div>
-        </div>
-        <div className="metric">
-          <div className="metric__value">1-click</div>
-          <div className="metric__label">Full candidate dossier</div>
-        </div>
-      </section>
-
+    <div style={{ background: '#100904', color: '#ffedd7', minHeight: '100vh' }}>
+      {/* ════════════════════════════════════════════
+          SECTION 1 — HERO (full viewport)
+          ════════════════════════════════════════════ */}
       <section
-        className="container"
         style={{
-          padding: 'var(--space-12) 0 var(--space-20)',
-          textAlign: 'center',
-          borderTop: '1px solid var(--border)',
+          position: 'relative',
+          width: '100%',
+          height: '100vh',
+          minHeight: '600px',
+          backgroundImage: `url(${heroImg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
-          Ready to run your first pipeline?
-        </h2>
-        <p className="text-secondary" style={{ marginBottom: 'var(--space-6)', maxWidth: 420, marginInline: 'auto' }}>
-          Upload resumes, add a job description, and get ranked results in minutes.
-        </p>
-        <Link to="/dashboard" className="btn btn--accent btn--lg">
-          Open HR dashboard
-        </Link>
+        {/* Dark overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(16, 9, 4, 0.72)',
+            zIndex: 1,
+          }}
+        />
+
+        {/* Top Navigation Bar */}
+        <nav
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 40px',
+            height: '56px',
+            borderBottom: '1px solid #40372e',
+            background: 'transparent',
+          }}
+        >
+          {/* Wordmark */}
+          <Link
+            to="/"
+            style={{
+              fontSize: '15px',
+              fontWeight: 500,
+              color: '#ffedd7',
+              textDecoration: 'none',
+              letterSpacing: '0.12em',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            ORYZO
+          </Link>
+
+          {/* Right nav items */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <a
+              href="#hero"
+              style={{
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#ffedd7',
+                textDecoration: 'none',
+                letterSpacing: '0.06em',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              INTRO
+            </a>
+            <a
+              href="#features"
+              style={{
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#ffedd7',
+                textDecoration: 'none',
+                letterSpacing: '0.06em',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              FEATURES
+            </a>
+            <a
+              href="#metrics"
+              style={{
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#ffedd7',
+                textDecoration: 'none',
+                letterSpacing: '0.06em',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              PRODUCT
+            </a>
+            <a
+              href="#cta"
+              style={{
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#ffedd7',
+                textDecoration: 'none',
+                letterSpacing: '0.06em',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              CONTACT
+            </a>
+
+            {/* Divider */}
+            <div
+              style={{
+                width: '1px',
+                height: '20px',
+                background: '#40372e',
+              }}
+            />
+
+            {/* Auth links */}
+            {user ? (
+              <Link
+                to="/dashboard"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 400,
+                  color: '#ffedd7',
+                  textDecoration: 'none',
+                  letterSpacing: '0.06em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    border: '1px solid #40372e',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    color: '#ffedd7',
+                  }}
+                >
+                  {(user as any).full_name?.[0]?.toUpperCase() || 'U'}
+                </span>
+                DASHBOARD
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 400,
+                    color: '#ffedd7',
+                    textDecoration: 'none',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#ffedd7',
+                    textDecoration: 'none',
+                    letterSpacing: '0.06em',
+                    padding: '6px 16px',
+                    border: '1px solid #ffedd7',
+                    borderRadius: '22.5px',
+                  }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
+
+        {/* Hero Content */}
+        <div
+          id="hero"
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '80px 40px 40px',
+          }}
+        >
+          {/* Top area: headline left, body copy center-right */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: '60px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {/* Giant headline */}
+            <div>
+              <h1
+                style={{
+                  fontSize: '51px',
+                  fontWeight: 500,
+                  lineHeight: 0.9,
+                  color: '#ffedd7',
+                  maxWidth: '12ch',
+                  margin: 0,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
+                Better Applicants.
+                <br />
+                Better Hiring.
+              </h1>
+
+              {/* CTA buttons below headline */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '16px',
+                  marginTop: '40px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Link
+                  to="/register"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#382416',
+                    color: '#ffedd7',
+                    borderRadius: '36px',
+                    padding: '14px 24px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    border: 'none',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Start Hiring
+                </Link>
+                <Link
+                  to="/candidate/login"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    color: '#ffedd7',
+                    borderRadius: '22.5px',
+                    padding: '14px 24px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    border: '1px solid #ffedd7',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  I'm a Candidate
+                </Link>
+              </div>
+            </div>
+
+            {/* Body copy center-right */}
+            <p
+              style={{
+                fontSize: '18px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                maxWidth: '420px',
+                margin: 0,
+                marginTop: '20px',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              The verified hiring ecosystem that maximizes recruiter trust and
+              hiring quality.
+            </p>
+          </div>
+
+          {/* Bottom area: scroll prompt */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexDirection: 'column',
+              gap: '8px',
+              opacity: scrollOpacity,
+              transition: 'opacity 0.3s ease',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 400,
+                color: '#ffedd7',
+                letterSpacing: '0.16em',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              SCROLL TO CONTINUE
+            </span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffedd7"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Right-edge vertical label */}
+        <div
+          style={{
+            position: 'fixed',
+            right: '16px',
+            top: '50%',
+            transform: 'rotate(90deg)',
+            transformOrigin: 'center center',
+            zIndex: 10,
+            fontSize: '10px',
+            fontWeight: 400,
+            color: '#6c5f51',
+            letterSpacing: '0.12em',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            pointerEvents: 'none',
+          }}
+        >
+          ORYZO-1 MODEL
+        </div>
       </section>
-    </AppLayout>
+
+      {/* ════════════════════════════════════════════
+          SECTION 2 — FEATURES (full viewport)
+          ════════════════════════════════════════════ */}
+      <section
+        id="features"
+        style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '100vh',
+          background: '#100904',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '80px 40px',
+        }}
+      >
+        {/* Cork render image centered */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flex: 1,
+            width: '100%',
+          }}
+        >
+          <img
+            src={corkImg}
+            alt="ORYZO 3D cork render"
+            style={{
+              width: '55vw',
+              maxWidth: '800px',
+              height: 'auto',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+
+        {/* Bottom content: headline left, body right */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            width: '100%',
+            maxWidth: '1200px',
+            gap: '60px',
+            flexWrap: 'wrap',
+            marginTop: '60px',
+          }}
+        >
+          <h2
+            style={{
+              fontSize: '41px',
+              fontWeight: 500,
+              lineHeight: 1.0,
+              color: '#ffedd7',
+              margin: 0,
+              maxWidth: '14ch',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            Verified Hiring
+            <br />
+            Ecosystem
+          </h2>
+
+          <div
+            style={{
+              maxWidth: '420px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '18px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                margin: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Batch resume screening — upload multiple PDFs and compare
+              candidates ranked by fit score against your job description.
+            </p>
+            <p
+              style={{
+                fontSize: '18px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                margin: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Structured hiring decisions — every candidate gets a Hire,
+              Interview, or Reject recommendation with reasoning.
+            </p>
+            <p
+              style={{
+                fontSize: '18px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                margin: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Trusted verification — closed ecosystem where every participant is
+              verified for recruiter confidence.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════
+          SECTION 3 — METRICS
+          ════════════════════════════════════════════ */}
+      <section
+        id="metrics"
+        style={{
+          width: '100%',
+          background: '#100904',
+          borderTop: '1px dashed #40372e',
+          borderBottom: '1px dashed #40372e',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '60px 40px',
+          }}
+        >
+          {/* Metric 1 */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '29px',
+                fontWeight: 500,
+                lineHeight: 1.09,
+                color: '#ffedd7',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              5
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              AI agents per candidate
+            </span>
+          </div>
+
+          {/* Dashed divider */}
+          <div
+            style={{
+              width: '1px',
+              borderLeft: '1px dashed #40372e',
+            }}
+          />
+
+          {/* Metric 2 */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '29px',
+                fontWeight: 500,
+                lineHeight: 1.09,
+                color: '#ffedd7',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              $49
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Per active job / month
+            </span>
+          </div>
+
+          {/* Dashed divider */}
+          <div
+            style={{
+              width: '1px',
+              borderLeft: '1px dashed #40372e',
+            }}
+          />
+
+          {/* Metric 3 */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '29px',
+                fontWeight: 500,
+                lineHeight: 1.09,
+                color: '#ffedd7',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              3
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 400,
+                lineHeight: 1.2,
+                color: '#ffedd7',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
+            >
+              Max resumes per candidate
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════
+          SECTION 4 — CTA FOOTER
+          ════════════════════════════════════════════ */}
+      <section
+        id="cta"
+        style={{
+          width: '100%',
+          background: '#100904',
+          padding: '100px 40px 60px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}
+      >
+        <h2
+          style={{
+            fontSize: '29px',
+            fontWeight: 500,
+            lineHeight: 1.09,
+            color: '#ffedd7',
+            margin: 0,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}
+        >
+          Ready to hire with confidence?
+        </h2>
+        <p
+          style={{
+            fontSize: '14px',
+            fontWeight: 400,
+            lineHeight: 1.33,
+            color: '#6c5f51',
+            margin: '16px 0 32px',
+            maxWidth: '420px',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+          }}
+        >
+          Upload resumes, add a job description, and get ranked results powered
+          by five AI agents working in parallel.
+        </p>
+        <Link
+          to="/dashboard"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            color: '#ffedd7',
+            borderRadius: '22.5px',
+            padding: '14px 28px',
+            fontSize: '14px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            border: '1px solid #dc5000',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            letterSpacing: '0.02em',
+          }}
+        >
+          Open Recruiter Dashboard
+        </Link>
+
+        {/* Dashed divider */}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '1200px',
+            borderTop: '1px dashed #40372e',
+            marginTop: '80px',
+            paddingTop: '24px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 400,
+              color: '#6c5f51',
+              letterSpacing: '0.08em',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            ORYZO AI · Verified Hiring
+          </span>
+        </div>
+      </section>
+    </div>
   )
 }

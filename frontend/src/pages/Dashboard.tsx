@@ -330,10 +330,10 @@ export default function Dashboard() {
         <header style={{ marginBottom: 'var(--space-8)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.03em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
                 Mission Control Dashboard
               </h1>
-              <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+              <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
                 {company ? `${company.name} Workspace` : 'Recruiter Cockpit'} — Instantly review critical syncs, pipeline blockers, and pre-boarding escalations.
               </p>
             </div>
@@ -341,7 +341,7 @@ export default function Dashboard() {
               type="button"
               className="btn btn--secondary btn--sm"
               onClick={loadData}
-              style={{ borderRadius: '10px', height: 'fit-content' }}
+              style={{ borderRadius: '22.5px', height: 'fit-content' }}
             >
               🔄 Refresh metrics
             </button>
@@ -373,9 +373,9 @@ export default function Dashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'var(--space-4)',
-                boxShadow: 'var(--shadow-sm)',
-                borderRadius: '16px',
-                border: '1px solid var(--border)'
+                boxShadow: 'none',
+                borderRadius: '12px',
+                border: '1px dashed var(--color-cork-shadow)'
               }}
             >
               <div
@@ -383,7 +383,7 @@ export default function Dashboard() {
                   width: '46px',
                   height: '46px',
                   borderRadius: '12px',
-                  background: 'var(--bg-subtle)',
+                  background: 'transparent',
                   display: 'grid',
                   placeItems: 'center',
                   fontSize: '22px'
@@ -392,10 +392,10 @@ export default function Dashboard() {
                 {kpi.icon}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
                   {kpi.label}
                 </span>
-                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)', marginTop: '2px', lineHeight: 1.1 }}>
                   {kpi.value}
                 </span>
               </div>
@@ -405,7 +405,7 @@ export default function Dashboard() {
 
         {/* 2. PREMIUM QUICK ACTION BAR */}
         <section style={{ marginBottom: 'var(--space-8)' }} aria-label="Quick action cockpit">
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 'var(--space-3)' }}>
+          <h2 style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 'var(--space-3)', lineHeight: 1.2 }}>
             Quick Actions Command Center
           </h2>
           <div
@@ -460,15 +460,15 @@ export default function Dashboard() {
                   flexDirection: 'column',
                   gap: 'var(--space-2)',
                   cursor: 'pointer',
-                  border: action.highlight ? '1.5px solid var(--danger)' : '1px solid var(--border)',
-                  background: action.highlight ? 'var(--danger-bg)' : 'var(--surface)',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'transform var(--duration-fast), box-shadow var(--duration-fast)',
+                  border: action.highlight ? '1px solid var(--color-burnt-sienna)' : '1px dashed var(--color-cork-shadow)',
+                  background: 'transparent',
+                  borderRadius: '12px',
+                  boxShadow: 'none',
+                  transition: 'transform var(--duration-fast)',
                 }}
               >
                 <div style={{ fontSize: '24px' }}>{action.icon}</div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 500, margin: 0, color: 'var(--text)' }}>
                   {action.title}
                 </h3>
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.3 }}>
@@ -489,7 +489,7 @@ export default function Dashboard() {
           aria-label="Mission Control Widgets"
         >
           {/* Widget 1: Today's Interviews Checklist */}
-          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Today's Scheduled Interviews</h3>
               <span className="badge badge--neutral">Today</span>
@@ -499,7 +499,7 @@ export default function Dashboard() {
                 { name: 'Sarah Connor', time: '10:00 AM', type: 'System Architecture', status: 'Completed', score: 88 },
                 { name: 'John Connor', time: '02:30 PM', type: 'Panel Review', status: 'Upcoming', score: null },
               ].map((iv, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{iv.name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{iv.type} · {iv.time}</div>
@@ -516,7 +516,7 @@ export default function Dashboard() {
           </div>
 
           {/* Widget 2: Active Escalations Warnings */}
-          <div className="card" style={{ borderRadius: '18px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--danger)' }}>🚨 Active Pre-boarding Escalations</h3>
               <span className="badge badge--reject">Urgent</span>
@@ -526,7 +526,7 @@ export default function Dashboard() {
                 { name: 'Sarah Connor', task: 'IT Equipment Selection', status: 'Level 2 Escalation (Supervisor Alerted)', overdue: '3 days overdue' },
                 { name: 'John Connor', task: 'Compliance Form Sign-off', status: 'Level 1 Overdue (Assignee Notified)', overdue: '1 day overdue' },
               ].map((esc, idx) => (
-                <div key={idx} style={{ padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderLeft: '3px solid var(--danger)', borderRadius: '0 12px 12px 0' }}>
+                <div key={idx} style={{ padding: 'var(--space-3)', background: 'transparent', borderLeft: '1px solid var(--color-burnt-sienna)', borderRadius: '0 12px 12px 0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{esc.name}</span>
                     <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 600 }}>{esc.overdue}</span>
@@ -543,7 +543,7 @@ export default function Dashboard() {
           </div>
 
           {/* Widget 3: Pending Offer & Hired Conversion Controls */}
-          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Awaiting HRIS Conversion</h3>
               <span className="badge badge--neutral">Hired</span>
@@ -551,7 +551,7 @@ export default function Dashboard() {
             <div className="card__body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               {hiresAwaitingConversion.length > 0 ? (
                 hiresAwaitingConversion.map((hire, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{hire.candidate?.full_name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>Role: {hire.job?.title}</div>
@@ -559,7 +559,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       className="btn btn--accent btn--sm"
-                      style={{ borderRadius: '8px' }}
+                      style={{ borderRadius: '36px' }}
                       onClick={() => {
                         setSelectedHiredAppId(hire.id)
                         setIsConvertModalOpen(true)
@@ -578,7 +578,7 @@ export default function Dashboard() {
           </div>
 
           {/* Widget 4: Quota & Usage Ledger Indicators */}
-          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header">
               <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Workspace Quota Utilization</h3>
             </div>
@@ -595,7 +595,7 @@ export default function Dashboard() {
                       <span style={{ color: 'var(--text-secondary)' }}>{quota.label}</span>
                       <span style={{ color: 'var(--text)' }}>{quota.used} / {quota.limit} ({percent.toFixed(0)}%)</span>
                     </div>
-                    <div style={{ height: '8px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ height: '8px', background: 'var(--color-cork-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
                       <div style={{ width: `${percent}%`, height: '100%', background: quota.color, borderRadius: '4px' }} />
                     </div>
                   </div>
@@ -605,7 +605,7 @@ export default function Dashboard() {
           </div>
 
           {/* Widget 5: Operational Activity Stream */}
-          <div className="card" style={{ borderRadius: '18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
             <div className="card__header">
               <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Operational Activity Log</h3>
             </div>
@@ -632,8 +632,8 @@ export default function Dashboard() {
         {/* 1. Modal Dialog: Create Job Opening */}
         {isJobModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsJobModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsJobModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Create New Job Opening</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsJobModalOpen(false)}>✕</button>
@@ -649,7 +649,7 @@ export default function Dashboard() {
                     placeholder="Senior Software Engineer"
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   />
                 </div>
                 <div className="form-group">
@@ -659,7 +659,7 @@ export default function Dashboard() {
                     className="form-select"
                     value={jobDept}
                     onChange={(e) => setJobDept(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   >
                     {['Engineering', 'Product', 'Design', 'Sales', 'Marketing', 'HR'].map((dept) => (
                       <option key={dept}>{dept}</option>
@@ -674,7 +674,7 @@ export default function Dashboard() {
                     className="form-input"
                     value={jobStart}
                     onChange={(e) => setJobStart(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   />
                 </div>
                 <div className="form-group">
@@ -686,7 +686,7 @@ export default function Dashboard() {
                     placeholder="Paste job details, responsibilities, and requirements..."
                     value={jobDesc}
                     onChange={(e) => setJobDesc(e.target.value)}
-                    style={{ minHeight: '120px', borderRadius: '10px' }}
+                    style={{ minHeight: '120px', borderRadius: '0px' }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
@@ -703,8 +703,8 @@ export default function Dashboard() {
         {/* 2. Modal Dialog: Add Candidate Resume Screener */}
         {isCandidateModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsCandidateModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsCandidateModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Candidate Screening Pipeline</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
@@ -715,7 +715,7 @@ export default function Dashboard() {
                 <div
                   className="dropzone"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ border: '1.5px dashed var(--border-strong)', borderRadius: '12px', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-subtle)' }}
+                  style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
                 >
                   <input
                     type="file"
@@ -738,7 +738,7 @@ export default function Dashboard() {
                 {pdfFiles.length > 0 && (
                   <ul className="file-list" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
                     {pdfFiles.map((file, idx) => (
-                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--bg-subtle)', borderRadius: '8px', fontSize: 'var(--text-xs)', marginBottom: '4px' }}>
+                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'transparent', borderRadius: '12px', fontSize: 'var(--text-xs)', marginBottom: '4px', border: '1px dashed var(--color-cork-shadow)' }}>
                         <span>{file.name}</span>
                         <button type="button" onClick={() => setPdfFiles(prev => prev.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)' }}>Remove</button>
                       </li>
@@ -752,7 +752,7 @@ export default function Dashboard() {
                     className="form-select"
                     value={selectedJobId}
                     onChange={(e) => setSelectedJobId(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   >
                     <option value="">Create new opening from parameters below</option>
                     {jobs.map((j) => (
@@ -762,28 +762,28 @@ export default function Dashboard() {
                 </div>
 
                 {!selectedJobId && (
-                  <fieldset style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <fieldset style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                     <legend style={{ fontSize: '11px', fontWeight: 700, padding: '0 8px', color: 'var(--text-tertiary)' }}>New Opening Parameters</legend>
                     <div className="form-group">
                       <label className="form-label">Job Title</label>
-                      <input type="text" className="form-input" placeholder="Role Title" value={screenerRole} onChange={(e) => setScreenerRole(e.target.value)} style={{ borderRadius: '10px' }} />
+                      <input type="text" className="form-input" placeholder="Role Title" value={screenerRole} onChange={(e) => setScreenerRole(e.target.value)} style={{ borderRadius: '0px' }} />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Department</label>
-                      <select className="form-select" value={screenerDept} onChange={(e) => setScreenerDept(e.target.value)} style={{ borderRadius: '10px' }}>
+                      <select className="form-select" value={screenerDept} onChange={(e) => setScreenerDept(e.target.value)} style={{ borderRadius: '0px' }}>
                         {['Engineering', 'Product', 'Design', 'Sales', 'Marketing'].map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Description</label>
-                      <textarea className="form-textarea" placeholder="Requirements..." value={screenerDesc} onChange={(e) => setScreenerDesc(e.target.value)} style={{ minHeight: '80px', borderRadius: '10px' }} />
+                      <textarea className="form-textarea" placeholder="Requirements..." value={screenerDesc} onChange={(e) => setScreenerDesc(e.target.value)} style={{ minHeight: '80px', borderRadius: '0px' }} />
                     </div>
                   </fieldset>
                 )}
 
                 {/* Live AI parsing outcomes */}
                 {isScreenerProcessing && (
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                     <div className="spinner" />
                     <div>
                       <strong style={{ fontSize: 'var(--text-sm)' }}>AI Analysis Running...</strong>
@@ -793,7 +793,7 @@ export default function Dashboard() {
                 )}
 
                 {screenerOutcomes.length > 0 && (
-                  <div style={{ padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '12px' }}>
+                  <div style={{ padding: 'var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                     <strong style={{ fontSize: 'var(--text-sm)', display: 'block', marginBottom: '8px' }}>AI Match Outcomes:</strong>
                     {screenerOutcomes.map((out, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: '4px' }}>
@@ -823,8 +823,8 @@ export default function Dashboard() {
         {/* 3. Modal Dialog: Schedule Interview */}
         {isInterviewModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsInterviewModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsInterviewModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Quick Schedule Interview</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsInterviewModalOpen(false)}>✕</button>
@@ -838,7 +838,7 @@ export default function Dashboard() {
                     className="form-select"
                     value={selectedAppId}
                     onChange={(e) => setSelectedAppId(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   >
                     <option value="">Choose active application...</option>
                     {applications.filter(a => a.status !== 'hired' && a.status !== 'rejected').map((app) => (
@@ -848,11 +848,11 @@ export default function Dashboard() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="sched-title">Interview Title</label>
-                  <input id="sched-title" required type="text" className="form-input" value={interviewTitle} onChange={(e) => setInterviewTitle(e.target.value)} style={{ borderRadius: '10px' }} />
+                  <input id="sched-title" required type="text" className="form-input" value={interviewTitle} onChange={(e) => setInterviewTitle(e.target.value)} style={{ borderRadius: '0px' }} />
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="sched-time">Date & Time</label>
-                  <input id="sched-time" required type="datetime-local" className="form-input" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} style={{ borderRadius: '10px' }} />
+                  <input id="sched-time" required type="datetime-local" className="form-input" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} style={{ borderRadius: '0px' }} />
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
                   <button type="button" className="btn btn--secondary" onClick={() => setIsInterviewModalOpen(false)}>Cancel</button>
@@ -868,8 +868,8 @@ export default function Dashboard() {
         {/* 4. Modal Dialog: Convert Candidate */}
         {isConvertModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsConvertModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsConvertModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Convert Candidate to Employee</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsConvertModalOpen(false)}>✕</button>
@@ -883,7 +883,7 @@ export default function Dashboard() {
                     className="form-select"
                     value={selectedHiredAppId}
                     onChange={(e) => setSelectedHiredAppId(e.target.value)}
-                    style={{ borderRadius: '10px' }}
+                    style={{ borderRadius: '0px' }}
                   >
                     <option value="">Choose hired application...</option>
                     {applications.filter(a => a.status === 'hired').map((app) => (
@@ -891,7 +891,7 @@ export default function Dashboard() {
                     ))}
                   </select>
                 </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', padding: 'var(--space-2)', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', padding: 'var(--space-2)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
                   💡 This action triggers the transactional backend pre-boarding engine, spawning the pre-boarding welcome portal, high-entropy JWT auth tokens, e-signatures templates, and HRIS adapters syncing metrics.
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
@@ -908,8 +908,8 @@ export default function Dashboard() {
         {/* 5. Modal Dialog: DLQ sync failure inspector */}
         {isSyncModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10, 10, 18, 0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setIsSyncModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(780px, 94vw)', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsSyncModalOpen(false)} />
+            <div className="card" style={{ zIndex: 260, width: 'min(780px, 94vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--danger)' }}>🔴 Dead Letter Queue (DLQ) Inspector</h3>
@@ -950,7 +950,7 @@ export default function Dashboard() {
                               <button
                                 type="button"
                                 className="btn btn--accent btn--sm"
-                                style={{ borderRadius: '6px' }}
+                                style={{ borderRadius: '36px' }}
                                 onClick={() => handleRetryDlq(rec.id)}
                                 disabled={retryingSyncId === rec.id}
                               >
@@ -968,7 +968,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border)', background: 'var(--bg-subtle)', textAlign: 'right' }}>
+              <div style={{ padding: 'var(--space-4)', borderTop: '1px dashed var(--color-cork-shadow)', background: 'transparent', textAlign: 'right' }}>
                 <button type="button" className="btn btn--secondary btn--sm" onClick={() => setIsSyncModalOpen(false)}>Close Inspector</button>
               </div>
             </div>

@@ -68,18 +68,18 @@ export default function CandidateDashboard() {
         <div 
           className="card" 
           style={{ 
-            background: 'linear-gradient(135deg, var(--bg-subtle) 0%, var(--surface) 100%)', 
+            background: 'transparent', 
             padding: 'var(--space-6)', 
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
+            border: '1px dashed var(--color-cork-shadow)',
+            borderRadius: '12px',
             marginBottom: 'var(--space-6)',
-            boxShadow: 'var(--shadow-sm)'
+            boxShadow: 'none'
           }}
         >
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>
+          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)', lineHeight: 1.09 }}>
             Welcome back, {user?.full_name || 'Candidate'}!
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: 'var(--space-1)', lineHeight: 1.33 }}>
             Track your job applications, manage resumes, and prepare for upcoming interviews.
           </p>
         </div>
@@ -166,14 +166,14 @@ export default function CandidateDashboard() {
                         alignItems: 'center', 
                         gap: 'var(--space-3)', 
                         padding: 'var(--space-3)', 
-                        background: 'var(--bg-subtle)', 
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)'
+                        background: 'transparent', 
+                        borderRadius: '12px',
+                        border: '1px dashed var(--color-cork-shadow)'
                       }}
                     >
                       <span style={{ fontSize: '16px' }}>⚠️</span>
-                      <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 550 }}>{task.name}</span>
-                      <Link to={task.route} className="btn btn--primary btn--sm" style={{ borderRadius: '8px' }}>
+                      <span style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{task.name}</span>
+                      <Link to={task.route} className="btn btn--primary btn--sm" style={{ borderRadius: '36px' }}>
                         Resolve
                       </Link>
                     </div>
@@ -197,7 +197,7 @@ export default function CandidateDashboard() {
                     width: '64px', 
                     height: '64px', 
                     borderRadius: '50%', 
-                    background: `conic-gradient(var(--accent) ${stats.profileCompletion}%, var(--border) 0)`,
+                    background: `conic-gradient(var(--color-warm-cream) ${stats.profileCompletion}%, var(--color-cork-shadow) 0)`,
                     display: 'grid',
                     placeItems: 'center'
                   }}
@@ -207,18 +207,19 @@ export default function CandidateDashboard() {
                       position: 'absolute', 
                       inset: '6px', 
                       borderRadius: '50%', 
-                      background: 'var(--surface)', 
+                      background: 'var(--bg)', 
                       display: 'grid', 
                       placeItems: 'center',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 750
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--text)'
                     }}
                   >
                     {stats.profileCompletion}%
                   </div>
                 </div>
                 <div>
-                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 750 }}>Almost there!</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>Almost there!</h4>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.3 }}>
                     Verify your phone number and load your credentials to unlock applicability matching.
                   </p>
@@ -252,7 +253,7 @@ export default function CandidateDashboard() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
                   <span>Identity Proof</span>
-                  <span className="badge badge--reject" style={{ background: 'var(--bg-subtle)', color: 'var(--text-tertiary)' }}>Unlinked</span>
+                  <span className="badge badge--neutral">Unlinked</span>
                 </div>
               </div>
             </div>

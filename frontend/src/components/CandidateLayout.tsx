@@ -140,8 +140,8 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
       <aside
         style={{
           width: '260px',
-          background: 'var(--surface)',
-          borderRight: '1px solid var(--border)',
+          background: 'var(--bg)',
+          borderRight: '1px solid var(--color-cork-shadow)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 150,
@@ -164,22 +164,22 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             style={{
               width: '32px',
               height: '32px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+              borderRadius: '0px',
+              background: '#382416',
               display: 'grid',
               placeItems: 'center',
-              color: 'var(--text-inverse)',
+              color: 'var(--text)',
               fontWeight: 800,
               fontSize: '14px',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+              boxShadow: 'none',
             }}
           >
-            SO
+            OR
           </div>
           <div>
-            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-0.02em' }}>SmartOnboard</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-0.02em' }}>ORYZO AI</span>
             <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '-2px' }}>
-              Candidate Hub
+              CANDIDATE
             </span>
           </div>
         </div>
@@ -205,11 +205,12 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 style={{
                   justifyContent: 'flex-start',
                   padding: '10px 14px',
-                  borderRadius: '10px',
+                  borderRadius: '0px',
                   fontSize: '13.5px',
                   fontWeight: 550,
-                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                  background: isActive ? 'var(--accent-subtle)' : 'transparent',
+                  color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
+                  background: 'transparent',
+                  borderLeft: isActive ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
                 }}
               >
                 <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
@@ -227,7 +228,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             type="button"
             className="btn btn--secondary btn--block"
             onClick={handleLogout}
-            style={{ padding: '10px 14px', borderRadius: '10px', fontSize: '13px' }}
+            style={{ padding: '10px 14px', borderRadius: '22.5px', fontSize: '13px' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -246,8 +247,8 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(2px)',
+            background: 'rgba(16, 9, 4, 0.7)',
+            backdropFilter: 'none',
             zIndex: 199,
           }}
         />
@@ -255,8 +256,8 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
       <aside
         style={{
           width: '260px',
-          background: 'var(--surface)',
-          borderRight: '1px solid var(--border)',
+          background: 'var(--bg)',
+          borderRight: '1px solid var(--color-cork-shadow)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 200,
@@ -283,20 +284,20 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                borderRadius: '0px',
+                background: '#382416',
                 display: 'grid',
                 placeItems: 'center',
-                color: 'var(--text-inverse)',
+                color: 'var(--text)',
                 fontWeight: 800,
                 fontSize: '14px',
               }}
             >
-              SO
+              OR
             </div>
             <div>
-              <span style={{ fontSize: '14px', fontWeight: 700 }}>SmartOnboard</span>
-              <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: 'var(--text-secondary)' }}>Candidate</span>
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>ORYZO AI</span>
+              <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: 'var(--text-secondary)' }}>CANDIDATE</span>
             </div>
           </div>
           <button
@@ -329,11 +330,12 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 style={{
                   justifyContent: 'flex-start',
                   padding: '10px 14px',
-                  borderRadius: '10px',
+                  borderRadius: '0px',
                   fontSize: '13.5px',
                   fontWeight: 550,
-                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                  background: isActive ? 'var(--accent-subtle)' : 'transparent',
+                  color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
+                  background: 'transparent',
+                  borderLeft: isActive ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
                 }}
               >
                 <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
@@ -365,9 +367,9 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             top: 0,
             zIndex: 100,
             height: 'var(--header-h)',
-            background: 'var(--surface)',
-            borderBottom: '1px solid var(--border)',
-            backdropFilter: 'blur(12px)',
+            background: 'var(--bg)',
+            borderBottom: '1px solid var(--color-cork-shadow)',
+            backdropFilter: 'none',
             transition: 'background var(--duration-normal), border-color var(--duration-normal)',
           }}
         >
@@ -462,13 +464,13 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                      background: '#382416',
                       display: 'grid',
                       placeItems: 'center',
-                      color: 'var(--text-inverse)',
+                      color: 'var(--text)',
                       fontWeight: 700,
                       fontSize: '13px',
-                      boxShadow: 'var(--shadow-sm)',
+                      boxShadow: 'none',
                     }}
                   >
                     {userInitials}
@@ -488,11 +490,11 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                         right: 0,
                         top: '46px',
                         width: '240px',
-                        boxShadow: 'var(--shadow-lg)',
+                        boxShadow: 'none',
                         zIndex: 181,
-                        background: 'var(--surface)',
+                        background: 'var(--bg)',
                         borderRadius: '12px',
-                        border: '1px solid var(--border)',
+                        border: '1px dashed var(--color-cork-shadow)',
                         padding: 'var(--space-2)',
                       }}
                     >
@@ -518,7 +520,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                           justifyContent: 'flex-start',
                           padding: '8px 12px',
                           fontSize: '13px',
-                          borderRadius: '8px',
+                          borderRadius: '0px',
                           color: 'var(--text)',
                         }}
                       >
@@ -533,7 +535,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                           justifyContent: 'flex-start',
                           padding: '8px 12px',
                           fontSize: '13px',
-                          borderRadius: '8px',
+                          borderRadius: '0px',
                           color: 'var(--danger)',
                         }}
                       >
