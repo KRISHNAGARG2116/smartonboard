@@ -180,12 +180,14 @@ def process_resume_async(self, file_path: str, company_id: str, job_id: str, eva
                     job_id=uuid.UUID(job_id),
                     candidate_id=candidate.id,
                     status=ApplicationStatus.SCREENING,
-                    source="AI Application"
+                    source="AI Application",
+                    match_score=float(score)
                 )
                 db.add(application)
                 db.flush()
             else:
                 application.status = ApplicationStatus.SCREENING
+                application.match_score = float(score)
                 db.flush()
 
             # 8. Extract Plain Text & Create Idempotent Chunks Embeddings

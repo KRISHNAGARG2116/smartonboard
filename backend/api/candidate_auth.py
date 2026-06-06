@@ -14,7 +14,8 @@ from models.enums import UserRole
 from models.candidate_profile import CandidateProfile
 from schemas.auth import (
     AuthResponse, UserResponse, CandidateRegisterRequest, CandidateLoginRequest,
-    CandidateOTPRequest, CandidateOTPVerifyRequest
+    CandidateOTPRequest, CandidateOTPVerifyRequest, CandidatePhoneOTPRequest,
+    CandidatePhoneOTPVerifyRequest, CandidateProfileUpdateRequest
 )
 from core.limiter import limiter
 
@@ -356,3 +357,211 @@ def candidate_me(
         }
 
     return response_data
+
+
+@router.post("/candidate/phone/send-otp")
+@limiter.limit("3/minute")
+def candidate_send_phone_otp(
+    request: Request,
+    body: CandidatePhoneOTPRequest,
+    current_candidate: CurrentCandidate,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Send a phone verification OTP to the logged-in candidate."""
+    import redis
+    import random
+    import os
+    from core.config import get_settings
+
+    phone = body.phone_number.strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+
+    # Rate limit: 1 request per minute per phone number
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        rate_key = f"otp:rate:{phone}"
+        if r.get(rate_key):
+            raise HTTPException(status_code=429, detail="Please wait 1 minute before requesting another OTP.")
+
+        # Generate 6-digit code
+        code = f"{random.randint(100000, 999999)}"
+
+        # Store in Redis: key = otp:code:{phone}, value = code:attempts, expire = 5 minutes
+        r.setex(f"otp:code:{phone}", 300, f"{code}:0")
+
+        # Set rate limit key for 60 seconds
+        r.setex(rate_key, 60, "1")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare OTP storage: {exc}")
+
+    # Send SMS (using Twilio client if configured, otherwise stubbed)
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    from_phone = os.getenv("TWILIO_FROM_PHONE")
+
+    if account_sid and auth_token and from_phone:
+        try:
+            from twilio.rest import Client
+            client = Client(account_sid, auth_token)
+            client.messages.create(
+                body=f"Your SmartOnboard verification code is: {code}. It expires in 5 minutes.",
+                from_=from_phone,
+                to=phone
+            )
+            print(f"OTP successfully sent via Twilio to {phone}")
+        except Exception as err:
+            print(f"Twilio API error: {err}. Falling back to logging.")
+            print(f"MOCK SMS OTP for {phone}: {code}")
+    else:
+        print(f"MOCK SMS OTP for {phone}: {code}")
+
+    # Log audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.candidate_otp_sent",
+        actor_type="CANDIDATE",
+        actor_id=current_candidate.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": phone}
+    )
+    db.commit()
+
+    return {"success": True, "message": "OTP code sent successfully"}
+
+
+@router.post("/candidate/phone/verify-otp")
+@limiter.limit("5/minute")
+def candidate_verify_phone_otp(
+    request: Request,
+    body: CandidatePhoneOTPVerifyRequest,
+    current_candidate: CurrentCandidate,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Verify a candidate's phone verification OTP."""
+    import redis
+    from core.config import get_settings
+
+    phone = body.phone_number.strip()
+    code = body.code.strip()
+
+    if not phone or not code:
+        raise HTTPException(status_code=400, detail="Phone number and code are required")
+
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        otp_key = f"otp:code:{phone}"
+        stored = r.get(otp_key)
+
+        if not stored:
+            raise HTTPException(status_code=400, detail="OTP expired or not requested")
+
+        stored_code, attempts_str = stored.decode("utf-8").split(":")
+        attempts = int(attempts_str)
+
+        if attempts >= 3:
+            r.delete(otp_key)
+            raise HTTPException(status_code=403, detail="Too many failed attempts. Please request a new OTP.")
+
+        if stored_code != code:
+            attempts += 1
+            if attempts >= 3:
+                r.delete(otp_key)
+                raise HTTPException(status_code=403, detail="Too many failed attempts. Please request a new OTP.")
+            r.setex(otp_key, 300, f"{stored_code}:{attempts}")
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+
+        r.delete(otp_key)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Verification service exception: {exc}")
+
+    # Update CandidateProfile
+    with tenant_context(auth_mode="true"):
+        profile = db.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == current_candidate.id)
+        )
+        if profile:
+            profile.phone_number = phone
+            profile.phone_verified = True
+            db.add(profile)
+            db.commit()
+
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.candidate_phone_verified",
+        actor_type="CANDIDATE",
+        actor_id=current_candidate.id,
+        resource_type="candidate_profiles",
+        resource_id=str(profile.id) if profile else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": phone},
+    )
+    db.commit()
+
+    return {"success": True, "message": "Phone number verified successfully"}
+
+
+@router.put("/candidate/profile")
+@limiter.limit("10/minute")
+def candidate_update_profile(
+    request: Request,
+    body: CandidateProfileUpdateRequest,
+    current_candidate: CurrentCandidate,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Update the candidate profile attributes."""
+    with tenant_context(auth_mode="true"):
+        profile = db.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == current_candidate.id)
+        )
+        if not profile:
+            raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+        # Update user table name
+        user = db.scalar(select(User).where(User.id == current_candidate.id))
+        if user:
+            user.full_name = body.full_name
+            db.add(user)
+
+        profile.full_name = body.full_name
+        profile.location = body.location
+
+        if body.phone_number:
+            cleaned_phone = body.phone_number.strip()
+            if profile.phone_number != cleaned_phone:
+                profile.phone_number = cleaned_phone
+                profile.phone_verified = False # Reset verification on phone change
+
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+
+    # Build me response
+    return {
+        "user": {
+            "id": str(current_candidate.id),
+            "email": current_candidate.email,
+            "full_name": body.full_name,
+            "role": current_candidate.role.value,
+        },
+        "profile": {
+            "id": str(profile.id),
+            "full_name": profile.full_name,
+            "phone_number": profile.phone_number,
+            "phone_verified": profile.phone_verified,
+            "email_verified": profile.email_verified,
+            "location": profile.location,
+            "profile_status": profile.profile_status,
+        }
+    }
+

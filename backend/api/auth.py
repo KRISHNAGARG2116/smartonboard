@@ -789,7 +789,10 @@ from api.candidate_auth import (
     login_candidate,
     candidate_send_email_otp,
     candidate_verify_email_otp,
-    candidate_me
+    candidate_me,
+    candidate_send_phone_otp,
+    candidate_verify_phone_otp,
+    candidate_update_profile
 )
 
 router.post("/register/candidate", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)(register_candidate)
@@ -797,4 +800,8 @@ router.post("/login/candidate", response_model=AuthResponse)(login_candidate)
 router.post("/candidate/email/send-otp")(candidate_send_email_otp)
 router.post("/candidate/email/verify-otp")(candidate_verify_email_otp)
 router.get("/candidate/me")(candidate_me)
+router.post("/candidate/phone/send-otp")(candidate_send_phone_otp)
+router.post("/candidate/phone/verify-otp")(candidate_verify_phone_otp)
+router.put("/candidate/profile")(candidate_update_profile)
+
 

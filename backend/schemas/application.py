@@ -42,6 +42,7 @@ class ApplicationResponse(BaseModel):
     source: str
     created_at: datetime
     updated_at: datetime
+    match_score: float | None = None
     candidate: CandidateBrief | None = None
     job: JobBrief | None = None
 

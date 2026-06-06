@@ -70,7 +70,7 @@ def test_candidate_registration_and_login_flow(api_client, db_session):
 
     # 4. Enforce role: candidate cannot access recruiter me endpoint
     resp = api_client.get("/api/v1/auth/me", headers=headers)
-    assert resp.status_code == 401  # get_current_user expects company_id in token
+    assert resp.status_code == 403  # get_current_user expects company_id in token
 
 
 def test_recruiter_cannot_access_candidate_me(api_client, db_session):

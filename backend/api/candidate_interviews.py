@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from api.deps import CurrentCandidate, get_db
+from api.deps import CurrentCandidate, get_db, VerifiedCandidate
 from db.session import tenant_context
 from models import Interview, InterviewSlot, User, CalendarCredentials, Application, Candidate
 from core.vault import SecretVaultService
@@ -185,7 +185,7 @@ def reschedule_candidate_booking(
     body: RescheduleRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-    current_candidate: CurrentCandidate
+    current_candidate: VerifiedCandidate
 ):
     """Authenticate and reschedule an active booking to a new time block."""
     with tenant_context(auth_mode="true"):

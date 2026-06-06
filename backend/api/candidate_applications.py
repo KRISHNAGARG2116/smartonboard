@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from api.deps import CurrentCandidate, get_db
+from api.deps import CurrentCandidate, get_db, VerifiedCandidate
 from db.session import tenant_context
 from models import Job, Candidate, Application, CandidateProfile, ApplicationSnapshot
 from models.enums import JobStatus, ApplicationStatus
@@ -21,7 +21,7 @@ class ApplyRequest(BaseModel):
 
 @router.post("/apply")
 def apply_to_job(
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     body: ApplyRequest,
     db: Annotated[Session, Depends(get_db)]
 ):

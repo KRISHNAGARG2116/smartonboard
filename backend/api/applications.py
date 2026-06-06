@@ -56,6 +56,7 @@ def _application_response(application: Application) -> ApplicationResponse:
         source=application.source,
         created_at=application.created_at,
         updated_at=application.updated_at,
+        match_score=application.match_score,
         candidate=CandidateBrief.model_validate(application.candidate) if application.candidate else None,
         job=JobBrief.model_validate(application.job) if application.job else None,
     )

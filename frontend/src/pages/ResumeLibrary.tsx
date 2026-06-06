@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import CandidateLayout from '../components/CandidateLayout'
 import {
   fetchCandidateResumes,
   uploadCandidateResume,
   toggleCandidateResumeActive,
   deleteCandidateResume,
+  fetchCandidateProfile,
   type CandidateResume
 } from '../api'
 
@@ -12,6 +14,7 @@ export default function ResumeLibrary() {
   const [resumes, setResumes] = useState<CandidateResume[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [profile, setProfile] = useState<{ email_verified: boolean; phone_verified: boolean } | null>(null)
   
   // Upload and drag-and-drop state
   const [uploading, setUploading] = useState(false)
@@ -43,6 +46,13 @@ export default function ResumeLibrary() {
 
   useEffect(() => {
     loadResumes()
+    fetchCandidateProfile()
+      .then(data => {
+        if (data && data.profile) {
+          setProfile(data.profile)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Poll for resumes updates while a scan is in progress
@@ -88,6 +98,12 @@ export default function ResumeLibrary() {
   }
 
   const processFile = async (file: File) => {
+    // Check verification status
+    if (profile && (!profile.email_verified || !profile.phone_verified)) {
+      setUploadError("Verification Required: You must verify your email and phone number to upload resumes. Go to Profile Settings to complete verification.")
+      return
+    }
+
     // 1. Client-side size validation (5MB)
     const MAX_SIZE = 5 * 1024 * 1024
     if (file.size > MAX_SIZE) {
@@ -166,7 +182,7 @@ export default function ResumeLibrary() {
             </p>
           </div>
 
-          {/* Limit Warnings or Upload Drag and Drop Zone */}
+          {/* Limit Warnings, Verification Check, or Upload Drag and Drop Zone */}
           {resumes.length >= 3 ? (
             <div 
               className="card card__body" 
@@ -187,6 +203,42 @@ export default function ResumeLibrary() {
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
                   You have reached the maximum limit of 3 resumes. Please delete one of your existing resumes if you wish to upload a new one.
                 </p>
+              </div>
+            </div>
+          ) : profile && (!profile.email_verified || !profile.phone_verified) ? (
+            <div 
+              className="card card__body" 
+              style={{ 
+                border: '2px dashed var(--border)', 
+                background: 'var(--bg-subtle)', 
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-8) var(--space-6)',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)' }}>
+                <div 
+                  style={{ 
+                    width: '56px', 
+                    height: '56px', 
+                    borderRadius: '14px', 
+                    background: 'var(--warning-bg)', 
+                    color: 'var(--warning)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: '24px'
+                  }}
+                >
+                  🔒
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: '6px' }}>
+                    Upload Restricted
+                  </h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+                    Please verify your email and phone number in <Link to="/candidate/profile" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Profile Settings</Link> to unlock uploads.
+                  </p>
+                </div>
               </div>
             </div>
           ) : (

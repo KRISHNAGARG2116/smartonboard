@@ -237,6 +237,23 @@ export interface CandidateMeResponse {
 
 export const fetchCandidateMe = () => api.get<CandidateMeResponse>('/v1/auth/candidate/me').then(r => r.data.user)
 
+export const fetchCandidateProfile = () => api.get<CandidateMeResponse>('/v1/auth/candidate/me').then(r => r.data)
+
+export const updateCandidateProfile = (data: { full_name: string; phone_number?: string; location?: string }) =>
+  api.put<CandidateMeResponse>('/v1/auth/candidate/profile', data).then(r => r.data)
+
+export const sendCandidateEmailOtp = (email: string) =>
+  api.post('/v1/auth/candidate/email/send-otp', { email }).then(r => r.data)
+
+export const verifyCandidateEmailOtp = (email: string, code: string) =>
+  api.post('/v1/auth/candidate/email/verify-otp', { email, code }).then(r => r.data)
+
+export const sendCandidatePhoneOtp = (phoneNumber: string) =>
+  api.post('/v1/auth/candidate/phone/send-otp', { phone_number: phoneNumber }).then(r => r.data)
+
+export const verifyCandidatePhoneOtp = (phoneNumber: string, code: string) =>
+  api.post('/v1/auth/candidate/phone/verify-otp', { phone_number: phoneNumber, code }).then(r => r.data)
+
 export interface CandidateResume {
   id: string
   filename: string

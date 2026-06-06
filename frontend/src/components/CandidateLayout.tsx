@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { fetchCandidateProfile } from '../api'
 
 interface CandidateLayoutProps {
   children: ReactNode
@@ -12,6 +13,18 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
+
+  const [profile, setProfile] = useState<{ email_verified: boolean; phone_verified: boolean } | null>(null)
+
+  useEffect(() => {
+    fetchCandidateProfile()
+      .then(data => {
+        if (data && data.profile) {
+          setProfile(data.profile)
+        }
+      })
+      .catch(() => {})
+  }, [pathname])
 
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -536,6 +549,11 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
 
         {/* Scrollable child viewport content */}
         <main style={{ flex: 1, overflowY: 'auto' }}>
+          {profile && (!profile.email_verified || !profile.phone_verified) && (
+            <div className="banner banner--warning" style={{ margin: 'var(--space-4) var(--space-6) 0', borderRadius: '8px', padding: '12px 16px', fontSize: 'var(--text-sm)', border: '1px solid var(--warning)', background: 'var(--warning-bg)', color: 'var(--text)' }}>
+              ⚠️ <strong>Verification Required:</strong> You must verify your email and phone number to upload resumes, apply to jobs, or schedule interviews. <Link to="/candidate/profile" style={{ textDecoration: 'underline', fontWeight: 600 }}>Go to Profile Settings</Link> to complete verification.
+            </div>
+          )}
           {children}
         </main>
       </div>

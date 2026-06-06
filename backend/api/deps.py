@@ -25,6 +25,12 @@ def get_current_user(
 
     try:
         payload = decode_access_token(credentials.credentials)
+        role = payload.get("role")
+        if role == UserRole.CANDIDATE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Candidates are not permitted to access recruiter resources",
+            )
         user_id = payload.get("sub")
         company_id = payload.get("company_id")
         jti = payload.get("jti")
@@ -234,5 +240,25 @@ RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
 RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]
 PortalSession = Annotated[dict, Depends(get_portal_session)]
 PortalDb = Annotated[Session, Depends(get_portal_db)]
+
+
+def get_verified_candidate(
+    current_candidate: Annotated[User, Depends(get_current_candidate)],
+    db: Annotated[Session, Depends(get_db)]
+) -> User:
+    from models.candidate_profile import CandidateProfile
+    with tenant_context(auth_mode="true"):
+        profile = db.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == current_candidate.id)
+        )
+    if not profile or not profile.email_verified or not profile.phone_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email and phone number must be verified before performing this action."
+        )
+    return current_candidate
+
+VerifiedCandidate = Annotated[User, Depends(get_verified_candidate)]
+
 
 

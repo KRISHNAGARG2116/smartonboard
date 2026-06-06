@@ -34,6 +34,7 @@ class Application(Base):
     )
     source: Mapped[str] = mapped_column(String(50), default="pipeline", nullable=False)
     committee_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    match_score: Mapped[float | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

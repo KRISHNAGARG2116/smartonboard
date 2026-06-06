@@ -78,3 +78,19 @@ class SessionResponse(BaseModel):
 class RevokeSessionRequest(BaseModel):
     session_id: uuid.UUID
 
+
+class CandidatePhoneOTPRequest(BaseModel):
+    phone_number: str = Field(min_length=5, max_length=50)
+
+
+class CandidatePhoneOTPVerifyRequest(BaseModel):
+    phone_number: str = Field(min_length=5, max_length=50)
+    code: str = Field(min_length=6, max_length=6)
+
+
+class CandidateProfileUpdateRequest(BaseModel):
+    full_name: str = Field(min_length=1, max_length=255)
+    phone_number: Optional[str] = Field(default=None, max_length=50)
+    location: Optional[str] = Field(default=None, max_length=255)
+
+

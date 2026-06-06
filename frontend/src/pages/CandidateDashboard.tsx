@@ -2,38 +2,63 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import CandidateLayout from '../components/CandidateLayout'
-import { fetchCandidateResumes } from '../api'
+import { 
+  fetchCandidateResumes, 
+  fetchCandidateProfile, 
+  fetchMyApplications, 
+  fetchMyInterviews 
+} from '../api'
 
 export default function CandidateDashboard() {
   const { user } = useAuth()
   const [resumesCount, setResumesCount] = useState(0)
+  const [applicationsCount, setApplicationsCount] = useState(0)
+  const [interviewsCount, setInterviewsCount] = useState(0)
+  const [profile, setProfile] = useState<{ email_verified: boolean; phone_verified: boolean } | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchCandidateResumes()
-      .then(resumes => setResumesCount(resumes.length))
-      .catch(() => {})
+    Promise.all([
+      fetchCandidateResumes().then(resumes => setResumesCount(resumes.length)).catch(() => {}),
+      fetchMyApplications().then(apps => setApplicationsCount(apps.length)).catch(() => {}),
+      fetchMyInterviews().then(ivs => setInterviewsCount(ivs.filter(i => !i.is_cancelled).length)).catch(() => {}),
+      fetchCandidateProfile().then(data => {
+        if (data && data.profile) {
+          setProfile(data.profile)
+        }
+      }).catch(() => {})
+    ]).finally(() => {
+      setLoading(false)
+    })
   }, [])
 
-  // Placeholder data for foundation phase
   const stats = {
     resumesUploaded: resumesCount,
     maxResumes: 3,
-    activeApplications: 2,
-    scheduledInterviews: 1,
-    emailVerified: true,
-    phoneVerified: false,
-    profileCompletion: resumesCount > 0 ? 80 : 50,
+    activeApplications: applicationsCount,
+    scheduledInterviews: interviewsCount,
+    emailVerified: profile?.email_verified ?? false,
+    phoneVerified: profile?.phone_verified ?? false,
+    profileCompletion: (resumesCount > 0 ? 40 : 0) + 
+                       ((profile?.email_verified ?? false) ? 30 : 0) + 
+                       ((profile?.phone_verified ?? false) ? 30 : 0),
   }
 
   const pendingTasks = [
-    { name: 'Verify your phone number via SMS OTP', route: '/candidate/profile', type: 'verification' },
+    ...(!stats.emailVerified 
+      ? [{ name: 'Verify your email address via OTP', route: '/candidate/profile', type: 'verification' }]
+      : []
+    ),
+    ...(!stats.phoneVerified 
+      ? [{ name: 'Verify your phone number via SMS OTP', route: '/candidate/profile', type: 'verification' }]
+      : []
+    ),
     ...(resumesCount === 0 
       ? [{ name: 'Upload your primary resume to start matching', route: '/candidate/resumes', type: 'resume' }]
       : resumesCount < 3 
         ? [{ name: 'Upload a secondary backup resume', route: '/candidate/resumes', type: 'resume' }]
         : []
-    ),
-    { name: 'Complete your profile information details', route: '/candidate/profile', type: 'profile' }
+    )
   ]
 
   return (
@@ -117,29 +142,43 @@ export default function CandidateDashboard() {
             <div className="card">
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Verification Checklist</h3>
-                <span className="badge badge--neutral" style={{ fontSize: '10px' }}>Action Required</span>
+                {pendingTasks.length > 0 ? (
+                  <span className="badge badge--neutral" style={{ fontSize: '10px' }}>Action Required</span>
+                ) : (
+                  <span className="badge badge--hire" style={{ fontSize: '10px' }}>Completed</span>
+                )}
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {pendingTasks.map((task, idx) => (
-                  <div 
-                    key={idx} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 'var(--space-3)', 
-                      padding: 'var(--space-3)', 
-                      background: 'var(--bg-subtle)', 
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)'
-                    }}
-                  >
-                    <span style={{ fontSize: '16px' }}>⚠️</span>
-                    <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 550 }}>{task.name}</span>
-                    <Link to={task.route} className="btn btn--primary btn--sm" style={{ borderRadius: '8px' }}>
-                      Resolve
-                    </Link>
+                {loading ? (
+                  <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    Loading checklist...
                   </div>
-                ))}
+                ) : pendingTasks.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 'var(--space-4)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+                    ✅ All verification and profile setup steps are complete!
+                  </div>
+                ) : (
+                  pendingTasks.map((task, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 'var(--space-3)', 
+                        padding: 'var(--space-3)', 
+                        background: 'var(--bg-subtle)', 
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>⚠️</span>
+                      <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 550 }}>{task.name}</span>
+                      <Link to={task.route} className="btn btn--primary btn--sm" style={{ borderRadius: '8px' }}>
+                        Resolve
+                      </Link>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -197,11 +236,19 @@ export default function CandidateDashboard() {
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
                   <span>Email Verification</span>
-                  <span className="badge badge--hire">Verified</span>
+                  {stats.emailVerified ? (
+                    <span className="badge badge--hire">Verified</span>
+                  ) : (
+                    <span className="badge badge--reject">Unverified</span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
                   <span>Phone Verification</span>
-                  <span className="badge badge--interview">Pending OTP</span>
+                  {stats.phoneVerified ? (
+                    <span className="badge badge--hire">Verified</span>
+                  ) : (
+                    <span className="badge badge--interview">Pending OTP</span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
                   <span>Identity Proof</span>

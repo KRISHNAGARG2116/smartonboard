@@ -5,6 +5,7 @@ import {
   fetchJobFeed,
   applyToJob,
   fetchCandidateResumes,
+  fetchCandidateProfile,
   type JobFeedItem,
   type CandidateResume
 } from '../api'
@@ -16,6 +17,7 @@ export default function CandidateJobFeed() {
   const limit = 10
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [profile, setProfile] = useState<{ email_verified: boolean; phone_verified: boolean } | null>(null)
 
   // Drawer / Selection state
   const [selectedJob, setSelectedJob] = useState<JobFeedItem | null>(null)
@@ -50,6 +52,16 @@ export default function CandidateJobFeed() {
     loadJobFeed()
   }, [page])
 
+  useEffect(() => {
+    fetchCandidateProfile()
+      .then((data) => {
+        if (data && data.profile) {
+          setProfile(data.profile)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Load resumes when drawer opens
   useEffect(() => {
     if (selectedJob) {
@@ -74,6 +86,10 @@ export default function CandidateJobFeed() {
 
   const handleApply = async () => {
     if (!selectedJob || !selectedResumeId) return
+    if (profile && (!profile.email_verified || !profile.phone_verified)) {
+      setApplyError("Verification Required: You must verify your email and phone number to apply to jobs.")
+      return
+    }
     setApplying(true)
     setApplyError(null)
     try {
@@ -645,23 +661,44 @@ export default function CandidateJobFeed() {
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        className="btn btn--primary"
-                        onClick={handleApply}
-                        disabled={applying}
-                        style={{ 
-                          width: '100%', 
-                          padding: '12px', 
-                          borderRadius: '10px', 
-                          fontWeight: 700,
-                          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                          color: 'var(--text-inverse)',
-                          boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
-                        }}
-                      >
-                        {applying ? 'Submitting Application...' : 'Submit Application'}
-                      </button>
+                      {profile && (!profile.email_verified || !profile.phone_verified) ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+                          <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--warning)' }}>
+                            <strong>Verification Required:</strong> You must verify your email and phone number in <Link to="/candidate/profile" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Profile Settings</Link> to apply.
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn--secondary"
+                            disabled={true}
+                            style={{ 
+                              width: '100%', 
+                              padding: '12px', 
+                              borderRadius: '10px', 
+                              fontWeight: 700,
+                            }}
+                          >
+                            Application Locked (Verify Settings)
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--primary"
+                          onClick={handleApply}
+                          disabled={applying}
+                          style={{ 
+                            width: '100%', 
+                            padding: '12px', 
+                            borderRadius: '10px', 
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                            color: 'var(--text-inverse)',
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                          }}
+                        >
+                          {applying ? 'Submitting Application...' : 'Submit Application'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </>

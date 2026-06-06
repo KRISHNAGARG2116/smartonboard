@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFi
 from sqlalchemy import select, func, update
 from sqlalchemy.orm import Session
 
-from api.deps import CurrentCandidate, get_db
+from api.deps import CurrentCandidate, get_db, VerifiedCandidate
 from db.session import tenant_context
 from models.candidate_resume import CandidateResume
 from models.candidate_profile import CandidateProfile
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/auth", tags=["Candidate Resumes"])
 @router.post("/candidate/resumes/upload", status_code=status.HTTP_202_ACCEPTED)
 def candidate_upload_resume(
     request: Request,
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)],
     file: UploadFile = File(...),
 ):

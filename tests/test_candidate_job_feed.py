@@ -83,6 +83,8 @@ def test_job_feed_and_apply_flow(api_client, db_session):
         )
         assert profile is not None
         profile.skills = ["Python", "Docker"]
+        profile.email_verified = True
+        profile.phone_verified = True
         db_session.add(profile)
         
         # Add a test resume

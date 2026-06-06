@@ -1,30 +1,168 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import CandidateLayout from '../components/CandidateLayout'
+import {
+  fetchCandidateProfile,
+  updateCandidateProfile,
+  sendCandidateEmailOtp,
+  verifyCandidateEmailOtp,
+  sendCandidatePhoneOtp,
+  verifyCandidatePhoneOtp
+} from '../api'
 
 export default function CandidateProfilePage() {
   const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<{
+    id: string
+    full_name: string
+    phone_number: string | null
+    phone_verified: boolean
+    email_verified: boolean
+    location: string | null
+  } | null>(null)
 
-  // Local state initialized with user info
-  const [fullName, setFullName] = useState(user?.full_name || '')
+  const [fullName, setFullName] = useState('')
   const [email] = useState(user?.email || '')
   const [phone, setPhone] = useState('')
   const [location, setLocation] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const profileCompletion = 65
+  // OTP Verification States
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailCode, setEmailCode] = useState('')
+  const [emailVerifying, setEmailVerifying] = useState(false)
+  const [emailVerifyError, setEmailVerifyError] = useState<string | null>(null)
 
-  const handleSave = (e: React.FormEvent) => {
+  const [showPhoneModal, setShowPhoneModal] = useState(false)
+  const [phoneCode, setPhoneCode] = useState('')
+  const [phoneVerifying, setPhoneVerifying] = useState(false)
+  const [phoneVerifyError, setPhoneVerifyError] = useState<string | null>(null)
+
+  const loadProfile = async () => {
+    try {
+      const data = await fetchCandidateProfile()
+      if (data && data.profile) {
+        setProfile(data.profile)
+        setFullName(data.profile.full_name || user?.full_name || '')
+        setPhone(data.profile.phone_number || '')
+        setLocation(data.profile.location || '')
+      }
+    } catch (err: any) {
+      setErrorMsg('Failed to load profile details.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const profileCompletion =
+    (fullName ? 25 : 0) +
+    (location ? 25 : 0) +
+    (profile?.email_verified ? 25 : 0) +
+    (profile?.phone_verified ? 25 : 0)
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     setSuccessMsg(null)
+    setErrorMsg(null)
 
-    // Simulate saving profile details
-    setTimeout(() => {
+    try {
+      const data = await updateCandidateProfile({
+        full_name: fullName,
+        phone_number: phone,
+        location: location
+      })
+      if (data && data.profile) {
+        setProfile(data.profile)
+        setSuccessMsg('Your profile has been saved successfully.')
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.detail || 'Failed to update profile.')
+    } finally {
       setSubmitting(false)
-      setSuccessMsg('Your profile has been saved successfully (changes will persist on backend in Phase D).')
-    }, 800)
+    }
+  }
+
+  const handleSendEmailOtp = async () => {
+    if (!email) return
+    setErrorMsg(null)
+    setSuccessMsg(null)
+    try {
+      await sendCandidateEmailOtp(email)
+      setShowEmailModal(true)
+      setEmailVerifyError(null)
+      setEmailCode('')
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.detail || 'Failed to send verification code.')
+    }
+  }
+
+  const handleVerifyEmailOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !emailCode) return
+    setEmailVerifying(true)
+    setEmailVerifyError(null)
+    try {
+      await verifyCandidateEmailOtp(email, emailCode)
+      setShowEmailModal(false)
+      setSuccessMsg('Email verified successfully!')
+      loadProfile()
+    } catch (err: any) {
+      setEmailVerifyError(err.response?.data?.detail || 'Invalid or expired code.')
+    } finally {
+      setEmailVerifying(false)
+    }
+  }
+
+  const handleSendPhoneOtp = async () => {
+    if (!phone) {
+      setErrorMsg('Please enter and save a phone number first.')
+      return
+    }
+    setErrorMsg(null)
+    setSuccessMsg(null)
+    try {
+      await sendCandidatePhoneOtp(phone)
+      setShowPhoneModal(true)
+      setPhoneVerifyError(null)
+      setPhoneCode('')
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.detail || 'Failed to send verification code.')
+    }
+  }
+
+  const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!phone || !phoneCode) return
+    setPhoneVerifying(true)
+    setPhoneVerifyError(null)
+    try {
+      await verifyCandidatePhoneOtp(phone, phoneCode)
+      setShowPhoneModal(false)
+      setSuccessMsg('Phone number verified successfully!')
+      loadProfile()
+    } catch (err: any) {
+      setPhoneVerifyError(err.response?.data?.detail || 'Invalid or expired code.')
+    } finally {
+      setPhoneVerifying(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <CandidateLayout>
+        <div className="container" style={{ padding: 'var(--space-16) 0', textAlign: 'center' }}>
+          <div className="spinner spinner--lg" style={{ margin: '0 auto' }} />
+        </div>
+      </CandidateLayout>
+    )
   }
 
   return (
@@ -45,6 +183,12 @@ export default function CandidateProfilePage() {
                 {successMsg && (
                   <div className="banner banner--success" style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: '8px', fontSize: 'var(--text-sm)' }}>
                     ✅ {successMsg}
+                  </div>
+                )}
+
+                {errorMsg && (
+                  <div className="banner banner--error" style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: '8px', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
+                    ❌ {errorMsg}
                   </div>
                 )}
 
@@ -151,24 +295,136 @@ export default function CandidateProfilePage() {
                   Verification Status
                 </h3>
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Email Verification</span>
-                  <span className="badge badge--hire">Verified</span>
+              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {/* Email verification row */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
+                    <span style={{ fontWeight: 550 }}>Email Address</span>
+                    {profile?.email_verified ? (
+                      <span className="badge badge--hire">Verified</span>
+                    ) : (
+                      <span className="badge badge--reject">Unverified</span>
+                    )}
+                  </div>
+                  {!profile?.email_verified && (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      className="btn btn--secondary btn--sm"
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px' }}
+                    >
+                      Verify Email
+                    </button>
+                  )}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Phone Verification</span>
-                  <span className="badge badge--interview">Unverified</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Security Trust Rating</span>
-                  <span className="badge badge--neutral">Tier 1</span>
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+                {/* Phone verification row */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
+                    <span style={{ fontWeight: 550 }}>Phone Number</span>
+                    {profile?.phone_verified ? (
+                      <span className="badge badge--hire">Verified</span>
+                    ) : (
+                      <span className="badge badge--reject">Unverified</span>
+                    )}
+                  </div>
+                  {!profile?.phone_verified && (
+                    <button
+                      type="button"
+                      onClick={handleSendPhoneOtp}
+                      className="btn btn--secondary btn--sm"
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px' }}
+                      disabled={!phone}
+                    >
+                      Verify Phone
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      {showEmailModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEmailModal(false)} />
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', overflow: 'hidden' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Verify Email</h3>
+              <button type="button" onClick={() => setShowEmailModal(false)} style={{ fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+            <form onSubmit={handleVerifyEmailOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {emailVerifyError && <div className="banner banner--error" style={{ fontSize: 'var(--text-xs)' }}>{emailVerifyError}</div>}
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                We've sent a 6-digit code to <strong>{email}</strong>. Please enter it below to verify your email.
+              </p>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" htmlFor="emailCode">Verification Code</label>
+                <input
+                  id="emailCode"
+                  type="text"
+                  required
+                  placeholder="123456"
+                  maxLength={6}
+                  className="form-input"
+                  value={emailCode}
+                  onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowEmailModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={emailVerifying}>
+                  {emailVerifying ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Verification Modal */}
+      {showPhoneModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setShowPhoneModal(false)} />
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', overflow: 'hidden' }}>
+            <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Verify Phone</h3>
+              <button type="button" onClick={() => setShowPhoneModal(false)} style={{ fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+            <form onSubmit={handleVerifyPhoneOtp} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {phoneVerifyError && <div className="banner banner--error" style={{ fontSize: 'var(--text-xs)' }}>{phoneVerifyError}</div>}
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                We've sent a 6-digit SMS code to <strong>{phone}</strong>. Please enter it below to verify.
+              </p>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" htmlFor="phoneCode">Verification Code</label>
+                <input
+                  id="phoneCode"
+                  type="text"
+                  required
+                  placeholder="123456"
+                  maxLength={6}
+                  className="form-input"
+                  value={phoneCode}
+                  onChange={e => setPhoneCode(e.target.value.replace(/\D/g, ''))}
+                  style={{ textAlign: 'center', letterSpacing: '0.5em', fontSize: 'var(--text-lg)', fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowPhoneModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={phoneVerifying}>
+                  {phoneVerifying ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </CandidateLayout>
   )
 }

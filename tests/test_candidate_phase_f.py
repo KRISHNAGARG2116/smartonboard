@@ -45,6 +45,8 @@ def test_candidate_applications_me_and_withdraw(api_client, db_session):
         )
         assert profile is not None
         profile.skills = ["Python", "Docker"]
+        profile.email_verified = True
+        profile.phone_verified = True
         db_session.add(profile)
         
         resume = CandidateResume(
@@ -131,6 +133,14 @@ def test_candidate_interviews_and_authenticated_booking_lifecycle(api_client, db
 
     # Setup database records
     with tenant_context(auth_mode="true"):
+        profile = db_session.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
+        )
+        if profile:
+            profile.email_verified = True
+            profile.phone_verified = True
+            db_session.add(profile)
+
         company = Company(name="Phase F IV Corp", slug="phase-f-iv-corp")
         db_session.add(company)
         db_session.flush()

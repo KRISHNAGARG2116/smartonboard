@@ -66,6 +66,18 @@ def test_candidate_resume_library_lifecycle(api_client, db_session):
     token = cand_data["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
+    # Mark candidate verified
+    cand_user_id = uuid.UUID(cand_data["user"]["id"])
+    with tenant_context(auth_mode="true"):
+        profile = db_session.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
+        )
+        if profile:
+            profile.email_verified = True
+            profile.phone_verified = True
+            db_session.add(profile)
+            db_session.commit()
+
     # 2. Upload active resume (Text file - valid TXT signature)
     file_content = b"This is a professional resume for John Candidate.\nSkills: Python, SQLAlchemy, Docker.\nSummary: Experienced developer."
     files = {"file": ("resume.txt", io.BytesIO(file_content), "text/plain")}
@@ -169,6 +181,18 @@ def test_candidate_resume_upload_validations(api_client, db_session):
     cand_data = resp.json()
     token = cand_data["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+
+    # Mark candidate verified
+    cand_user_id = uuid.UUID(cand_data["user"]["id"])
+    with tenant_context(auth_mode="true"):
+        profile = db_session.scalar(
+            select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
+        )
+        if profile:
+            profile.email_verified = True
+            profile.phone_verified = True
+            db_session.add(profile)
+            db_session.commit()
 
     # 1. Invalid signature (Empty text or binary with png extension/signature)
     invalid_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR..."
