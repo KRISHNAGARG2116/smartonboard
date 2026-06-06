@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AppLayout from '../components/AppLayout'
 import { useAuth } from '../context/AuthContext'
+import RecruiterOnboardingWizard from '../components/RecruiterOnboardingWizard'
 import {
   api,
   recruitCandidate,
@@ -30,6 +31,9 @@ const PIPELINE_STEPS = [
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const [hasOnboarded, setHasOnboarded] = useState(() => {
+    return localStorage.getItem(`oryzo_onboarded_recruiter_${user?.email}`) === 'true'
+  })
 
   // 1. Data Hooks & Core Lists
   const [company, setCompany] = useState<Company | null>(null)
@@ -116,6 +120,17 @@ export default function Dashboard() {
     }, 2800)
     return () => clearInterval(interval)
   }, [isScreenerProcessing])
+
+  if (!hasOnboarded) {
+    return (
+      <RecruiterOnboardingWizard
+        onComplete={() => {
+          localStorage.setItem(`oryzo_onboarded_recruiter_${user?.email}`, 'true')
+          setHasOnboarded(true)
+        }}
+      />
+    )
+  }
 
   // --- Handlers ---
 

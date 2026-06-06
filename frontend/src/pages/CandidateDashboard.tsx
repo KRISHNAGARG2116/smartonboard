@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import CandidateLayout from '../components/CandidateLayout'
+import CandidateOnboardingWizard from '../components/CandidateOnboardingWizard'
 import { 
   fetchCandidateResumes, 
   fetchCandidateProfile, 
@@ -11,6 +12,9 @@ import {
 
 export default function CandidateDashboard() {
   const { user } = useAuth()
+  const [hasOnboarded, setHasOnboarded] = useState(() => {
+    return localStorage.getItem(`oryzo_onboarded_candidate_${user?.email}`) === 'true'
+  })
   const [resumesCount, setResumesCount] = useState(0)
   const [applicationsCount, setApplicationsCount] = useState(0)
   const [interviewsCount, setInterviewsCount] = useState(0)
@@ -31,6 +35,17 @@ export default function CandidateDashboard() {
       setLoading(false)
     })
   }, [])
+
+  if (!hasOnboarded) {
+    return (
+      <CandidateOnboardingWizard
+        onComplete={() => {
+          localStorage.setItem(`oryzo_onboarded_candidate_${user?.email}`, 'true')
+          setHasOnboarded(true)
+        }}
+      />
+    )
+  }
 
   const stats = {
     resumesUploaded: resumesCount,
