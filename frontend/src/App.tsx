@@ -22,7 +22,7 @@ import RecruiterInterviews from './pages/recruiter/RecruiterInterviews'
 import RecruiterSettings from './pages/recruiter/RecruiterSettings'
 
 // Candidate Workspace Pages
-import CandidateDashboard from './pages/CandidateDashboard'
+import CandidateDashboard from './pages/candidate/CandidateDashboard'
 import ResumeLibrary from './pages/ResumeLibrary'
 import CandidateJobFeed from './pages/CandidateJobFeed'
 import CandidateApplications from './pages/CandidateApplications'
