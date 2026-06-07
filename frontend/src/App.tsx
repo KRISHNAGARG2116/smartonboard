@@ -13,7 +13,7 @@ import CandidateLogin from './pages/candidate/CandidateLogin'
 import CandidateRegister from './pages/candidate/CandidateRegister'
 
 // Recruiter Workspace Pages
-import Dashboard from './pages/Dashboard'
+import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
 import CandidateDirectory from './pages/CandidateDirectory'
 import PipelineBoard from './pages/PipelineBoard'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
@@ -54,7 +54,7 @@ function App() {
               path="/recruiter/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
-                  <Dashboard />
+                  <RecruiterDashboard />
                 </ProtectedRoute>
               }
             />
