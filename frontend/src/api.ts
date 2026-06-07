@@ -236,6 +236,7 @@ export interface CandidateMeResponse {
     email_verified: boolean
     location: string | null
     profile_status: string | null
+    summary: string | null
   } | null
 }
 
@@ -243,7 +244,7 @@ export const fetchCandidateMe = () => api.get<CandidateMeResponse>('/v1/auth/can
 
 export const fetchCandidateProfile = () => api.get<CandidateMeResponse>('/v1/auth/candidate/me').then(r => r.data)
 
-export const updateCandidateProfile = (data: { full_name: string; phone_number?: string; location?: string }) =>
+export const updateCandidateProfile = (data: { full_name: string; phone_number?: string; location?: string; summary?: string | null }) =>
   api.put<CandidateMeResponse>('/v1/auth/candidate/profile', data).then(r => r.data)
 
 export const sendCandidateEmailOtp = (email: string) =>

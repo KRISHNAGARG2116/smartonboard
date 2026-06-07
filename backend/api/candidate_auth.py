@@ -354,6 +354,7 @@ def candidate_me(
             "email_verified": profile.email_verified,
             "location": profile.location,
             "profile_status": profile.profile_status,
+            "summary": profile.summary,
         }
 
     return response_data
@@ -535,6 +536,7 @@ def candidate_update_profile(
 
         profile.full_name = body.full_name
         profile.location = body.location
+        profile.summary = body.summary
 
         if body.phone_number:
             cleaned_phone = body.phone_number.strip()
@@ -562,6 +564,7 @@ def candidate_update_profile(
             "email_verified": profile.email_verified,
             "location": profile.location,
             "profile_status": profile.profile_status,
+            "summary": profile.summary,
         }
     }
 

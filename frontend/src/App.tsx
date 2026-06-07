@@ -30,9 +30,6 @@ import CandidateInterviews from './pages/CandidateInterviews'
 import CandidateProfilePage from './pages/CandidateProfilePage'
 import CandidateSettings from './pages/candidate/CandidateSettings'
 
-// Legacy / Support
-import Results from './pages/Results'
-import EmployeeDirectory from './pages/EmployeeDirectory'
 
 function App() {
   return (
@@ -164,17 +161,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            {/* Hidden Legacy compatibilities */}
-            <Route
-              path="/recruiter/employees"
-              element={
-                <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
-                  <EmployeeDirectory />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/results" element={<Results />} />
 
             {/* Wildcard Fallbacks */}
             <Route path="*" element={<Navigate to="/" replace />} />

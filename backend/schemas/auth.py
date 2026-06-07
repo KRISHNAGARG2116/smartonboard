@@ -92,5 +92,6 @@ class CandidateProfileUpdateRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=255)
     phone_number: Optional[str] = Field(default=None, max_length=50)
     location: Optional[str] = Field(default=None, max_length=255)
+    summary: Optional[str] = Field(default=None)
 
 

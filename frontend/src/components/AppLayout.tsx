@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { api, fetchJobs, fetchApplications } from '../api'
+import { fetchJobs, fetchApplications } from '../api'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -33,7 +33,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Remote searchable data states
   const [jobs, setJobs] = useState<any[]>([])
   const [applications, setApplications] = useState<any[]>([])
-  const [employees, setEmployees] = useState<any[]>([])
 
   // Tenant / Workspace switching state
   const tenants = [
@@ -107,15 +106,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     },
   ])
 
-  // Fetch jobs, applications, and employees on mount or user log
+  // Fetch jobs and applications on mount or user log
   useEffect(() => {
     if (user) {
       fetchJobs().then(setJobs).catch(() => {})
       fetchApplications().then(setApplications).catch(() => {})
-      api
-        .get('/v1/employees')
-        .then((r) => setEmployees(r.data))
-        .catch(() => {})
     }
   }, [user])
 
@@ -155,7 +150,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       name: 'Go to Pipelines Board',
       shortcut: 'G P',
       category: 'Navigation',
-      action: () => navigate('/pipeline'),
+      action: () => navigate('/recruiter/pipeline'),
     },
     {
       name: 'Go to Landing Gateway',
@@ -164,16 +159,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
       action: () => navigate('/'),
     },
     {
-      name: 'Go to HRIS Sync Logs',
-      shortcut: 'G S',
-      category: 'Navigation',
-      action: () => navigate('/results'),
-    },
-    {
-      name: 'Go to Candidate pre-boarding Portal',
+      name: 'Go to Candidate Dashboard',
       shortcut: 'G C',
       category: 'Navigation',
-      action: () => navigate('/candidate'),
+      action: () => navigate('/candidate/dashboard'),
     },
     {
       name: 'Toggle ORYZO Dark Theme',
@@ -182,25 +171,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       action: toggleTheme,
     },
     {
-      name: 'Simulate Sync HRIS Outbox',
-      shortcut: 'S O',
-      category: 'Operations',
-      action: () => {
-        simulateLiveEvent(
-          'HRIS outbox sweep triggered',
-          'Recruiter manually requested transactional outbox sweep. Processing 1 pending queue record.',
-          'info'
-        )
-        alert('Outbox sync queued! Dynamic event posted in activity stream.')
-      },
-    },
-    {
       name: 'Create Job Opening',
       shortcut: 'C J',
       category: 'Actions',
       action: () => {
-        navigate('/dashboard')
-        alert('Scroll down to "New run" form on the sidebar to declare your Job Opening.')
+        navigate('/recruiter/dashboard')
       },
     },
     {
@@ -241,24 +216,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     },
   }))
 
-  // Filter employees
-  const employeesSearch = employees.map((emp) => ({
-    name: `Open Profile: ${emp.full_name}`,
-    subtitle: `Employee · ${emp.department} · ${emp.status}`,
-    category: 'Employees',
-    shortcut: undefined as string | undefined,
-    action: () => {
-      navigate('/dashboard')
-      alert(`Opening employee dashboard for: ${emp.full_name}`)
-    },
-  }))
-
   // Combined command items matching search query
   const allSearchableItems = [
     ...staticCommands.map((c) => ({ name: c.name, subtitle: c.category, category: c.category, shortcut: c.shortcut, action: c.action })),
     ...candidatesFromApps,
     ...jobsSearch,
-    ...employeesSearch,
   ]
 
   const filteredItems = allSearchableItems.filter(
@@ -1220,7 +1182,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </svg>
                 <input
                   type="text"
-                  placeholder="Search candidates, workspace actions, jobs, employees..."
+                  placeholder="Search candidates, workspace actions, jobs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{

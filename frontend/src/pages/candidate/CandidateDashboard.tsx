@@ -84,7 +84,8 @@ export default function CandidateDashboard() {
       await updateCandidateProfile({
         full_name: profile?.full_name || user?.full_name || '',
         phone_number: profile?.phone_number || undefined,
-        location: profile?.location || undefined
+        location: profile?.location || undefined,
+        summary: bioText
       })
       
       setBioSuccess(true)
