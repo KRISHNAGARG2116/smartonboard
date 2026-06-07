@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchJobs, fetchApplications } from '../api'
 import AnimatedPage from './AnimatedPage'
+import { motion } from 'framer-motion'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -437,14 +438,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/dashboard"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/dashboard' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/dashboard' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/dashboard' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="7" height="9" x="3" y="3" rx="1" />
@@ -460,14 +475,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/jobs"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/jobs' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/jobs' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/jobs' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
@@ -481,14 +510,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/candidates"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/candidates' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/candidates' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/candidates' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -504,14 +547,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/pipeline"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/pipeline' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/pipeline' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/pipeline' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
@@ -526,14 +583,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/interviews"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/interviews' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/interviews' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/interviews' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
@@ -549,14 +620,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/analytics"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/analytics' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/analytics' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/analytics' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
@@ -571,14 +656,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             to="/recruiter/settings"
             className={`btn btn--ghost btn--block ${pathname === '/recruiter/settings' ? 'nav-link--active' : ''}`}
             style={{
+              position: 'relative',
               justifyContent: 'flex-start',
               padding: '10px 14px',
               borderRadius: '0px',
               fontSize: '13.5px',
               fontWeight: 550,
-              borderLeft: pathname === '/recruiter/settings' ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
             }}
           >
+            {pathname === '/recruiter/settings' && (
+              <motion.div
+                layoutId="active-indicator-recruiter"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: '2px',
+                  backgroundColor: 'var(--color-burnt-sienna)',
+                }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              />
+            )}
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />

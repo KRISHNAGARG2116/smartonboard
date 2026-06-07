@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchCandidateProfile } from '../api'
 import AnimatedPage from './AnimatedPage'
+import { motion } from 'framer-motion'
 
 interface CandidateLayoutProps {
   children: ReactNode
@@ -214,6 +215,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 to={item.path}
                 className={`btn btn--ghost btn--block ${isActive ? 'nav-link--active' : ''}`}
                 style={{
+                  position: 'relative',
                   justifyContent: 'flex-start',
                   padding: '10px 14px',
                   borderRadius: '0px',
@@ -221,9 +223,22 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                   fontWeight: 550,
                   color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
                   background: 'transparent',
-                  borderLeft: isActive ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
                 }}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="active-indicator-candidate"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '2px',
+                      backgroundColor: 'var(--color-burnt-sienna)',
+                    }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  />
+                )}
                 <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
                   {item.icon}
                 </span>
@@ -339,6 +354,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 to={item.path}
                 className={`btn btn--ghost btn--block ${isActive ? 'nav-link--active' : ''}`}
                 style={{
+                  position: 'relative',
                   justifyContent: 'flex-start',
                   padding: '10px 14px',
                   borderRadius: '0px',
@@ -346,9 +362,22 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                   fontWeight: 550,
                   color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
                   background: 'transparent',
-                  borderLeft: isActive ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
                 }}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="active-indicator-candidate-mobile"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '2px',
+                      backgroundColor: 'var(--color-burnt-sienna)',
+                    }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  />
+                )}
                 <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
                   {item.icon}
                 </span>
