@@ -1,136 +1,160 @@
-/* ORYZO AI style system — Dark Studio */
+/* SmartOnboard — Steep Design System */
 
 :root {
-  /* Colors */
-  --color-studio-black: #100904;
-  --color-warm-cream: #ffedd7;
-  --color-cork-shadow: #40372e;
-  --color-dark-cork: #382416;
-  --color-burnt-sienna: #dc5000;
-  --color-grey-brown: #6c5f51;
-  --color-forest-grid: #445231;
+  /* Colors from Steep Design System */
+  --color-ink: #17191c;
+  --color-pure-white: #ffffff;
+  --color-fog: #f7f7f8;
+  --color-ash: #4c4c4c;
+  --color-graphite: #777b86;
+  --color-dove: #a3a6af;
+  --color-slate: #8b8c8d;
+  --color-obsidian: #000000;
+  --color-rust: #5d2a1a;
+  --color-apricot-wash: #fbe1d1;
+  --color-sky-wash: #d3e3fc;
 
   /* Typography — Font Families */
-  --font-halyard-display-variable: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-arial: 'Arial', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-signifier: 'Signifier', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sohne: 'Sohne', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Typography — Scale */
-  --text-caption: 10px;
-  --leading-caption: 1.2;
-  --text-body: 14px;
-  --leading-body: 1.33;
-  --text-subheading: 18px;
-  --leading-subheading: 1.2;
-  --text-heading-sm: 24px;
-  --leading-heading-sm: 1.1;
-  --text-heading: 29px;
-  --leading-heading: 1.09;
-  --text-heading-lg: 41px;
-  --leading-heading-lg: 1;
-  --text-display: 51px;
-  --leading-display: 0.9;
+  --text-caption: 14px;
+  --leading-caption: 1.5;
+  --tracking-caption: -0.13px;
+  --text-body: 16px;
+  --leading-body: 1.38;
+  --tracking-body: -0.14px;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.35;
+  --tracking-body-lg: -0.16px;
+  --text-subheading: 22px;
+  --leading-subheading: 1.25;
+  --tracking-subheading: -0.2px;
+  --text-heading-sm: 26px;
+  --leading-heading-sm: 1.18;
+  --tracking-heading-sm: -0.23px;
+  --text-heading: 44px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.66px;
+  --text-heading-lg: 64px;
+  --leading-heading-lg: 1.1;
+  --tracking-heading-lg: -1.6px;
+  --text-display: 90px;
+  --leading-display: 1.1;
+  --tracking-display: -2.25px;
 
   /* Typography — Weights */
   --font-weight-regular: 400;
+  --font-weight-w430: 430;
+  --font-weight-w450: 450;
+  --font-weight-w480: 480;
   --font-weight-medium: 500;
 
-  /* Spacing */
-  --spacing-6: 6px;
+  /* Spacing Scale */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
   --spacing-8: 8px;
-  --spacing-9: 9px;
-  --spacing-10: 10px;
   --spacing-12: 12px;
-  --spacing-14: 14px;
-  --spacing-18: 18px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
   --spacing-24: 24px;
-  --spacing-31: 31px;
-  --spacing-41: 41px;
-  --spacing-45: 45px;
-  --spacing-68: 68px;
-  --spacing-204: 204px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-124: 124px;
+  --spacing-128: 128px;
+  --spacing-160: 160px;
 
   /* Layout */
+  --page-max-width: 1200px;
   --section-gap: 80px;
   --card-padding: 24px;
-  --element-gap: 18px;
+  --element-gap: 8px;
 
   /* Border Radius */
+  --radius-sm: 0.01px;
   --radius-xl: 12px;
-  --radius-2xl: 22.5px;
-  --radius-3xl: 36px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 20px;
+  --radius-3xl: 24px;
 
   /* Named Radii */
-  --radius-cards: 12px;
-  --radius-inputs: 0px;
-  --radius-buttons-flat: 0px;
-  --radius-buttons-pill: 36px;
-  --radius-buttons-rounded: 22.5px;
+  --radius-tags: 9999px;
+  --radius-cards: 24px;
+  --radius-images: 12px;
+  --radius-inputs: 16px;
+  --radius-avatars: 9999px;
+  --radius-buttons: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(4, 23, 43, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
 
   /* Surfaces */
-  --surface-canvas: #100904;
-  --surface-raised-cork: #382416;
-  --surface-cream-edge: #ffedd7;
+  --surface-canvas: #ffffff;
+  --surface-fog: #f7f7f8;
+  --surface-card: #ffffff;
+  --surface-warm-tint: #fbe1d1;
+  --surface-cool-tint: #d3e3fc;
+  --surface-ink: #17191c;
 
-  /* Old Layout Variables mapping to ORYZO */
-  --font-sans: var(--font-halyard-display-variable);
-  --font-mono: var(--font-arial);
-  --bg: var(--color-studio-black);
-  --bg-subtle: var(--color-studio-black);
-  --surface: var(--color-studio-black);
-  --surface-raised: var(--color-studio-black);
-  --surface-inset: var(--color-studio-black);
-  --text: var(--color-warm-cream);
-  --text-secondary: var(--color-grey-brown);
-  --text-tertiary: var(--color-grey-brown);
-  --text-inverse: var(--color-studio-black);
-  --border: var(--color-cork-shadow);
-  --border-strong: var(--color-warm-cream);
-  --accent: var(--color-burnt-sienna);
-  --accent-hover: var(--color-burnt-sienna);
-  --accent-muted: var(--color-studio-black);
-  --accent-subtle: var(--color-studio-black);
-  --success: var(--color-warm-cream);
-  --success-bg: var(--color-studio-black);
-  --warning: var(--color-burnt-sienna);
-  --warning-bg: var(--color-studio-black);
-  --danger: var(--color-burnt-sienna);
-  --danger-bg: var(--color-studio-black);
+  /* Old Layout Variables mapping to Steep Design System */
+  --font-sans: var(--font-sohne);
+  --font-mono: var(--font-sohne);
+  --bg: var(--surface-canvas);
+  --bg-subtle: var(--surface-fog);
+  --surface: var(--surface-canvas);
+  --surface-raised: var(--surface-canvas);
+  --surface-inset: var(--surface-fog);
+  --text: var(--color-ink);
+  --text-secondary: var(--color-ash);
+  --text-tertiary: var(--color-graphite);
+  --text-inverse: var(--color-pure-white);
+  --border: var(--color-dove);
+  --border-strong: var(--color-ink);
+  --accent: var(--color-rust);
+  --accent-hover: var(--color-ink);
+  --accent-muted: var(--color-apricot-wash);
+  --accent-subtle: var(--color-sky-wash);
+  --success: #2e7d32;
+  --success-bg: #e8f5e9;
+  --warning: #ed6c02;
+  --warning-bg: #fff3e0;
+  --danger: #d32f2f;
+  --danger-bg: #ffebee;
 
-  --radius-sm: var(--radius-inputs);
-  --radius-md: var(--radius-inputs);
-  --radius-lg: var(--radius-cards);
-
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-
-  --space-1: var(--spacing-6);
+  /* Mapping old space scales to new spacing scale */
+  --space-1: var(--spacing-4);
   --space-2: var(--spacing-8);
   --space-3: var(--spacing-12);
-  --space-4: var(--spacing-14);
-  --space-5: var(--spacing-18);
+  --space-4: var(--spacing-16);
+  --space-5: var(--spacing-20);
   --space-6: var(--spacing-24);
-  --space-8: var(--spacing-31);
-  --space-10: var(--spacing-41);
-  --space-12: var(--spacing-45);
-  --space-16: var(--spacing-68);
-  --space-20: var(--spacing-204);
+  --space-8: var(--spacing-32);
+  --space-10: var(--spacing-40);
+  --space-12: var(--spacing-64);
+  --space-16: var(--spacing-80);
+  --space-20: var(--spacing-96);
 
+  /* Mapping old text scale variables */
   --text-xs: var(--text-caption);
-  --text-sm: var(--text-body);
+  --text-sm: var(--text-caption);
   --text-base: var(--text-body);
-  --text-lg: var(--text-subheading);
-  --text-xl: var(--text-heading-sm);
-  --text-2xl: var(--text-heading);
-  --text-3xl: var(--text-heading-lg);
-  --text-4xl: var(--text-display);
+  --text-lg: var(--text-body-lg);
+  --text-xl: var(--text-subheading);
+  --text-2xl: var(--text-heading-sm);
+  --text-3xl: var(--text-heading);
+  --text-4xl: var(--text-heading-lg);
   --text-5xl: var(--text-display);
 
   --leading-tight: var(--leading-display);
   --leading-normal: var(--leading-body);
   --leading-relaxed: var(--leading-body);
 
-  --header-h: 56px;
+  --header-h: 64px;
   --container: 100%;
   --container-wide: 100%;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

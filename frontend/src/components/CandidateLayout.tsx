@@ -187,7 +187,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             OR
           </div>
           <div>
-            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-0.02em' }}>ORYZO AI</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-0.02em' }}>SmartOnboard</span>
             <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '-2px' }}>
               CANDIDATE
             </span>
@@ -306,7 +306,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               OR
             </div>
             <div>
-              <span style={{ fontSize: '14px', fontWeight: 700 }}>ORYZO AI</span>
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>SmartOnboard</span>
               <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: 'var(--text-secondary)' }}>CANDIDATE</span>
             </div>
           </div>

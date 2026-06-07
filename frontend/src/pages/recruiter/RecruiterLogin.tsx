@@ -36,7 +36,7 @@ export default function RecruiterLogin() {
         borderBottom: '1px solid #40372e',
       }}>
         <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: '#ffedd7', textDecoration: 'none', letterSpacing: '0.04em' }}>
-          ORYZO
+          SmartOnboard
         </Link>
         <Link to="/recruiter/register" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
           Create recruiter workspace

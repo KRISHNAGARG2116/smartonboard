@@ -30,7 +30,6 @@ import CandidateInterviews from './pages/CandidateInterviews'
 import CandidateProfilePage from './pages/CandidateProfilePage'
 import CandidateSettings from './pages/candidate/CandidateSettings'
 
-
 function App() {
   return (
     <AuthProvider>

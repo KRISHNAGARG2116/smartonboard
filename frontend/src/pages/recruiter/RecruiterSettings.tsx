@@ -109,7 +109,7 @@ export default function RecruiterSettings() {
                         Organization Name
                       </label>
                       <div style={{ fontSize: 15, color: 'var(--text)', paddingBottom: 4, borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                        {company?.name || 'ORYZO Recruiting Partner'}
+                        {company?.name || 'SmartOnboard Partner'}
                       </div>
                     </div>
                     <div>
@@ -117,7 +117,7 @@ export default function RecruiterSettings() {
                         Workspace Domain
                       </label>
                       <div style={{ fontSize: 15, color: 'var(--text)', paddingBottom: 4, borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                        {company?.slug ? `${company.slug}.com` : 'oryzo.ai'}
+                        {company?.slug ? `${company.slug}.com` : 'smartonboard.io'}
                       </div>
                     </div>
                   </div>
@@ -145,7 +145,7 @@ export default function RecruiterSettings() {
                   }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>MX Domain State: <span style={{ color: 'var(--color-burnt-sienna)' }}>Pending Verification</span></div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Expected MX domain record: mail.{company?.slug ? `${company.slug}.com` : 'oryzo.ai'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Expected MX domain record: mail.{company?.slug ? `${company.slug}.com` : 'smartonboard.io'}</div>
                     </div>
                     <button className="btn btn--secondary btn--sm" style={{ borderRadius: 22.5 }} onClick={() => alert('Initiating background domain verification check...')}>
                       Verify Records
@@ -178,7 +178,7 @@ export default function RecruiterSettings() {
                     Coming Soon
                   </div>
                   <p style={{ fontSize: 13, lineHeight: 1.35, color: 'var(--text-secondary)', margin: 0 }}>
-                    ORYZO platform subscription controls, invoice tracking, plan selectors, and payment gateway configurations will be made available in the next release cycle.
+                    SmartOnboard platform subscription controls, invoice tracking, plan selectors, and payment gateway configurations will be made available in the next release cycle.
                   </p>
                   <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', marginTop: 16, paddingTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
                     Planned Plan Rates: <strong>$49/month per active job</strong>

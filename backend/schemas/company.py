@@ -9,6 +9,7 @@ class CompanyResponse(BaseModel):
     name: str
     slug: str
     status: str
+    domain_verified: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

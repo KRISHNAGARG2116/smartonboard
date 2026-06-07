@@ -130,6 +130,7 @@ export interface Company {
   name: string
   slug: string
   status: string
+  domain_verified?: boolean
   created_at: string
 }
 

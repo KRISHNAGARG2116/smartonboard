@@ -38,7 +38,7 @@ export default function Landing() {
         }}>
           {/* Logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', fontWeight: 500, fontSize: 'var(--text-lg)', letterSpacing: '0.04em', color: 'var(--text)', textDecoration: 'none' }}>
-            ORYZO
+            SmartOnboard
           </Link>
 
           {/* Nav Links */}
@@ -437,7 +437,7 @@ export default function Landing() {
           gap: 'var(--space-4)'
         }}>
           <div style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.05em' }}>
-            ORYZO SYSTEM
+            SMARTONBOARD
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
             <Link to="/login">Login</Link>

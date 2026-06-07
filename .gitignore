@@ -13,4 +13,5 @@ storage/uploads/
 storage/quarantine/*
 scratch/brave-user-data/
 scratch/chrome-user-data/
+chrome-profile/
 

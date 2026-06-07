@@ -66,7 +66,7 @@ export default function RecruiterRegister() {
         borderBottom: '1px solid #40372e',
       }}>
         <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: '#ffedd7', textDecoration: 'none', letterSpacing: '0.04em' }}>
-          ORYZO
+          SmartOnboard
         </Link>
         <Link to="/recruiter/login" style={{ fontSize: 14, fontWeight: 400, color: '#ffedd7', textDecoration: 'none' }}>
           Sign in

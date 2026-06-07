@@ -23,7 +23,7 @@ export default function AnalyticsDashboard() {
     fetchSyncMetrics().catch(() => {})
   }, [])
 
-  // ORYZO design tokens colors for charts
+  // SmartOnboard design tokens colors for charts
   const chartColors = useMemo(() => {
     return {
       primary: '#ffedd7',       // Warm Cream
@@ -85,7 +85,7 @@ export default function AnalyticsDashboard() {
             Executive Visibility Analytics
           </h1>
           <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
-            Expose pre-boarding velocities, funnels yield, and HRIS outbox sweeps quotas in curated ORYZO style.
+            Expose pre-boarding velocities, funnels yield, and HRIS outbox sweeps quotas in curated SmartOnboard style.
           </p>
         </header>
 

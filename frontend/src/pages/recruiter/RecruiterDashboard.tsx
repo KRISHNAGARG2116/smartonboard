@@ -38,7 +38,7 @@ export default function RecruiterDashboard() {
   const navigate = useNavigate()
   
   const [hasOnboarded, setHasOnboarded] = useState(() => {
-    return localStorage.getItem(`oryzo_onboarded_recruiter_${user?.email}`) === 'true'
+    return localStorage.getItem(`smartonboard_onboarded_recruiter_${user?.email}`) === 'true'
   })
 
   // 1. Data Hooks & Core Lists
@@ -78,7 +78,7 @@ export default function RecruiterDashboard() {
   const [interviewStage] = useState('SCREENING')
   const [interviewTime, setInterviewTime] = useState('')
   const [interviewDuration] = useState('45')
-  const [interviewVideo] = useState('https://meet.google.com/oryzo-meet-sec')
+  const [interviewVideo] = useState('https://meet.google.com/smartonboard-meet')
   const [submittingInterview, setSubmittingInterview] = useState(false)
 
   // D. AI Brief Generator State
@@ -294,7 +294,7 @@ export default function RecruiterDashboard() {
           briefText: `# AI Hiring Brief: ${selectedJob.title} (${selectedJob.department})
 
 ## 1. Executive Position Summary
-ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The candidate will drive critical components of the system under robust data access controls.
+Our team is seeking a qualified **${selectedJob.title}** to join our team. The candidate will drive critical components of the system under robust data access controls.
 
 ## 2. Ideal Candidate Persona & Core Stack
 - **Experience Level**: 3-6 years of verified experience.
@@ -326,9 +326,28 @@ ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The cand
     const score = app.match_score || 78
     const title = app.job?.title || 'Target Role'
     
-    // Setup mock values for presentation
-    const skills = ['React', 'TypeScript', 'Redux', 'REST APIs', 'Git', 'CSS Grid', 'Tailwind CSS']
-    const gaps = ['Kubernetes', 'Supabase RLS', 'CI/CD pipeline configuration']
+    // Extract skills mentioned in the job opening description and categorize them based on match score
+    const extractJobSkills = (t: string, d: string) => {
+      const vocab = [
+        'React', 'TypeScript', 'JavaScript', 'Node.js', 'Python', 'Go', 'Golang', 'Rust',
+        'SQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Docker', 'Kubernetes', 'AWS', 'GCP',
+        'CI/CD', 'Git', 'GitHub', 'HTML', 'CSS', 'Tailwind', 'Sass', 'GraphQL', 'REST API',
+        'Microservices', 'System Design'
+      ]
+      const fullText = `${t} ${d}`.toLowerCase()
+      return vocab.filter(skill => {
+        const escaped = skill.toLowerCase().replace(/[-\/\^$*+?.()|[\]{}]/g, '\$&')
+        return new RegExp(`\\b${escaped}\\b`).test(fullText)
+      })
+    }
+
+    const matchingJob = jobs.find(j => j.id === app.job_id)
+    const rawJobSkills = extractJobSkills(title, matchingJob?.description || '')
+    const baseSkills = rawJobSkills.length > 0 ? rawJobSkills : ['JavaScript', 'HTML', 'CSS', 'Git']
+    
+    const numMatching = Math.max(1, Math.round(baseSkills.length * (score / 100)))
+    const skills = baseSkills.slice(0, numMatching)
+    const gaps = baseSkills.slice(numMatching)
     
     const riskScore = Math.max(12, 100 - score)
     const authenticityScore = score > 80 ? 98 : 94
@@ -336,6 +355,26 @@ ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The cand
     
     const decision = score >= 85 ? 'HIRE' : score >= 70 ? 'INTERVIEW' : 'REJECT'
     const confidence = score >= 85 ? 'HIGH' : 'MEDIUM'
+
+    // Formulate dynamic summary, reasoning, and suggested interview questions
+    const summary = `${name} is an experienced professional applying for the ${title} opening. They display strong alignment with the team's key tech stack and architectural requirements, matching ${score}% of the required competencies.`
+    const reasoning = `${name} matches ${score}% of the target job specifications. Verification telemetry indicates high credential authenticity with no major inconsistencies.`
+    
+    const salaryRange = matchingJob?.department === 'Engineering'
+      ? `$120,000 - $145,000 base salary range`
+      : matchingJob?.department === 'Design'
+      ? `$95,000 - $115,000 base salary range`
+      : matchingJob?.department === 'Product'
+      ? `$110,000 - $135,000 base salary range`
+      : `$100,000 - $125,000 base salary range`
+
+    const questions = [
+      `Can you walk us through your experience with ${skills[0] || 'software development'} and how you apply it in production?`,
+      gaps.length > 0 
+        ? `We noticed a gap in ${gaps[0]}. Can you talk about how you plan to ramp up on this or similar technologies?`
+        : `How do you handle performance tuning or optimization for a large scale codebase?`,
+      `Describe a time when you identified and resolved a complex issue in a team project environment.`
+    ]
 
     return {
       name,
@@ -347,16 +386,12 @@ ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The cand
       riskScore,
       authenticityScore,
       evidenceScore,
-      summary: `${name} is an experienced professional with a verified background in software engineering. They display strong command of frontend systems and responsive web layouts, aligning very closely with the requirements of the ${title} opening. Work history suggests rapid ramp-up time and high design compliance.`,
+      summary,
       decision,
       confidence,
-      reasoning: `${name} matches ${score}% of the required competencies. Verification telemetry indicates high credential authenticity with no major inconsistencies. Recommended to proceed directly to technical screening panels.`,
-      salary: `$115,000 - $130,000 base salary range`,
-      questions: [
-        `Can you walk us through how you optimized a dashboard component for maximum performance in your previous role?`,
-        `How do you handle cross-browser design anomalies when implementing strict design tokens?`,
-        `Describe a time when you identified a security vulnerability in a REST API connection.`
-      ]
+      reasoning,
+      salary: salaryRange,
+      questions
     }
   }
 
@@ -366,7 +401,7 @@ ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The cand
     return (
       <RecruiterOnboardingWizard
         onComplete={() => {
-          localStorage.setItem(`oryzo_onboarded_recruiter_${user?.email}`, 'true')
+          localStorage.setItem(`smartonboard_onboarded_recruiter_${user?.email}`, 'true')
           setHasOnboarded(true)
         }}
       />
@@ -477,9 +512,15 @@ ORYZO is seeking a qualified **${selectedJob.title}** to join our team. The cand
                 📌 <span>Urgent: <strong>{applications.filter(a => a.status === 'screening').length}</strong> Candidates waiting for screening on '{jobs[0]?.title || 'Software Engineering'}'.</span>
               </div>
             )}
-            <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ⚠️ <span>Warning: Organization MX record not verified. <Link to="/recruiter/settings" style={{ color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Verify DNS records</Link> to secure applicant notifications.</span>
-            </div>
+            {company?.domain_verified ? (
+              <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✅ <span>Organization MX records verified and secure.</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚠️ <span>Warning: Organization MX record not verified. <Link to="/recruiter/settings" style={{ color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Verify DNS records</Link> to secure applicant notifications.</span>
+              </div>
+            )}
           </div>
         </section>
 

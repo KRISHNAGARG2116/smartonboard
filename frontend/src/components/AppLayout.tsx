@@ -165,7 +165,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       action: () => navigate('/candidate/dashboard'),
     },
     {
-      name: 'Toggle ORYZO Dark Theme',
+      name: 'Toggle Theme',
       shortcut: 'T T',
       category: 'Actions',
       action: toggleTheme,
@@ -215,6 +215,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
       alert(`Job Selected: ${job.title}`)
     },
   }))
+
+
 
   // Combined command items matching search query
   const allSearchableItems = [
@@ -769,7 +771,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 type="button"
                 className="icon-btn"
                 onClick={toggleTheme}
-                title={'ORYZO Dark Theme'}
+                title={'Theme'}
                 style={{
                   width: '38px',
                   height: '38px',
@@ -918,7 +920,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           borderRadius: '8px',
                         }}
                       >
-                        Theme: ORYZO Dark
+                        Theme: Toggle
                       </button>
 
                       <button
@@ -1220,7 +1222,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {filteredItems.length > 0 ? (
                   <div>
                     {/* Render Category Groupings */}
-                    {['Navigation', 'Actions', 'Operations', 'Candidates', 'Jobs', 'Employees', 'System'].map(
+                    {['Navigation', 'Actions', 'Candidates', 'Jobs', 'System'].map(
                       (cat) => {
                         const catCommands = filteredItems.filter((c) => c.category === cat)
                         if (catCommands.length === 0) return null

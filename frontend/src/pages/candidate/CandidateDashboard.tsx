@@ -8,7 +8,8 @@ import {
   fetchCandidateProfile,
   fetchMyApplications,
   fetchMyInterviews,
-  updateCandidateProfile
+  updateCandidateProfile,
+  fetchJobFeed
 } from '../../api'
 
 export default function CandidateDashboard() {
@@ -16,7 +17,7 @@ export default function CandidateDashboard() {
   
   // Onboarding wizard completion state
   const [hasOnboarded, setHasOnboarded] = useState(() => {
-    return localStorage.getItem(`oryzo_onboarded_candidate_${user?.email}`) === 'true'
+    return localStorage.getItem(`smartonboard_onboarded_candidate_${user?.email}`) === 'true'
   })
 
   // Core Data States
@@ -24,6 +25,7 @@ export default function CandidateDashboard() {
   const [applications, setApplications] = useState<any[]>([])
   const [interviews, setInterviews] = useState<any[]>([])
   const [profile, setProfile] = useState<any>(null)
+  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([])
   
   // UI Loading/Saving states
   const [loading, setLoading] = useState(true)
@@ -37,13 +39,18 @@ export default function CandidateDashboard() {
     if (!user) return
     
     // Load initial bio text from localStorage or wait for profile
-    const cachedBio = localStorage.getItem(`oryzo_candidate_bio_${user.email}`) || ''
+    const cachedBio = localStorage.getItem(`smartonboard_candidate_bio_${user.email}`) || ''
     setBioText(cachedBio)
 
     Promise.all([
       fetchCandidateResumes().then(res => setResumes(res)).catch(() => []),
       fetchMyApplications().then(res => setApplications(res)).catch(() => []),
       fetchMyInterviews().then(res => setInterviews(res)).catch(() => []),
+      fetchJobFeed(1, 10).then(res => {
+        if (res && res.results) {
+          setRecommendedJobs(res.results)
+        }
+      }).catch(() => []),
       fetchCandidateProfile().then(res => {
         if (res && res.profile) {
           setProfile(res.profile)
@@ -63,7 +70,7 @@ export default function CandidateDashboard() {
     return (
       <CandidateOnboardingWizard
         onComplete={() => {
-          localStorage.setItem(`oryzo_onboarded_candidate_${user?.email}`, 'true')
+          localStorage.setItem(`smartonboard_onboarded_candidate_${user?.email}`, 'true')
           setHasOnboarded(true)
         }}
       />
@@ -78,7 +85,7 @@ export default function CandidateDashboard() {
     setBioSuccess(false)
     try {
       // Save locally
-      localStorage.setItem(`oryzo_candidate_bio_${user.email}`, bioText)
+      localStorage.setItem(`smartonboard_candidate_bio_${user.email}`, bioText)
       
       // Update backend
       await updateCandidateProfile({
@@ -141,6 +148,35 @@ export default function CandidateDashboard() {
   ]
 
   const activeInterviews = interviews.filter(i => !i.is_cancelled)
+  
+  // Get active resume and calculate track scores dynamically
+  const activeResume = resumes.find(r => r.is_active) || resumes[0]
+  const candidateSkills = activeResume?.parsed_skills || profile?.skills || []
+
+  const calculateTrackScore = (candSkills: string[], trackSkills: string[], maxRequired = 3) => {
+    if (candSkills.length === 0) return 0
+    const candSkillsLower = candSkills.map(s => s.toLowerCase())
+    const matched = trackSkills.filter(s => candSkillsLower.includes(s.toLowerCase())).length
+    return Math.min(100, Math.round((matched / maxRequired) * 100))
+  }
+
+  const frontendScore = calculateTrackScore(candidateSkills, ['react', 'angular', 'vue', 'next.js', 'typescript', 'javascript', 'html', 'css', 'tailwind', 'sass', 'graphql'], 3)
+  const backendScore = calculateTrackScore(candidateSkills, ['node.js', 'python', 'django', 'flask', 'java', 'spring', 'go', 'golang', 'rust', 'sql', 'postgresql', 'mongodb', 'redis', 'microservices', 'rest api'], 3)
+  const devopsScore = calculateTrackScore(candidateSkills, ['aws', 'azure', 'gcp', 'docker', 'kubernetes', 'ci/cd', 'jenkins', 'terraform', 'ansible', 'git', 'github'], 2)
+  const dataScore = calculateTrackScore(candidateSkills, ['python', 'sql', 'machine learning', 'deep learning', 'ai', 'tensorflow', 'pytorch', 'pandas', 'numpy'], 2)
+
+  const aggregatedMissingSkills = Array.from(
+    new Set(
+      recommendedJobs
+        .flatMap(job => job.missing_skills || [])
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+    )
+  ).slice(0, 5)
+
+  const missingSkillsToShow = aggregatedMissingSkills.length > 0
+    ? aggregatedMissingSkills
+    : (hasResumes ? [] : ['Docker', 'AWS', 'Kubernetes'])
 
   return (
     <CandidateLayout>
@@ -315,67 +351,69 @@ export default function CandidateDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Frontend Roles</span>
-                      <span style={{ color: 'var(--color-burnt-sienna)', fontWeight: 650 }}>92%</span>
+                      <span style={{ color: 'var(--color-burnt-sienna)', fontWeight: 650 }}>{frontendScore}%</span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: '92%', borderRadius: '4px' }} />
+                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${frontendScore}%`, borderRadius: '4px' }} />
                     </div>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Backend Roles</span>
-                      <span style={{ color: 'var(--text)', fontWeight: 600 }}>67%</span>
+                      <span style={{ color: 'var(--text)', fontWeight: 600 }}>{backendScore}%</span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: '67%', opacity: 0.8, borderRadius: '4px' }} />
+                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${backendScore}%`, opacity: 0.8, borderRadius: '4px' }} />
                     </div>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>DevOps Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>44%</span>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{devopsScore}%</span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: '44%', opacity: 0.6, borderRadius: '4px' }} />
+                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${devopsScore}%`, opacity: 0.6, borderRadius: '4px' }} />
                     </div>
                   </div>
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Data Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>31%</span>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{dataScore}%</span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: '31%', opacity: 0.4, borderRadius: '4px' }} />
+                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${dataScore}%`, opacity: 0.4, borderRadius: '4px' }} />
                     </div>
                   </div>
                 </div>
 
                 {/* Top Missing Skills */}
-                <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
-                  <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                    Top Missing Skills
-                  </h4>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['Docker', 'AWS', 'Kubernetes'].map(skill => (
-                      <span 
-                        key={skill} 
-                        className="badge" 
-                        style={{ 
-                          borderColor: 'var(--color-burnt-sienna)', 
-                          color: 'var(--color-burnt-sienna)',
-                          fontSize: '10px',
-                          padding: '3px 10px',
-                          borderRadius: '12px'
-                        }}
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                {missingSkillsToShow.length > 0 && (
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
+                    <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                      Top Missing Skills
+                    </h4>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {missingSkillsToShow.map((skill: string) => (
+                        <span 
+                          key={skill} 
+                          className="badge" 
+                          style={{ 
+                            borderColor: 'var(--color-burnt-sienna)', 
+                            color: 'var(--color-burnt-sienna)',
+                            fontSize: '10px',
+                            padding: '3px 10px',
+                            borderRadius: '12px'
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
               </div>
             </div>
@@ -385,93 +423,46 @@ export default function CandidateDashboard() {
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Recommended Matching Jobs</h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>Matching positions aligned with your primary skillset.</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>Matching positions aligned with your skillset from active jobs.</p>
                 </div>
                 <Link to="/candidate/jobs" style={{ fontSize: '12px', color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Explore Feed &rarr;</Link>
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                
-                {/* Job 1 */}
-                <div style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 'var(--radius-xl)',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'transparent'
-                }}>
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Lead Frontend Engineer</h4>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>SmartOnboard AI &bull; Remote</span>
-                    <div style={{ marginTop: '8px' }}>
-                      <span className="chip" style={{ marginRight: '6px' }}>React</span>
-                      <span className="chip" style={{ marginRight: '6px' }}>TypeScript</span>
-                      <span className="chip">CSS</span>
+                {recommendedJobs.length > 0 ? (
+                  recommendedJobs.slice(0, 3).map((job) => (
+                    <div key={job.id} style={{
+                      border: '1px solid var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-xl)',
+                      padding: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'transparent'
+                    }}>
+                      <div>
+                        <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{job.title}</h4>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{job.company_name} &bull; {job.department}</span>
+                        <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {(job.matching_skills || []).slice(0, 3).map((skill: string) => (
+                            <span key={skill} className="chip">{skill}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>
+                          {job.applicability_score}% Match
+                        </div>
+                        <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}>
+                          View &amp; Apply
+                        </Link>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
+                    No job openings currently in feed. Check back later!
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>92% Match</div>
-                    <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}>
-                      View &amp; Apply
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Job 2 */}
-                <div style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 'var(--radius-xl)',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'transparent'
-                }}>
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Senior Fullstack Developer</h4>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>TrustGrid Tech &bull; San Francisco, CA</span>
-                    <div style={{ marginTop: '8px' }}>
-                      <span className="chip" style={{ marginRight: '6px' }}>Node.js</span>
-                      <span className="chip" style={{ marginRight: '6px' }}>Python</span>
-                      <span className="chip">PostgreSQL</span>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)' }}>67% Match</div>
-                    <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}>
-                      View &amp; Apply
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Job 3 */}
-                <div style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 'var(--radius-xl)',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  opacity: 0.85,
-                  background: 'transparent'
-                }}>
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>DevOps Associate</h4>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Oryzo Scale &bull; Remote</span>
-                    <div style={{ marginTop: '8px' }}>
-                      <span className="chip" style={{ marginRight: '6px', borderColor: 'var(--color-burnt-sienna)' }}>Docker</span>
-                      <span className="chip" style={{ marginRight: '6px', borderColor: 'var(--color-burnt-sienna)' }}>AWS</span>
-                      <span className="chip">Linux</span>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-secondary)' }}>44% Match</div>
-                    <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}>
-                      View &amp; Apply
-                    </Link>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -530,68 +521,16 @@ export default function CandidateDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div>
-                    <div 
-                      style={{ 
-                        border: '1px dashed var(--color-cork-shadow)',
-                        borderRadius: 'var(--radius-xl)',
-                        padding: 'var(--space-6) var(--space-4)',
-                        textAlign: 'center',
-                        color: 'var(--text-secondary)',
-                        marginBottom: 'var(--space-4)'
-                      }}
-                    >
-                      📅 No upcoming interviews scheduled at this time.
-                    </div>
-
-                    {/* Booking Scheduler Widget */}
-                    <div style={{ border: '1px solid var(--color-cork-shadow)', borderRadius: 'var(--radius-xl)', padding: '16px' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: '0 0 12px' }}>
-                        Quick Book: Technical Screening
-                      </h4>
-                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.33 }}>
-                        Select one of our open availability slots to immediately lock in a video screening review with the talent coordination team.
-                      </p>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginBottom: '16px' }}>
-                        {[
-                          { date: 'Monday, June 10', time: '10:00 AM' },
-                          { date: 'Tuesday, June 11', time: '2:00 PM' },
-                          { date: 'Wednesday, June 12', time: '11:00 AM' }
-                        ].map((slot, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => {
-                              alert(`Booking request for ${slot.date} at ${slot.time} submitted! Check your Interviews page for verification.`)
-                            }}
-                            style={{
-                              border: '1px solid var(--color-cork-shadow)',
-                              borderRadius: '12px',
-                              padding: '10px 8px',
-                              background: 'transparent',
-                              color: 'var(--text)',
-                              fontSize: '11px',
-                              textAlign: 'center',
-                              cursor: 'pointer',
-                              transition: 'border-color var(--duration-fast)'
-                            }}
-                            className="booking-slot-btn"
-                          >
-                            <div style={{ fontWeight: 500, color: 'var(--text)' }}>{slot.date}</div>
-                            <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{slot.time}</div>
-                          </button>
-                        ))}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <Link 
-                          to="/candidate/interviews" 
-                          className="btn btn--accent btn--sm"
-                          style={{ borderRadius: '12px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none' }}
-                        >
-                          Explore Calendar Bookings &rarr;
-                        </Link>
-                      </div>
-                    </div>
+                  <div 
+                    style={{ 
+                      border: '1px dashed var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-xl)',
+                      padding: 'var(--space-8) var(--space-4)',
+                      textAlign: 'center',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    📅 No upcoming interviews scheduled at this time. When a recruiter invites you to schedule, you will receive a scheduling link and booking options.
                   </div>
                 )}
               </div>

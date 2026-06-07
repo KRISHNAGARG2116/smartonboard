@@ -22,7 +22,7 @@ export default function Login() {
         borderBottom: '1px solid var(--border)',
       }}>
         <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.04em' }}>
-          ORYZO
+          SmartOnboard
         </Link>
         <Link to="/register" style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-secondary)', textDecoration: 'none' }}>
           Need an account? Register
