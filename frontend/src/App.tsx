@@ -3,6 +3,8 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
 // Split Auth Pages
 import RecruiterLogin from './pages/recruiter/RecruiterLogin'
@@ -40,6 +42,8 @@ function App() {
           <Routes>
             {/* Guest Entry Routing */}
             <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/recruiter/login" element={<RecruiterLogin />} />
             <Route path="/recruiter/register" element={<RecruiterRegister />} />
             <Route path="/candidate/login" element={<CandidateLogin />} />
