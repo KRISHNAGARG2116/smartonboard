@@ -90,3 +90,45 @@ def test_recruiter_cannot_access_candidate_me(api_client, db_session):
     # Recruiter attempts candidate me
     resp = api_client.get("/api/v1/auth/candidate/me", headers=headers)
     assert resp.status_code == 403  # requires role == candidate
+
+
+def test_candidate_profile_update_including_summary(api_client, db_session):
+    """Verify that updating a candidate's profile full name, location, and summary works."""
+    # 1. Register candidate
+    reg_payload = {
+        "email": "summary_test@example.com",
+        "password": "securepassword123",
+        "full_name": "Sam Candidate",
+    }
+    resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Get candidate profile (initial summary is None)
+    resp = api_client.get("/api/v1/auth/candidate/me", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["profile"]["summary"] is None
+
+    # 3. Update candidate profile
+    update_payload = {
+        "full_name": "Sam Candidate Updated",
+        "phone_number": "+15551234567",
+        "location": "San Francisco, CA",
+        "summary": "Experienced Full Stack Engineer specialized in React and FastAPI",
+    }
+    resp = api_client.put("/api/v1/auth/candidate/profile", json=update_payload, headers=headers)
+    assert resp.status_code == 200
+    updated_data = resp.json()
+    assert updated_data["profile"]["full_name"] == "Sam Candidate Updated"
+    assert updated_data["profile"]["location"] == "San Francisco, CA"
+    assert updated_data["profile"]["summary"] == "Experienced Full Stack Engineer specialized in React and FastAPI"
+
+    # 4. Fetch /candidate/me again to ensure persistence
+    resp = api_client.get("/api/v1/auth/candidate/me", headers=headers)
+    assert resp.status_code == 200
+    me_data = resp.json()
+    assert me_data["profile"]["full_name"] == "Sam Candidate Updated"
+    assert me_data["profile"]["location"] == "San Francisco, CA"
+    assert me_data["profile"]["summary"] == "Experienced Full Stack Engineer specialized in React and FastAPI"
+
