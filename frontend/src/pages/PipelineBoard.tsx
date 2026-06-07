@@ -1,8 +1,22 @@
 import { useState, useEffect, useMemo } from 'react'
+import { motion, type Variants } from 'framer-motion'
 import AppLayout from '../components/AppLayout'
 import CandidateDrawer from '../components/CandidateDrawer'
 import { fetchApplications, updateApplicationStatus, type Application } from '../api'
 import { scoreClass } from '../utils/score'
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: Math.min(i * 0.04, 0.3),
+      duration: 0.25,
+      ease: 'easeOut'
+    }
+  })
+}
 
 const COLUMNS = [
   { id: 'SCREENING', title: 'Applied / Screening' },
@@ -214,38 +228,38 @@ export default function PipelineBoard() {
                   }}
                   aria-label={`Candidates in ${col.title}`}
                 >
-                  {colApps.map((app) => {
+                  {colApps.map((app, index) => {
                     const hashNum = Math.abs(app.id.charCodeAt(0) + app.id.charCodeAt(5))
                     const score = (hashNum % 40) + 60
                     const days = (hashNum % 12) + 1
 
                     return (
-                      <article
+                      <div
                         key={app.id}
                         draggable
-                        onDragStart={(e) => handleDragStart(e, app.id)}
-                        style={{
-                          padding: 'var(--space-4)',
-                          background: 'transparent',
-                          border: '1px solid var(--color-cork-shadow)',
-                          borderRadius: '12px',
-                          boxShadow: 'none',
-                          cursor: 'grab',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 'var(--space-2)',
-                          transition: 'transform var(--duration-fast), border-color var(--duration-fast)',
-                          position: 'relative'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.borderColor = 'var(--color-warm-cream)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'none'
-                          e.currentTarget.style.borderColor = 'var(--color-cork-shadow)'
-                        }}
+                        onDragStart={(e: any) => handleDragStart(e, app.id)}
+                        style={{ cursor: 'grab' }}
                       >
+                        <motion.article
+                          layout
+                          custom={index}
+                          initial="hidden"
+                          animate="visible"
+                          variants={cardVariants}
+                          whileHover={{ y: -2, borderColor: 'var(--color-warm-cream)' }}
+                          transition={{ duration: 0.2, ease: 'easeOut' as any }}
+                          style={{
+                            padding: 'var(--space-4)',
+                            background: 'transparent',
+                            border: '1px solid var(--color-cork-shadow)',
+                            borderRadius: '12px',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--space-2)',
+                            position: 'relative'
+                          }}
+                        >
                         {/* Card Header: Avatar & AI score */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -309,7 +323,8 @@ export default function PipelineBoard() {
                             </button>
                           )}
                         </div>
-                      </article>
+                        </motion.article>
+                      </div>
                     )
                   })}
                   

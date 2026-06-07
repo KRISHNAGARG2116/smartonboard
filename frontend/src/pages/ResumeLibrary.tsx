@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import CandidateLayout from '../components/CandidateLayout'
+import { ListRowSkeleton } from '../components/Skeletons'
+import EmptyState from '../components/EmptyState'
 import {
   fetchCandidateResumes,
   uploadCandidateResume,
@@ -144,6 +146,11 @@ export default function ResumeLibrary() {
   }
 
   const handleToggleActive = async (resumeId: string) => {
+    setError(null)
+    if (profile && (!profile.email_verified || !profile.phone_verified)) {
+      setError("Verification Required: You must verify your email and phone number to activate resumes. Go to Profile Settings to complete verification.")
+      return
+    }
     try {
       await toggleCandidateResumeActive(resumeId)
       await loadResumes()
@@ -327,16 +334,17 @@ export default function ResumeLibrary() {
             
             <div className="card__body" style={{ padding: 0 }}>
               {loading ? (
-                <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                  Loading resume library...
+                <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
                 </div>
               ) : resumes.length === 0 && !scanningFilename ? (
-                <div className="empty-state" style={{ padding: 'var(--space-12) var(--space-6)' }}>
-                  <span style={{ fontSize: '48px', marginBottom: 'var(--space-3)' }}>📄</span>
-                  <h4 className="empty-state__title">No Resumes Uploaded</h4>
-                  <p className="empty-state__desc" style={{ marginBottom: 0 }}>
-                    Upload your first resume above to get started with job matching.
-                  </p>
+                <div style={{ padding: 'var(--space-6)' }}>
+                  <EmptyState
+                    type="resumes"
+                    title="No Resumes Uploaded"
+                    description="Upload your first resume above. SmartOnboard parses and hashes it as a trusted signal for hiring."
+                  />
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>

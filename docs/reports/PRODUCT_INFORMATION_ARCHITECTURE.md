@@ -44,7 +44,7 @@ The Recruiter Dashboard is restructured to serve as a focused workspace layout.
 
 ```
 +-----------------------------------------------------------------------------------+
-|  ORYZO  (Workspace Name)                     [Quick Search]  [Recruiter Name v]  |
+|  SmartOnboard (Workspace Name)               [Quick Search]  [Recruiter Name v]  |
 +-----------------------------------------------------------------------------------+
 |  [DASHBOARD]                                                                      |
 |  [JOBS]        +----------------------------------------------------------------+ |
@@ -76,7 +76,7 @@ The Candidate Dashboard focuses entirely on matching status and onboarding check
 
 ```
 +-----------------------------------------------------------------------------------+
-|  ORYZO  (Candidate Profile)                                    [Candidate Name v] |
+|  SmartOnboard (Candidate Profile)                              [Candidate Name v] |
 +-----------------------------------------------------------------------------------+
 |  [DASHBOARD]                                                                      |
 |  [JOBS]        +---------------------------------------+------------------------+ |
@@ -106,7 +106,7 @@ Eliminates abstract decorative images, presenting clear value-focused messaging 
 
 ```
 +-----------------------------------------------------------------------------------+
-|  ORYZO                                         [I'm Hiring]  [I'm Looking for Job]|
+|  SmartOnboard                                  [I'm Hiring]  [I'm Looking for Job]|
 +-----------------------------------------------------------------------------------+
 |                                                                                   |
 |                   Verify. Screen. Hire with Confidence.                           |
@@ -129,7 +129,7 @@ Eliminates abstract decorative images, presenting clear value-focused messaging 
 |   Twilio SMS / Email OTP      Skills match score        Calendar coordination     |
 |                                                                                   |
 |  -------------------------------------------------------------------------------  |
-|   ORYZO AI - Verified Hiring Platform                                             |
+|   SmartOnboard - Verified Hiring Platform                                         |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -230,14 +230,14 @@ graph TD
 
 ### Recruiter Journey
 - **User Person**: Sarah (Recruiting Manager)
-- **Phase 1: Entry & Setup**: Sarah lands on ORYZO, clicks "Start Recruiting", registers her company, and completes the onboarding wizard by posting her first job opening, setting up her pipeline, and inviting team members.
+- **Phase 1: Entry & Setup**: Sarah lands on SmartOnboard, clicks "Start Recruiting", registers her company, and completes the onboarding wizard by posting her first job opening, setting up her pipeline, and inviting team members.
 - **Phase 2: Sourcing**: Sarah's posted "Backend Engineer" job is published. She goes to Settings to verify the company's DNS/MX domain records.
 - **Phase 3: Screen & Match**: Sarah uploads applicant resumes to the queue. The parsing pipeline runs, calculating suitability percentages.
 - **Phase 4: Select & Close**: Sarah reviews the pipeline kanban board, schedules technical screening interviews, and tracks overall metrics.
 
 ### Candidate Journey
 - **User Person**: David (Software Engineer)
-- **Phase 1: Entry & Trust Setup**: David lands on ORYZO, selects "Find Matching Jobs", registers, and completes OTP email and SMS code entries to get verified.
+- **Phase 1: Entry & Trust Setup**: David lands on SmartOnboard, selects "Find Matching Jobs", registers, and completes OTP email and SMS code entries to get verified.
 - **Phase 2: Upload**: David uploads his resume, extracting his skills checklist.
 - **Phase 3: Match & Apply**: David views recommended jobs. He applies to a "Lead React Developer" position showing a high match score.
 - **Phase 4: Track**: David prepares for an interview, schedules/reschedules via calendar, and follows his application status in his hub.

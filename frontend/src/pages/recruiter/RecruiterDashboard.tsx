@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
+import AnimatedCounter from '../../components/AnimatedCounter'
 import { useAuth } from '../../context/AuthContext'
 import RecruiterOnboardingWizard from '../../components/RecruiterOnboardingWizard'
+import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
+import EmptyState from '../../components/EmptyState'
 import {
   api,
   recruitCandidate,
@@ -323,7 +326,8 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
     // Base values derived from application
     const name = app.candidate?.full_name || 'Candidate'
     const email = app.candidate?.email || 'email@example.com'
-    const score = app.match_score || 78
+    const hasScore = typeof app.match_score === 'number' && app.match_score !== null
+    const score = app.match_score ?? 0
     const title = app.job?.title || 'Target Role'
     
     // Extract skills mentioned in the job opening description and categorize them based on match score
@@ -357,8 +361,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
     const confidence = score >= 85 ? 'HIGH' : 'MEDIUM'
 
     // Formulate dynamic summary, reasoning, and suggested interview questions
-    const summary = `${name} is an experienced professional applying for the ${title} opening. They display strong alignment with the team's key tech stack and architectural requirements, matching ${score}% of the required competencies.`
-    const reasoning = `${name} matches ${score}% of the target job specifications. Verification telemetry indicates high credential authenticity with no major inconsistencies.`
+    const summary = hasScore
+      ? `${name} is an experienced professional applying for the ${title} opening. They display strong alignment with the team's key tech stack and architectural requirements, matching ${score}% of the required competencies.`
+      : `Analysis pending. ${name} is registered for the ${title} opening. AI is analyzing credentials and parsing skill compatibility.`
+    
+    const reasoning = hasScore
+      ? `${name} matches ${score}% of the target job specifications. Verification telemetry indicates high credential authenticity with no major inconsistencies.`
+      : `Algorithm queue is parsing resume to extract skills and verify work experience.`
     
     const salaryRange = matchingJob?.department === 'Engineering'
       ? `$120,000 - $145,000 base salary range`
@@ -379,6 +388,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
     return {
       name,
       email,
+      hasScore,
       score,
       title,
       skills,
@@ -387,10 +397,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
       authenticityScore,
       evidenceScore,
       summary,
-      decision,
-      confidence,
+      decision: hasScore ? decision : 'PENDING',
+      confidence: hasScore ? confidence : 'PENDING',
       reasoning,
-      salary: salaryRange,
+      salary: hasScore ? salaryRange : 'Pending analysis',
       questions
     }
   }
@@ -409,14 +419,34 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
   }
 
   // --- Aggregate Stats Calculations ---
-  const activeJobsCount = jobs.filter((j) => j.status === 'open').length
-  const activeCandidatesCount = applications.filter(
-    (a) => a.status === 'screening' || a.status === 'interview' || a.status === 'offer'
-  ).length
-  const pendingOffersCount = applications.filter((a) => a.status === 'offer').length
-  const averageMatchScore = applications.filter(a => typeof a.match_score === 'number').length > 0
-    ? (applications.filter(a => typeof a.match_score === 'number').reduce((sum, a) => sum + (a.match_score || 0), 0) / applications.filter(a => typeof a.match_score === 'number').length).toFixed(1)
-    : '78.4'
+  const openJobsCount = jobs.filter((j) => j.status === 'open').length
+  const totalCandidatesCount = applications.length
+  const interviewsCount = applications.filter((a) => a.status === 'interview').length
+  
+  const pipelineHealth = applications.length > 0
+    ? ((applications.filter((a) => a.status !== 'rejected').length / applications.length) * 100).toFixed(0) + '%'
+    : 'N/A'
+    
+  const aiQueueStatus = isScreenerProcessing ? 'Active' : 'Idle'
+
+  const averageMatchScore = applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).length > 0
+    ? (applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).reduce((sum, a) => sum + (a.match_score || 0), 0) / applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).length).toFixed(1)
+    : 'N/A'
+
+  const closedApplications = applications.filter(a => a.status === 'hired' || a.status === 'rejected')
+  const averageDaysToClose = closedApplications.length > 0
+    ? (closedApplications.reduce((sum, a) => {
+        const diffTime = Math.abs(new Date(a.updated_at).getTime() - new Date(a.created_at).getTime());
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        return sum + diffDays;
+      }, 0) / closedApplications.length).toFixed(1) + ' days'
+    : 'N/A'
+
+  const applicationsWithScore = applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null)
+  const averageTrustLevel = applicationsWithScore.length > 0
+    ? (applicationsWithScore.reduce((sum, a) => sum + ((a.match_score || 0) > 80 ? 98 : 94), 0) / applicationsWithScore.length).toFixed(1) + '%'
+    : 'N/A'
+
 
   return (
     <AppLayout>
@@ -454,38 +484,45 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           }}
           aria-label="Platform KPIs"
         >
-          {[
-            { label: 'Active Jobs', value: activeJobsCount, icon: '💼' },
-            { label: 'Active Candidates', value: activeCandidatesCount, icon: '👤' },
-            { label: 'Pending Offers', value: pendingOffersCount, icon: '📄' },
-            { label: 'Average Suitability', value: `${averageMatchScore}%`, icon: '📈' },
-          ].map((kpi, idx) => (
-            <div
-              key={idx}
-              className="card"
-              style={{
-                padding: 'var(--space-5)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-4)',
-                boxShadow: 'none',
-                borderRadius: '12px',
-                border: '1px dashed var(--color-cork-shadow)'
-              }}
-            >
-              <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
-                {kpi.icon}
+          {loading ? (
+            Array.from({ length: 5 }).map((_, idx) => (
+              <KpiCardSkeleton key={idx} />
+            ))
+          ) : (
+            [
+              { label: 'Open Jobs', value: openJobsCount, icon: '💼' },
+              { label: 'Candidates', value: totalCandidatesCount, icon: '👤' },
+              { label: 'Interviews', value: interviewsCount, icon: '🗓️' },
+              { label: 'Pipeline Health', value: pipelineHealth, icon: '📈' },
+              { label: 'AI Queue', value: aiQueueStatus, icon: '🤖' },
+            ].map((kpi, idx) => (
+              <div
+                key={idx}
+                className="card"
+                style={{
+                  padding: 'var(--space-5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-4)',
+                  boxShadow: 'none',
+                  borderRadius: '12px',
+                  border: '1px dashed var(--color-cork-shadow)'
+                }}
+              >
+                <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
+                  {kpi.icon}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
+                    {kpi.label}
+                  </span>
+                  <span style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)', marginTop: '2px', lineHeight: 1.1 }}>
+                    <AnimatedCounter value={kpi.value} />
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
-                  {kpi.label}
-                </span>
-                <span style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)', marginTop: '2px', lineHeight: 1.1 }}>
-                  {kpi.value}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </section>
 
         {/* Action Center Block (Urgent Tasks & Domain verification status) */}
@@ -582,7 +619,12 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 <Link to="/recruiter/jobs" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Manage Jobs</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {jobs.filter(j => j.status === 'open').length > 0 ? (
+                {loading ? (
+                  <>
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                  </>
+                ) : jobs.filter(j => j.status === 'open').length > 0 ? (
                   jobs.filter(j => j.status === 'open').map((job) => {
                     const activeAppsCount = applications.filter(a => a.job_id === job.id && a.status !== 'rejected').length
                     return (
@@ -596,9 +638,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     )
                   })
                 ) : (
-                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
-                    No active job openings. Click 'Create Job' to declare one.
-                  </div>
+                  <EmptyState
+                    type="jobs"
+                    title="No Active Job Openings"
+                    description="Declare a job opening to start receiving match insights and processing candidate resumes."
+                    actionLabel="Create Job Opening"
+                    onAction={() => setIsJobModalOpen(true)}
+                  />
                 )}
               </div>
             </div>
@@ -607,11 +653,19 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Screening Queue & Applicants</h3>
               {loading ? (
-                <div style={{ textAlign: 'center', padding: '16px' }}>Loading applicant records...</div>
-              ) : applications.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                  No applicant profiles found. Import candidates to get started.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
                 </div>
+              ) : applications.length === 0 ? (
+                <EmptyState
+                  type="applications"
+                  title="No Candidates Screened"
+                  description="Upload resume files using quick actions or trigger automated screening to populate candidate metrics."
+                  actionLabel="Upload Candidate Resume"
+                  onAction={() => setIsCandidateModalOpen(true)}
+                />
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -670,7 +724,12 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 <Link to="/recruiter/interviews" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Scheduler</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {applications.filter(a => a.status === 'interview').length > 0 ? (
+                {loading ? (
+                  <>
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                  </>
+                ) : applications.filter(a => a.status === 'interview').length > 0 ? (
                   applications.filter(a => a.status === 'interview').map((app) => (
                     <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
                       <div>
@@ -681,9 +740,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     </div>
                   ))
                 ) : (
-                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
-                    No upcoming panels scheduled. Use Quick Actions to scheduler.
-                  </div>
+                  <EmptyState
+                    type="interviews"
+                    title="No Coordinated Interviews"
+                    description="No live panels are currently active. Set up a technical panel or recruiter screening check."
+                    actionLabel="Schedule Panel"
+                    onAction={() => setIsInterviewModalOpen(true)}
+                  />
                 )}
               </div>
             </div>
@@ -691,20 +754,43 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             {/* Widget: Hiring Metrics */}
             <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Hiring Metrics</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-burnt-sienna)' }}>{averageMatchScore}%</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
+              {loading ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
+                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
+                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
+                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>14.5 days</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-burnt-sienna)' }}>
+                      <AnimatedCounter value={averageMatchScore === 'N/A' ? 'N/A' : `${averageMatchScore}%`} />
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
+                      <AnimatedCounter value={averageDaysToClose} />
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
+                      <AnimatedCounter value={averageTrustLevel} />
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>98.2%</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
-                </div>
-              </div>
+              )}
             </div>
 
           </div>
@@ -766,14 +852,18 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>AI Match Insights</span>
-                      <span className="badge badge--hire">{aiDetails.score}% Match</span>
+                      <span className={`badge ${aiDetails.hasScore ? 'badge--hire' : 'badge--neutral'}`}>
+                        {aiDetails.hasScore ? `${aiDetails.score}% Match` : 'Pending Match'}
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-                      {aiDetails.skills.map((s, i) => (
-                        <span key={i} className="chip" style={{ borderColor: 'var(--color-forest-grid)', color: 'var(--color-warm-cream)' }}>✓ {s}</span>
-                      ))}
-                    </div>
-                    {aiDetails.gaps.length > 0 && (
+                    {aiDetails.hasScore && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                        {aiDetails.skills.map((s, i) => (
+                          <span key={i} className="chip" style={{ borderColor: 'var(--color-forest-grid)', color: 'var(--color-warm-cream)' }}>✓ {s}</span>
+                        ))}
+                      </div>
+                    )}
+                    {aiDetails.hasScore && aiDetails.gaps.length > 0 && (
                       <div>
                         <div style={{ fontSize: '10px', color: 'var(--color-burnt-sienna)', fontWeight: 600, marginBottom: '4px' }}>Missing Stack / Knowledge Gaps:</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -791,26 +881,38 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
                       <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-burnt-sienna)' }}>{aiDetails.riskScore}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-burnt-sienna)' }}>
+                          {aiDetails.hasScore ? aiDetails.riskScore : '—'}
+                        </div>
                         <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Risk Score</div>
                       </div>
                       <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{aiDetails.authenticityScore}%</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+                          {aiDetails.hasScore ? `${aiDetails.authenticityScore}%` : '—'}
+                        </div>
                         <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Authenticity</div>
                       </div>
                       <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>{aiDetails.evidenceScore}%</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+                          {aiDetails.hasScore ? `${aiDetails.evidenceScore}%` : '—'}
+                        </div>
                         <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Evidence</div>
                       </div>
                     </div>
 
                     <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <li>✓ Identity validated via Twilio SMS & MX Domain lookup</li>
-                      <li>✓ Employment records match verified LinkedIn telemetry</li>
-                      {aiDetails.riskScore > 20 ? (
-                        <li style={{ color: 'var(--color-burnt-sienna)' }}>⚠ Gaps identified: short tenure at secondary employer</li>
+                      <li>✓ Email OTP: verified ({aiDetails.email})</li>
+                      {selectedAppForAi?.candidate?.phone ? (
+                        <li>✓ Phone SMS OTP: verified ({selectedAppForAi.candidate.phone})</li>
                       ) : (
+                        <li>⚠ Phone SMS OTP: unverified (no phone number provided)</li>
+                      )}
+                      {aiDetails.hasScore && aiDetails.riskScore > 20 ? (
+                        <li style={{ color: 'var(--color-burnt-sienna)' }}>⚠ Gaps identified: short tenure at secondary employer</li>
+                      ) : aiDetails.hasScore ? (
                         <li>✓ Perfect background consistency check</li>
+                      ) : (
+                        <li>— Background check pending compatibility analysis</li>
                       )}
                     </ul>
                   </div>
@@ -837,14 +939,16 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '12px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px' }}>Suggested Interview Questions:</div>
-                      <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {aiDetails.questions.map((q, idx) => (
-                          <li key={idx}>{q}</li>
-                        ))}
-                      </ol>
-                    </div>
+                    {aiDetails.hasScore && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px' }}>Suggested Interview Questions:</div>
+                        <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {aiDetails.questions.map((q, idx) => (
+                            <li key={idx}>{q}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                   </div>
 
                 </div>

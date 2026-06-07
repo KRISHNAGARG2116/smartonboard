@@ -1,6 +1,6 @@
-# Design Compliance Report - ORYZO AI Style Transition
+# Design Compliance Report - SmartOnboard Style Transition
 
-This report documents the mapping of the approved ORYZO AI design assets to the target pages and evaluates the implementation compliance.
+This report documents the mapping of the approved SmartOnboard design assets to the target pages and evaluates the implementation compliance.
 
 ## Design Reference Sources
 The primary design sources are located in `frontend/frontend/design-system/`:
@@ -47,11 +47,11 @@ The primary design sources are located in `frontend/frontend/design-system/`:
 
 ## Final Compliance and Certification
 We confirm **100% design system compliance** across all target components and major pages in the codebase.
-The visual design aligns perfectly with the ORYZO specification:
+The visual design aligns perfectly with the SmartOnboard specification:
 - Background is `#100904` canvas.
 - No shadows or backdrop-blurs are present.
 - Divider lines are `1px dashed #40372e` (cork shadow).
 - Accent lines are `#dc5000` (burnt sienna).
 - Primary buttons use `#382416` (dark cork).
-- Left-aligned header titles use the ORYZO font sizes and weights.
+- Left-aligned header titles use the SmartOnboard font sizes and weights.
 - Verification status has been successfully captured and compared using side-by-side snapshots.

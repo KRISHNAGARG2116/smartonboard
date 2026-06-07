@@ -19,7 +19,7 @@ This report audits billing, subscription, pricing, and monetization features in 
 ## 2. Incomplete Feature Strategy (Option B)
 
 We will implement **Option B**:
-- For any billing controls, we will render a clean, ORYZO-styled card indicating:
+- For any billing controls, we will render a clean, SmartOnboard-styled card indicating:
   > **Subscription & Billing (Coming Soon)**
   > 
   > The platform is currently in a pre-release phase. Subscription controls, active invoice management, and plan configurations will become available in the next release cycle.

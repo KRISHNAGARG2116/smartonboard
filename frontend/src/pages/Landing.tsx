@@ -1,6 +1,33 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, type Variants } from 'framer-motion'
+import { fetchJobs } from '../api'
+import AnimatedCounter from '../components/AnimatedCounter'
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as any } }
+}
 
 export default function Landing() {
+  const [activeJobsCount, setActiveJobsCount] = useState(0)
+
+  useEffect(() => {
+    fetchJobs('open')
+      .then((data) => setActiveJobsCount(data.length))
+      .catch(() => setActiveJobsCount(0))
+  }, [])
+
   const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault()
     const element = document.getElementById(id)
@@ -70,17 +97,22 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section style={{
-        minHeight: 'calc(80vh - var(--header-h))',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-        padding: 'var(--space-16) var(--space-6)',
-        maxWidth: 900,
-        margin: '0 auto',
-      }}>
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          minHeight: 'calc(80vh - var(--header-h))',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          padding: 'var(--space-16) var(--space-6)',
+          maxWidth: 900,
+          margin: '0 auto',
+        }}
+      >
         <span style={{
           fontSize: 10,
           fontWeight: 500,
@@ -116,22 +148,88 @@ export default function Landing() {
 
         {/* Hero CTAs */}
         <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center' }}>
-          <Link to="/register" className="btn btn--primary btn--lg" style={{ background: 'var(--color-dark-cork)', color: 'var(--color-warm-cream)' }}>
-            Get Started
-          </Link>
-          <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="btn btn--secondary btn--lg">
-            Learn More
-          </a>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Link to="/register" className="btn btn--primary btn--lg" style={{ background: 'var(--color-dark-cork)', color: 'var(--color-warm-cream)' }}>
+              Get Started
+            </Link>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="btn btn--secondary btn--lg">
+              Learn More
+            </a>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
+
+      {/* Platform Factual Metrics */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          padding: 'var(--space-8) var(--space-6)',
+          borderBottom: '1px solid var(--border)',
+          borderTop: '1px solid var(--border)',
+          background: 'rgba(56, 36, 22, 0.02)',
+        }}
+      >
+        <div style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 'var(--space-6)',
+          textAlign: 'center'
+        }}>
+          <div>
+            <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>
+              $<AnimatedCounter value={49} />
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: 'var(--space-2)', fontWeight: 550 }}>
+              Per Month Per Active Job
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, color: 'var(--text)' }}>
+              <AnimatedCounter value={3} />
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: 'var(--space-2)', fontWeight: 550 }}>
+              Resumes Max Per Candidate
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, color: 'var(--text)' }}>
+              <AnimatedCounter value={100} />%
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: 'var(--space-2)', fontWeight: 550 }}>
+              Mandatory OTP Verification
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, color: 'var(--text)' }}>
+              <AnimatedCounter value={activeJobsCount} />
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: 'var(--space-2)', fontWeight: 550 }}>
+              Your Active Job Openings
+            </div>
+          </div>
+        </div>
+      </motion.section>
 
       {/* Social Proof / Candidate Lifecycle Progress Section */}
-      <section style={{
-        borderTop: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)',
-        background: 'rgba(56, 36, 22, 0.05)',
-        padding: 'var(--space-12) var(--space-6)'
-      }}>
+      <motion.section
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          borderTop: '1px solid var(--border)',
+          borderBottom: '1px solid var(--border)',
+          background: 'rgba(56, 36, 22, 0.05)',
+          padding: 'var(--space-12) var(--space-6)'
+        }}
+      >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -160,16 +258,22 @@ export default function Landing() {
               { step: '05', title: 'Structured Interview', desc: 'Dynamic scheduling alignment and recruiter evaluation ranking.' },
               { step: '06', title: 'Verified Placement', desc: 'Objective hiring decisions backed by trusted signal telemetry.' }
             ].map((item, idx) => (
-              <div key={idx} style={{
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-cards)',
-                padding: 'var(--space-4)',
-                background: 'var(--bg)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                height: '100%'
-              }}>
+              <motion.div
+                key={idx}
+                whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+                transition={{ duration: 0.2, ease: 'easeOut' as any }}
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-cards)',
+                  padding: 'var(--space-4)',
+                  background: 'var(--bg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  height: '100%',
+                  cursor: 'default'
+                }}
+              >
                 <div>
                   <div style={{
                     fontSize: 'var(--text-xs)',
@@ -195,16 +299,23 @@ export default function Landing() {
                     {item.desc}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Feature Section */}
-      <section id="features" style={{
-        padding: 'var(--space-16) var(--space-6)'
-      }}>
+      <motion.section
+        id="features"
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          padding: 'var(--space-16) var(--space-6)'
+        }}
+      >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-12)' }}>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -218,13 +329,24 @@ export default function Landing() {
             </p>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'var(--space-6)'
-          }}>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-50px' }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: 'var(--space-6)'
+            }}
+          >
             {/* Feature 1 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>📄</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 AI Resume Screening
@@ -232,10 +354,15 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Automatically parse, extract, and index key experiences from up to 3 candidate resumes, mapping them directly to target requisitions.
               </p>
-            </div>
+            </motion.div>
 
             {/* Feature 2 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>🎯</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 Candidate Matching
@@ -243,10 +370,15 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Get instant scoring visibility. Compare required vs missing skills transparently so you know exactly how each candidate matches.
               </p>
-            </div>
+            </motion.div>
 
             {/* Feature 3 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>📊</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 Sourcing Pipelines
@@ -254,10 +386,15 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Coordinate applicant reviews with drag-and-drop sourcing pipelines. Drag verified candidates from application to final offer seamlessly.
               </p>
-            </div>
+            </motion.div>
 
             {/* Feature 4 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>📅</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 Interview Scheduling
@@ -265,10 +402,15 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Accelerate hiring loops with a centralized scheduling cockpit. Manage time slots, coordinate panel notes, and queue candidate pools.
               </p>
-            </div>
+            </motion.div>
 
             {/* Feature 5 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>🛡️</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 Candidate Verification
@@ -276,10 +418,15 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Eliminate ghost candidates and application noise. Authenticate profiles utilizing mandatory Email and Twilio SMS OTP gateway checks.
               </p>
-            </div>
+            </motion.div>
 
             {/* Feature 6 */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent' }}>
+            <motion.div
+              variants={itemVariants}
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', background: 'transparent', cursor: 'default' }}
+            >
               <div style={{ fontSize: 24, marginBottom: 'var(--space-3)' }}>📈</div>
               <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-3)' }}>
                 Recruiter Analytics
@@ -287,17 +434,24 @@ export default function Landing() {
               <p style={{ fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-secondary)' }}>
                 Empower hiring decisions with advanced metrics. Assess candidate risk ratings, authenticity quotients, and evidence-backed matching reports.
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Solutions Section */}
-      <section id="solutions" style={{
-        borderTop: '1px dashed var(--border)',
-        padding: 'var(--space-16) var(--space-6)',
-        background: 'rgba(255, 237, 215, 0.01)'
-      }}>
+      <motion.section
+        id="solutions"
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          borderTop: '1px dashed var(--border)',
+          padding: 'var(--space-16) var(--space-6)',
+          background: 'rgba(255, 237, 215, 0.01)'
+        }}
+      >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 'var(--space-10)', alignItems: 'center' }}>
             <div>
@@ -314,7 +468,11 @@ export default function Landing() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
               {/* Recruiter Solution Card */}
-              <div style={{ border: '1px solid var(--border)', padding: 'var(--space-6)', borderRadius: 'var(--radius-cards)', background: 'var(--bg)' }}>
+              <motion.div
+                whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+                transition={{ duration: 0.2, ease: 'easeOut' as any }}
+                style={{ border: '1px solid var(--border)', padding: 'var(--space-6)', borderRadius: 'var(--radius-cards)', background: 'var(--bg)', cursor: 'default' }}
+              >
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>
                   Recruiters & Hiring Teams
                 </h3>
@@ -324,10 +482,14 @@ export default function Landing() {
                 <Link to="/register" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>
                   Open hiring account &rarr;
                 </Link>
-              </div>
+              </motion.div>
 
               {/* Candidate Solution Card */}
-              <div style={{ border: '1px solid var(--border)', padding: 'var(--space-6)', borderRadius: 'var(--radius-cards)', background: 'var(--bg)' }}>
+              <motion.div
+                whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+                transition={{ duration: 0.2, ease: 'easeOut' as any }}
+                style={{ border: '1px solid var(--border)', padding: 'var(--space-6)', borderRadius: 'var(--radius-cards)', background: 'var(--bg)', cursor: 'default' }}
+              >
                 <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>
                   Candidates & Job Seekers
                 </h3>
@@ -337,17 +499,24 @@ export default function Landing() {
                 <Link to="/register" style={{ fontSize: 'var(--text-sm)', color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>
                   Register candidate profile &rarr;
                 </Link>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Pricing Section */}
-      <section id="pricing" style={{
-        borderTop: '1px dashed var(--border)',
-        padding: 'var(--space-16) var(--space-6)'
-      }}>
+      <motion.section
+        id="pricing"
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          borderTop: '1px dashed var(--border)',
+          padding: 'var(--space-16) var(--space-6)'
+        }}
+      >
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-12)' }}>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -360,7 +529,11 @@ export default function Landing() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)' }}>
             {/* Candidate Plan */}
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 320 }}>
+            <motion.div
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 320, cursor: 'default' }}
+            >
               <div>
                 <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 500, color: 'var(--text)' }}>
                   Job Seekers
@@ -376,10 +549,14 @@ export default function Landing() {
               <Link to="/register" className="btn btn--secondary btn--block" style={{ marginTop: 'var(--space-6)' }}>
                 Create Free Profile
               </Link>
-            </div>
+            </motion.div>
 
             {/* Recruiter Plan */}
-            <div style={{ border: '1px solid var(--text)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 320, background: 'rgba(56, 36, 22, 0.2)' }}>
+            <motion.div
+              whileHover={{ y: -2, borderColor: 'var(--color-burnt-sienna)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' as any }}
+              style={{ border: '1px solid var(--text)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 320, background: 'rgba(56, 36, 22, 0.2)', cursor: 'default' }}
+            >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 500, color: 'var(--text)' }}>
@@ -398,17 +575,24 @@ export default function Landing() {
               <Link to="/register" className="btn btn--primary btn--block" style={{ marginTop: 'var(--space-6)', background: 'var(--color-dark-cork)', color: 'var(--color-warm-cream)' }}>
                 Get Started
               </Link>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* About Section */}
-      <section id="about" style={{
-        borderTop: '1px dashed var(--border)',
-        padding: 'var(--space-16) var(--space-6)',
-        background: 'rgba(56, 36, 22, 0.02)'
-      }}>
+      <motion.section
+        id="about"
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 0.3, ease: 'easeOut' as any }}
+        style={{
+          borderTop: '1px dashed var(--border)',
+          padding: 'var(--space-16) var(--space-6)',
+          background: 'rgba(56, 36, 22, 0.02)'
+        }}
+      >
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Our Philosophy
@@ -420,7 +604,7 @@ export default function Landing() {
             SmartOnboard is built to combat the friction of application spam. We don't optimize for vanity volume. We optimize for credential verification, objective skills verification, and robust signals so that recruiters can discover matches they can trust.
           </p>
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer */}
       <footer style={{

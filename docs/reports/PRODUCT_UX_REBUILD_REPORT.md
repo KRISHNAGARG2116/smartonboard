@@ -48,7 +48,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Standard template styles.
 - **After**: Rebuilt gateway focus featuring recruitment and matching copy within the first viewport.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/landing.png) | ![After](ui-after/landing.png) |
 
@@ -58,7 +58,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Unified login screen with a role toggle.
 - **After**: Split, role-specific dark login panel with ghost inputs.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/login.png) | ![After](ui-after/login.png) |
 
@@ -68,7 +68,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Unified registration screen with role toggle.
 - **After**: Dedicated recruiter register form with ghost fields and Dark Cork button.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/register.png) | ![After](ui-after/register.png) |
 
@@ -78,7 +78,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Mixed dashboard showing pre-boarding checklist tasks and legacy components.
 - **After**: Focused Hiring Command Center displaying Action Center, Open Jobs, Pipeline Health, AI Queue, and Hiring Metrics.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/recruiter-dashboard.png) | ![After](ui-after/recruiter-dashboard.png) |
 
@@ -88,7 +88,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: List cards with rounded containers.
 - **After**: Rebuilt Career Hub displaying conic profile completion meters, match status, and active applications.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/candidate-dashboard.png) | ![After](ui-after/candidate-dashboard.png) |
 
@@ -98,7 +98,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Standard table list.
 - **After**: Outlined score rings, table headers in 10px uppercase caption.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/candidate-directory.png) | ![After](ui-after/candidate-directory.png) |
 
@@ -108,7 +108,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Heavy borders and shadows.
 - **After**: Columns separated by vertical dashed rules, flat transparent cards.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/pipeline-board.png) | ![After](ui-after/pipeline-board.png) |
 
@@ -118,7 +118,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Standard files listing.
 - **After**: 3-resume layout, dashed upload zone, and outline containers.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/resume-library.png) | ![After](ui-after/resume-library.png) |
 
@@ -128,7 +128,7 @@ Below are the comparative side-by-side visual layouts showing the transition fro
 - **Before**: Generic card blocks.
 - **After**: Asymmetric lists, dashed borders, match percentage and skills chips.
 
-| Before Redesign | ORYZO AI Redesign |
+| Before Redesign | SmartOnboard Redesign |
 | :---: | :---: |
 | ![Before](ui-before/job-feed.png) | ![After](ui-after/job-feed.png) |
 

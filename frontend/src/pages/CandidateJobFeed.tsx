@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import CandidateLayout from '../components/CandidateLayout'
+import { ListRowSkeleton } from '../components/Skeletons'
+import EmptyState from '../components/EmptyState'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as any } }
+}
 import {
   fetchJobFeed,
   applyToJob,
@@ -166,24 +184,24 @@ export default function CandidateJobFeed() {
           {/* Jobs Feed list */}
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              {[1, 2, 3].map(i => (
-                <div key={i} className="card card__body" style={{ height: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.6, animation: 'pulse 1.5s infinite' }}>
-                  <div style={{ width: '40%', height: '18px', background: 'var(--border)', borderRadius: '4px' }}></div>
-                  <div style={{ width: '60%', height: '14px', background: 'var(--border)', borderRadius: '4px' }}></div>
-                  <div style={{ width: '20%', height: '24px', background: 'var(--border)', borderRadius: '4px' }}></div>
-                </div>
-              ))}
+              <ListRowSkeleton />
+              <ListRowSkeleton />
+              <ListRowSkeleton />
+              <ListRowSkeleton />
             </div>
           ) : jobs.length === 0 ? (
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)' }}>
-              <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>🔍</span>
-              <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>No Active Jobs Found</h4>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>
-                Check back later as new positions are posted daily.
-              </p>
-            </div>
+            <EmptyState
+              type="jobs"
+              title="No Jobs In Feed"
+              description="No active job postings are available on the platform right now. Check back soon for new opportunities."
+            />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+            >
               {jobs.map((job) => {
                 const isApplied = appliedJobIds.has(job.id)
                 // Determine if job has no skills configuration (matching + missing are both empty)
@@ -191,8 +209,11 @@ export default function CandidateJobFeed() {
                 const matchStyle = getMatchStyles(job.applicability_score, isNoSkills)
 
                 return (
-                  <div 
+                  <motion.div 
                     key={job.id} 
+                    variants={itemVariants}
+                    whileHover={{ y: -2, borderColor: 'var(--color-warm-cream)' }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                     className="card card__body"
                     style={{ 
                       display: 'flex', 
@@ -200,16 +221,9 @@ export default function CandidateJobFeed() {
                       alignItems: 'center', 
                       borderRadius: '12px',
                       border: '1px dashed var(--color-cork-shadow)',
-                      transition: 'border-color 150ms ease',
                       cursor: 'pointer'
                     }}
                     onClick={() => setSelectedJob(job)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-warm-cream)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-cork-shadow)'
-                    }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: 0, flex: 1, paddingRight: 'var(--space-4)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
@@ -294,10 +308,10 @@ export default function CandidateJobFeed() {
                         Details →
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
-            </div>
+            </motion.div>
           )}
 
           {/* Pagination controls */}

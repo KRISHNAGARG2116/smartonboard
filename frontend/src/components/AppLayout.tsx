@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchJobs, fetchApplications } from '../api'
+import AnimatedPage from './AnimatedPage'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -20,7 +21,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { resolvedTheme, toggleTheme } = useTheme()
 
   // Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -783,7 +784,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   cursor: 'pointer',
                 }}
               >
-                {theme === 'dark' ? (
+                {resolvedTheme === 'dark' ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="5" />
                     <line x1="12" y1="1" x2="12" y2="3" />
@@ -970,7 +971,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             transition: 'background var(--duration-normal)',
           }}
         >
-          {children}
+          <AnimatedPage key={pathname}>{children}</AnimatedPage>
         </main>
       </div>
 

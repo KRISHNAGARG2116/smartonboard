@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchCandidateProfile } from '../api'
+import AnimatedPage from './AnimatedPage'
 
 interface CandidateLayoutProps {
   children: ReactNode
@@ -12,7 +13,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { resolvedTheme, toggleTheme } = useTheme()
 
   const [profile, setProfile] = useState<{ email_verified: boolean; phone_verified: boolean } | null>(null)
 
@@ -436,7 +437,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 }}
                 title="Toggle Theme"
               >
-                {theme === 'light' ? (
+                {resolvedTheme === 'light' ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                   </svg>
@@ -566,7 +567,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               ⚠️ <strong>Verification Required:</strong> You must verify your email and phone number to upload resumes, apply to jobs, or schedule interviews. <Link to="/candidate/profile" style={{ textDecoration: 'underline', fontWeight: 600 }}>Go to Profile Settings</Link> to complete verification.
             </div>
           )}
-          {children}
+          <AnimatedPage key={pathname}>{children}</AnimatedPage>
         </main>
       </div>
 

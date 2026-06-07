@@ -126,6 +126,13 @@
   --danger: #d32f2f;
   --danger-bg: #ffebee;
 
+  /* Custom UI helper variables mapped to Steep colors */
+  --color-cork-shadow: rgba(23, 25, 28, 0.08);
+  --color-burnt-sienna: var(--color-rust);
+  --color-dark-cork: var(--color-ink);
+  --color-warm-cream: var(--color-pure-white);
+  --color-grey-brown: var(--color-ash);
+
   /* Mapping old space scales to new spacing scale */
   --space-1: var(--spacing-4);
   --space-2: var(--spacing-8);
@@ -160,6 +167,61 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
   --duration-normal: 220ms;
+}
+
+[data-theme="dark"] {
+  /* Steep Dark Mode Surfaces */
+  --surface-canvas: #0f1012;
+  --surface-fog: #17191c;
+  --surface-card: #1c1e21;
+  --surface-warm-tint: #2d1b15;
+  --surface-cool-tint: #1b263b;
+  --surface-ink: #ffffff;
+
+  /* Steep Dark Mode Colors */
+  --color-ink: #ffffff;
+  --color-pure-white: #ffffff;
+  --color-fog: #17191c;
+  --color-ash: #cccccc;
+  --color-graphite: #a3a6af;
+  --color-dove: #3e4249;
+  --color-slate: #5e626e;
+  --color-obsidian: #000000;
+  --color-rust: #fa9f82; /* contrast accessibility rust */
+  --color-apricot-wash: #2d1b15;
+  --color-sky-wash: #1b263b;
+
+  /* Override Layout & System variables */
+  --bg: var(--surface-canvas);
+  --bg-subtle: var(--surface-fog);
+  --surface: var(--surface-card);
+  --surface-raised: var(--surface-card);
+  --surface-inset: var(--surface-fog);
+  --text: var(--color-ink);
+  --text-secondary: var(--color-ash);
+  --text-tertiary: var(--color-graphite);
+  --text-inverse: var(--color-obsidian);
+  --border: var(--color-dove);
+  --border-strong: var(--color-pure-white);
+  --accent: var(--color-rust);
+  --accent-hover: var(--color-pure-white);
+  --accent-muted: var(--color-apricot-wash);
+  --accent-subtle: var(--color-sky-wash);
+
+  /* Specific color name mappings utilized in the UI layout styles */
+  --color-cork-shadow: rgba(255, 255, 255, 0.12);
+  --color-burnt-sienna: var(--color-rust);
+  --color-dark-cork: #1c1e21;
+  --color-warm-cream: #ffffff;
+  --color-grey-brown: var(--color-ash);
+
+  /* Alert / validation states */
+  --success: #81c784;
+  --success-bg: #1b5e20;
+  --warning: #ffb74d;
+  --warning-bg: #e65100;
+  --danger: #e57373;
+  --danger-bg: #b71c1c;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -436,13 +498,13 @@ button {
 
 /* Cards */
 .card {
-  background: var(--bg);
+  background: var(--surface-card);
   border: 1px dashed var(--color-cork-shadow);
   border-radius: var(--radius-cards);
 }
 
 .card--flat {
-  background: var(--bg);
+  background: var(--surface-card);
   border: 1px solid var(--color-cork-shadow);
 }
 
@@ -749,14 +811,14 @@ button {
   align-items: flex-start;
   gap: var(--space-4);
   padding: var(--space-5);
-  background: var(--bg);
+  background: var(--surface-card);
   border: 1px solid var(--color-cork-shadow);
   border-radius: var(--radius-cards);
 }
 
 /* Data table */
 .table-wrap {
-  background: var(--bg);
+  background: var(--surface-card);
   border: 1px solid var(--color-cork-shadow);
   border-radius: var(--radius-inputs);
   overflow: hidden;
@@ -1223,3 +1285,24 @@ button {
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }
 .text-accent { color: var(--accent); }
+
+/* Shimmer Pulse Loading */
+.shimmer-pulse {
+  background: linear-gradient(90deg, rgba(119, 123, 134, 0.08) 25%, rgba(119, 123, 134, 0.18) 50%, rgba(119, 123, 134, 0.08) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.theme-purple-dream .shimmer-pulse {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

@@ -1,14 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
 import type { DataTableColumn, DataTableFilter, DataTableBulkAction } from '../components/DataTable'
 import CandidateDrawer from '../components/CandidateDrawer'
 import { fetchApplications, fetchJobs, updateApplicationStatus, type Application, type Job } from '../api'
 import { scoreClass } from '../utils/score'
+import EmptyState from '../components/EmptyState'
 
 export default function CandidateDirectory() {
+  const navigate = useNavigate()
   const [applications, setApplications] = useState<Application[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
   // Filter states
   const [stageFilter, setStageFilter] = useState('')
   const [jobFilter, setJobFilter] = useState('')
@@ -18,6 +22,7 @@ export default function CandidateDirectory() {
   const [drawerTab, setDrawerTab] = useState<'overview' | 'screening' | 'interviews' | 'offers' | 'timeline'>('overview')
 
   const loadData = async () => {
+    setLoading(true)
     try {
       const [appList, jobList] = await Promise.all([
         fetchApplications(),
@@ -27,6 +32,8 @@ export default function CandidateDirectory() {
       setJobs(jobList)
     } catch (err) {
       console.error('Error loading candidate records:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -237,15 +244,26 @@ export default function CandidateDirectory() {
         </header>
 
         {/* Generic DataTable Component */}
-        <DataTable
-          data={applications}
-          columns={columns}
-          getRowId={(app) => app.id}
-          searchPlaceholder="Search candidates by name, email, or job role..."
-          searchKeys={['candidate.full_name', 'candidate.email', 'job.title']}
-          filters={dataFilters}
-          bulkActions={bulkActions}
-        />
+        {!loading && applications.length === 0 ? (
+          <EmptyState
+            type="applications"
+            title="No Candidates Found"
+            description="There are currently no active applications or screened candidate records tracked in your workspace."
+            actionLabel="Return to Command Center"
+            onAction={() => navigate('/recruiter/dashboard')}
+          />
+        ) : (
+          <DataTable
+            data={applications}
+            columns={columns}
+            getRowId={(app) => app.id}
+            searchPlaceholder="Search candidates by name, email, or job role..."
+            searchKeys={['candidate.full_name', 'candidate.email', 'job.title']}
+            filters={dataFilters}
+            bulkActions={bulkActions}
+            loading={loading}
+          />
+        )}
 
         {/* Flagship Candidate Detail Drawer */}
         {selectedApp && (

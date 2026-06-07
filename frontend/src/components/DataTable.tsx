@@ -1,4 +1,18 @@
 import { useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 5 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: Math.min(i * 0.03, 0.3),
+      duration: 0.2,
+      ease: 'easeOut' as any
+    }
+  })
+}
 
 export interface DataTableColumn<T> {
   key: string
@@ -33,6 +47,7 @@ interface DataTableProps<T> {
   filters?: DataTableFilter[]
   bulkActions?: DataTableBulkAction[]
   defaultPageSize?: number
+  loading?: boolean
 }
 
 export default function DataTable<T>({
@@ -44,6 +59,7 @@ export default function DataTable<T>({
   filters,
   bulkActions,
   defaultPageSize = 10,
+  loading = false,
 }: DataTableProps<T>) {
   // 1. Core State Hooks
   const [searchQuery, setSearchQuery] = useState('')
@@ -386,17 +402,35 @@ export default function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((item) => {
+            {loading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                  {bulkActions && bulkActions.length > 0 && (
+                    <td style={{ padding: '14px var(--space-4)', textAlign: 'center' }}>
+                      <div className="shimmer-pulse" style={{ width: '16px', height: '16px', borderRadius: '4px', margin: '0 auto' }} />
+                    </td>
+                  )}
+                  {activeVisibleColumns.map((col) => (
+                    <td key={col.key} className={col.hideOnMobile ? 'desktop-only' : ''} style={{ padding: '14px var(--space-4)' }}>
+                      <div className="shimmer-pulse" style={{ height: '14px', width: '80%', borderRadius: '4px' }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : paginatedData.length > 0 ? (
+              paginatedData.map((item, index) => {
                 const rowId = getRowId(item)
                 const isSelected = selectedIds.includes(rowId)
 
                 return (
-                  <tr
+                  <motion.tr
                     key={rowId}
+                    custom={index}
+                    initial="hidden"
+                    animate="visible"
+                    variants={rowVariants}
                     style={{
                       background: isSelected ? 'var(--accent-subtle)' : 'transparent',
-                      transition: 'background var(--duration-fast)',
                       borderBottom: '1px solid var(--border)'
                     }}
                   >
@@ -426,7 +460,7 @@ export default function DataTable<T>({
                         {col.render ? col.render(item) : (item as any)[col.key] || '—'}
                       </td>
                     ))}
-                  </tr>
+                  </motion.tr>
                 )
               })
             ) : (

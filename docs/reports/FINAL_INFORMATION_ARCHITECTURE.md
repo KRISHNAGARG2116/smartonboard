@@ -92,7 +92,7 @@ The Recruiter Dashboard includes first-class AI elements, KPI summaries, and exp
 
 ```
 +-----------------------------------------------------------------------------------+
-|  ORYZO  (Workspace Name)                     [Quick Search]  [Recruiter Name v]  |
+|  SmartOnboard (Workspace Name)               [Quick Search]  [Recruiter Name v]  |
 +-----------------------------------------------------------------------------------+
 |  [DASHBOARD]                                                                      |
 |  [JOBS]        +-----------------------------------+----------------------------+ |
@@ -130,7 +130,7 @@ The Candidate Dashboard focuses entirely on matching status and onboarding check
 
 ```
 +-----------------------------------------------------------------------------------+
-|  ORYZO  (Candidate Profile)                                    [Candidate Name v] |
+|  SmartOnboard (Candidate Profile)                              [Candidate Name v] |
 +-----------------------------------------------------------------------------------+
 |  [DASHBOARD]                                                                      |
 |  [JOBS]        +---------------------------------------+------------------------+ |

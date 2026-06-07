@@ -6,7 +6,7 @@ This report defines the guided, step-by-step onboarding journeys for new Recruit
 
 ## 1. Onboarding Detection and State Tracking
 
-1. **Detection Flag**: We will use a state attribute in the user profile model (or local persistent storage metadata `oryzo_onboarded_v1`) to track whether a user has finished their onboarding wizard.
+1. **Detection Flag**: We will use a state attribute in the user profile model (or local persistent storage metadata `smartonboard_onboarded_v1`) to track whether a user has finished their onboarding wizard.
 2. **Workflow Guard**: If `has_onboarded` is false, the user dashboard will render a full-screen, focused stepper wizard. Standard navigation links in the sidebar are disabled/locked during this flow to prevent users from escaping the onboarding sequence.
 
 ---

@@ -209,7 +209,7 @@ All sensitive operations across both candidate and recruiter endpoints log struc
 | Audit logging | — | ✅ PASS |
 | Candidate verification guards | HIGH | ⚠️ PARTIAL — 4 endpoints missing `VerifiedCandidate` |
 | Onboarding enforcement | HIGH | ❌ FAIL — frontend-only, dashboard-only, bypassable |
-| localStorage key naming | LOW | ❌ FAIL — uses legacy `oryzo_` prefix |
+| localStorage key naming | LOW | ❌ FAIL — uses legacy `smartonboard_` prefix |
 | Wildcard route handling | — | ✅ PASS |
 
 ---
@@ -240,8 +240,8 @@ All sensitive operations across both candidate and recruiter endpoints log struc
 ### P2 — Medium Priority
 
 5. **Rename localStorage keys:**
-   - `oryzo_onboarded_candidate_{email}` → `smartonboard_onboarded_candidate_{email}`
-   - `oryzo_onboarded_recruiter_{email}` → `smartonboard_onboarded_recruiter_{email}`
+   - `smartonboard_onboarded_candidate_{email}` → `smartonboard_onboarded_candidate_{email}`
+   - `smartonboard_onboarded_recruiter_{email}` → `smartonboard_onboarded_recruiter_{email}`
    - Include migration logic for existing users
 
 6. **Add backend onboarding enforcement middleware:**

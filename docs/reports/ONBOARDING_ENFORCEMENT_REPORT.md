@@ -14,7 +14,7 @@ The onboarding wizard system has **critical enforcement gaps**:
 
 1. **Onboarding state is localStorage-only** — there is **no backend enforcement** of onboarding completion
 2. **Only the Dashboard pages** check onboarding state — all other workspace pages are accessible without completing onboarding
-3. **The localStorage keys still use the legacy `oryzo_` prefix** instead of `smartonboard_`
+3. **The localStorage keys still use the legacy `smartonboard_` prefix** instead of `smartonboard_`
 4. **The wizard is cosmetic** — it does not actually perform the operations it describes (e.g., resume upload, email/phone OTP verification)
 
 ---
@@ -28,9 +28,9 @@ The onboarding wizard system has **critical enforcement gaps**:
 ### State Storage
 ```javascript
 // READ (line 20)
-localStorage.getItem(`oryzo_onboarded_candidate_${user?.email}`)
+localStorage.getItem(`smartonboard_onboarded_candidate_${user?.email}`)
 // WRITE (line 73)
-localStorage.setItem(`oryzo_onboarded_candidate_${user?.email}`, 'true')
+localStorage.setItem(`smartonboard_onboarded_candidate_${user?.email}`, 'true')
 ```
 
 ### Wizard Steps (6 total)
@@ -51,7 +51,7 @@ localStorage.setItem(`oryzo_onboarded_candidate_${user?.email}`, 'true')
 | Wizard blocks other candidate pages | ❌ FAIL |
 | Wizard actually performs verification | ❌ FAIL — cosmetic only |
 | Backend enforces onboarding completion | ❌ FAIL — no backend check |
-| localStorage key uses correct prefix | ❌ FAIL — uses `oryzo_` prefix |
+| localStorage key uses correct prefix | ❌ FAIL — uses `smartonboard_` prefix |
 
 ---
 
@@ -64,9 +64,9 @@ localStorage.setItem(`oryzo_onboarded_candidate_${user?.email}`, 'true')
 ### State Storage
 ```javascript
 // READ (line 41)
-localStorage.getItem(`oryzo_onboarded_recruiter_${user?.email}`)
+localStorage.getItem(`smartonboard_onboarded_recruiter_${user?.email}`)
 // WRITE (line 404)
-localStorage.setItem(`oryzo_onboarded_recruiter_${user?.email}`, 'true')
+localStorage.setItem(`smartonboard_onboarded_recruiter_${user?.email}`, 'true')
 ```
 
 ### Wizard Steps (5 total)
@@ -86,7 +86,7 @@ localStorage.setItem(`oryzo_onboarded_recruiter_${user?.email}`, 'true')
 | Wizard blocks other recruiter pages | ❌ FAIL |
 | Wizard actually performs actions | ❌ FAIL — cosmetic only |
 | Backend enforces onboarding completion | ❌ FAIL — no backend check |
-| localStorage key uses correct prefix | ❌ FAIL — uses `oryzo_` prefix |
+| localStorage key uses correct prefix | ❌ FAIL — uses `smartonboard_` prefix |
 
 ---
 
@@ -140,8 +140,8 @@ The onboarding check only exists in `CandidateDashboard.tsx` and `RecruiterDashb
    - Redirect to dashboard (which shows wizard) if onboarding not complete
    - This prevents bypass via direct URL navigation
 
-2. **Rename localStorage keys from `oryzo_` to `smartonboard_`**
-   - Current keys: `oryzo_onboarded_candidate_{email}`, `oryzo_onboarded_recruiter_{email}`
+2. **Rename localStorage keys from `smartonboard_` to `smartonboard_`**
+   - Current keys: `smartonboard_onboarded_candidate_{email}`, `smartonboard_onboarded_recruiter_{email}`
    - Target keys: `smartonboard_onboarded_candidate_{email}`, `smartonboard_onboarded_recruiter_{email}`
    - Add migration logic to read old keys and write new keys
 

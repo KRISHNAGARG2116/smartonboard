@@ -32,5 +32,18 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     }
   }
 
+  // Onboarding Guard Check
+  if (user.role === 'candidate') {
+    const onboarded = localStorage.getItem(`smartonboard_onboarded_candidate_${user.email}`) === 'true'
+    if (!onboarded && location.pathname !== '/candidate/dashboard') {
+      return <Navigate to="/candidate/dashboard" replace />
+    }
+  } else {
+    const onboarded = localStorage.getItem(`smartonboard_onboarded_recruiter_${user.email}`) === 'true'
+    if (!onboarded && location.pathname !== '/recruiter/dashboard') {
+      return <Navigate to="/recruiter/dashboard" replace />
+    }
+  }
+
   return children
 }

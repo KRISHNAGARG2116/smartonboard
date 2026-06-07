@@ -1,19 +1,28 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import CandidateLayout from '../../components/CandidateLayout'
 import CandidateOnboardingWizard from '../../components/CandidateOnboardingWizard'
+import AnimatedCounter from '../../components/AnimatedCounter'
+import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
+import EmptyState from '../../components/EmptyState'
 import {
   fetchCandidateResumes,
   fetchCandidateProfile,
   fetchMyApplications,
   fetchMyInterviews,
   updateCandidateProfile,
-  fetchJobFeed
+  fetchJobFeed,
+  type CandidateResume,
+  type CandidateApplicationItem,
+  type CandidateInterviewItem,
+  type JobFeedItem,
+  type CandidateMeResponse
 } from '../../api'
 
 export default function CandidateDashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   
   // Onboarding wizard completion state
   const [hasOnboarded, setHasOnboarded] = useState(() => {
@@ -21,11 +30,11 @@ export default function CandidateDashboard() {
   })
 
   // Core Data States
-  const [resumes, setResumes] = useState<any[]>([])
-  const [applications, setApplications] = useState<any[]>([])
-  const [interviews, setInterviews] = useState<any[]>([])
-  const [profile, setProfile] = useState<any>(null)
-  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([])
+  const [resumes, setResumes] = useState<CandidateResume[]>([])
+  const [applications, setApplications] = useState<CandidateApplicationItem[]>([])
+  const [interviews, setInterviews] = useState<CandidateInterviewItem[]>([])
+  const [profile, setProfile] = useState<CandidateMeResponse['profile']>(null)
+  const [recommendedJobs, setRecommendedJobs] = useState<JobFeedItem[]>([])
   
   // UI Loading/Saving states
   const [loading, setLoading] = useState(true)
@@ -151,7 +160,7 @@ export default function CandidateDashboard() {
   
   // Get active resume and calculate track scores dynamically
   const activeResume = resumes.find(r => r.is_active) || resumes[0]
-  const candidateSkills = activeResume?.parsed_skills || profile?.skills || []
+  const candidateSkills = activeResume?.parsed_skills || []
 
   const calculateTrackScore = (candSkills: string[], trackSkills: string[], maxRequired = 3) => {
     if (candSkills.length === 0) return 0
@@ -213,47 +222,57 @@ export default function CandidateDashboard() {
                 gap: 'var(--space-4)' 
               }}
             >
-              {/* Resume Library Card */}
-              <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume Status</span>
-                  <span style={{ fontSize: '18px' }}>📄</span>
-                </div>
-                <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                  {resumes.length} <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 400 }}>/ 3 Uploaded</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                  {resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
-                </div>
-              </Link>
+              {loading ? (
+                <>
+                  <KpiCardSkeleton />
+                  <KpiCardSkeleton />
+                  <KpiCardSkeleton />
+                </>
+              ) : (
+                <>
+                  {/* Resume Library Card */}
+                  <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume Status</span>
+                      <span style={{ fontSize: '18px' }}>📄</span>
+                    </div>
+                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                      <AnimatedCounter value={resumes.length} /> <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 400 }}>/ 3 Uploaded</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                      {resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
+                    </div>
+                  </Link>
 
-              {/* Applications Card */}
-              <Link to="/candidate/applications" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Applications</span>
-                  <span style={{ fontSize: '18px' }}>📨</span>
-                </div>
-                <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                  {applications.length}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                  Submitted applications tracking
-                </div>
-              </Link>
+                  {/* Applications Card */}
+                  <Link to="/candidate/applications" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Applications</span>
+                      <span style={{ fontSize: '18px' }}>📨</span>
+                    </div>
+                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                      <AnimatedCounter value={applications.length} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                      Submitted applications tracking
+                    </div>
+                  </Link>
 
-              {/* Interviews Card */}
-              <Link to="/candidate/interviews" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Interviews</span>
-                  <span style={{ fontSize: '18px' }}>📅</span>
-                </div>
-                <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                  {activeInterviews.length}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                  Scheduled recruiter synchronization
-                </div>
-              </Link>
+                  {/* Interviews Card */}
+                  <Link to="/candidate/interviews" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Interviews</span>
+                      <span style={{ fontSize: '18px' }}>📅</span>
+                    </div>
+                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                      <AnimatedCounter value={activeInterviews.length} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                      Scheduled recruiter synchronization
+                    </div>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Setup Checklist */}
@@ -271,9 +290,11 @@ export default function CandidateDashboard() {
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 {loading ? (
-                  <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    Loading checklist...
-                  </div>
+                  <>
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                  </>
                 ) : (
                   pendingChecklist.map((task) => (
                     <div 
@@ -351,7 +372,7 @@ export default function CandidateDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Frontend Roles</span>
-                      <span style={{ color: 'var(--color-burnt-sienna)', fontWeight: 650 }}>{frontendScore}%</span>
+                      <span style={{ color: 'var(--color-burnt-sienna)', fontWeight: 650 }}><AnimatedCounter value={`${frontendScore}%`} /></span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
                       <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${frontendScore}%`, borderRadius: '4px' }} />
@@ -361,7 +382,7 @@ export default function CandidateDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Backend Roles</span>
-                      <span style={{ color: 'var(--text)', fontWeight: 600 }}>{backendScore}%</span>
+                      <span style={{ color: 'var(--text)', fontWeight: 600 }}><AnimatedCounter value={`${backendScore}%`} /></span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
                       <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${backendScore}%`, opacity: 0.8, borderRadius: '4px' }} />
@@ -371,7 +392,7 @@ export default function CandidateDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>DevOps Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{devopsScore}%</span>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}><AnimatedCounter value={`${devopsScore}%`} /></span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
                       <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${devopsScore}%`, opacity: 0.6, borderRadius: '4px' }} />
@@ -381,7 +402,7 @@ export default function CandidateDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 500 }}>Data Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{dataScore}%</span>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}><AnimatedCounter value={`${dataScore}%`} /></span>
                     </div>
                     <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
                       <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${dataScore}%`, opacity: 0.4, borderRadius: '4px' }} />
@@ -428,7 +449,12 @@ export default function CandidateDashboard() {
                 <Link to="/candidate/jobs" style={{ fontSize: '12px', color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Explore Feed &rarr;</Link>
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {recommendedJobs.length > 0 ? (
+                {loading ? (
+                  <>
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                  </>
+                ) : recommendedJobs.length > 0 ? (
                   recommendedJobs.slice(0, 3).map((job) => (
                     <div key={job.id} style={{
                       border: '1px solid var(--color-cork-shadow)',
@@ -459,9 +485,13 @@ export default function CandidateDashboard() {
                     </div>
                   ))
                 ) : (
-                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '24px 0' }}>
-                    No job openings currently in feed. Check back later!
-                  </div>
+                  <EmptyState
+                    type="jobs"
+                    title="No Job Matches Found"
+                    description="No job recommendations currently fit your profile. Set your active resume or check the full job feed."
+                    actionLabel="View All Jobs"
+                    onAction={() => navigate('/candidate/jobs')}
+                  />
                 )}
               </div>
             </div>
@@ -475,7 +505,12 @@ export default function CandidateDashboard() {
                 </p>
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                {activeInterviews.length > 0 ? (
+                {loading ? (
+                  <>
+                    <ListRowSkeleton />
+                    <ListRowSkeleton />
+                  </>
+                ) : activeInterviews.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                     {activeInterviews.map((iv) => (
                       <div 
@@ -521,17 +556,13 @@ export default function CandidateDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div 
-                    style={{ 
-                      border: '1px dashed var(--color-cork-shadow)',
-                      borderRadius: 'var(--radius-xl)',
-                      padding: 'var(--space-8) var(--space-4)',
-                      textAlign: 'center',
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    📅 No upcoming interviews scheduled at this time. When a recruiter invites you to schedule, you will receive a scheduling link and booking options.
-                  </div>
+                  <EmptyState
+                    type="interviews"
+                    title="No Coordinated Interviews"
+                    description="No live panels are currently active. When a recruiter invites you to schedule, options will appear here."
+                    actionLabel="View My Calendar"
+                    onAction={() => navigate('/candidate/interviews')}
+                  />
                 )}
               </div>
             </div>
@@ -574,7 +605,7 @@ export default function CandidateDashboard() {
                       color: 'var(--text)'
                     }}
                   >
-                    {profileCompletion}%
+                    <AnimatedCounter value={`${profileCompletion}%`} />
                   </div>
                 </div>
 
@@ -615,10 +646,6 @@ export default function CandidateDashboard() {
                   ) : (
                     <span className="badge badge--interview">Unverified</span>
                   )}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Identity Crypt</span>
-                  <span className="badge badge--neutral">Unlinked</span>
                 </div>
               </div>
             </div>
