@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchJobs, fetchApplications } from '../api'
 import AnimatedPage from './AnimatedPage'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -313,7 +313,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               height: '32px',
               minWidth: '32px',
               borderRadius: '0px',
-              background: '#382416',
+              background: 'var(--accent)',
               display: 'grid',
               placeItems: 'center',
               color: 'var(--text)',
@@ -1070,7 +1070,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             transition: 'background var(--duration-normal)',
           }}
         >
-          <AnimatedPage key={pathname}>{children}</AnimatedPage>
+          <AnimatePresence mode="wait">
+            <AnimatedPage key={pathname}>{children}</AnimatedPage>
+          </AnimatePresence>
         </main>
       </div>
 

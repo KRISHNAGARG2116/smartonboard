@@ -24,11 +24,11 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
     width: '100%',
     background: 'transparent',
     border: 'none',
-    borderBottom: '1px solid var(--color-warm-cream)',
+    borderBottom: '1px solid var(--border)',
     borderRadius: 0,
     padding: '8px 0',
     fontSize: 15,
-    color: '#ffedd7',
+    color: 'var(--text)',
     outline: 'none',
     boxSizing: 'border-box',
     marginTop: 8
@@ -38,17 +38,17 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: '#100904',
+      background: 'var(--bg)',
       zIndex: 2000,
       display: 'grid',
       placeItems: 'center',
       padding: 24,
-      fontFamily: "'Plus Jakarta Sans', sans-serif"
+      fontFamily: "var(--font-sans)"
     }}>
       <div style={{
         maxWidth: 500,
         width: '100%',
-        border: '1px solid var(--color-warm-cream)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: 40,
         boxSizing: 'border-box'
@@ -62,7 +62,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
         {/* Step Content */}
         {step === 1 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Create Profile bio</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Create Profile bio</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Briefly describe your career focus and primary programming background.
             </p>
@@ -81,7 +81,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
 
         {step === 2 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Upload Primary Resume</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Upload Primary Resume</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Load your first parsed resume file to establish matching keywords.
             </p>
@@ -100,7 +100,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
 
         {step === 3 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Verify Email OTP</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Verify Email OTP</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Verify your profile email authentication state.
             </p>
@@ -119,7 +119,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
 
         {step === 4 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Verify Phone SMS OTP</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Verify Phone SMS OTP</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Confirm your contact phone identity.
             </p>
@@ -138,7 +138,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
 
         {step === 5 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Confirm Primary Skills</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Confirm Primary Skills</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Confirm your key matching keywords and programming experience.
             </p>
@@ -156,7 +156,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
 
         {step === 6 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Setup Complete!</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Setup Complete!</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Your profile is verified. You are now ready to view recommended roles and submit applications. Let's enter your Career Hub.
             </p>
@@ -168,7 +168,7 @@ export default function CandidateOnboardingWizard({ onComplete }: CandidateOnboa
           <button 
             onClick={handleNext}
             className="btn btn--primary" 
-            style={{ borderRadius: 36, padding: '12px 32px' }}
+            style={{ borderRadius: 'var(--radius-buttons)', padding: '12px 32px' }}
           >
             {step === 6 ? 'Enter Dashboard' : 'Next Step'}
           </button>

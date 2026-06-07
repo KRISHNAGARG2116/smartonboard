@@ -76,7 +76,7 @@ export default function RecruiterJobs() {
           <button 
             onClick={() => setIsModalOpen(true)}
             className="btn btn--primary" 
-            style={{ borderRadius: 36 }}
+            style={{ borderRadius: 'var(--radius-buttons)' }}
           >
             Create Job
           </button>
@@ -134,15 +134,15 @@ export default function RecruiterJobs() {
           <div style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(16, 9, 4, 0.8)',
+            background: 'rgba(0, 0, 0, 0.75)',
             display: 'grid',
             placeItems: 'center',
             zIndex: 100,
             padding: 24
           }}>
             <div style={{
-              background: '#100904',
-              border: '1px solid var(--color-warm-cream)',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               padding: 32,
               maxWidth: 480,
@@ -168,7 +168,7 @@ export default function RecruiterJobs() {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      borderBottom: '1px solid var(--color-warm-cream)',
+                      borderBottom: '1px solid var(--border)',
                       borderRadius: 0,
                       padding: '8px 0',
                       fontSize: 15,
@@ -190,7 +190,7 @@ export default function RecruiterJobs() {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      borderBottom: '1px solid var(--color-warm-cream)',
+                      borderBottom: '1px solid var(--border)',
                       borderRadius: 0,
                       padding: '8px 0',
                       fontSize: 15,
@@ -199,10 +199,10 @@ export default function RecruiterJobs() {
                       cursor: 'pointer'
                     }}
                   >
-                    <option value="Engineering" style={{ background: '#100904' }}>Engineering</option>
-                    <option value="Product" style={{ background: '#100904' }}>Product</option>
-                    <option value="Design" style={{ background: '#100904' }}>Design</option>
-                    <option value="Operations" style={{ background: '#100904' }}>Operations</option>
+                    <option value="Engineering" style={{ background: 'var(--bg)' }}>Engineering</option>
+                    <option value="Product" style={{ background: 'var(--bg)' }}>Product</option>
+                    <option value="Design" style={{ background: 'var(--bg)' }}>Design</option>
+                    <option value="Operations" style={{ background: 'var(--bg)' }}>Operations</option>
                   </select>
                 </div>
 
@@ -220,7 +220,7 @@ export default function RecruiterJobs() {
                     style={{
                       width: '100%',
                       background: 'transparent',
-                      border: '1px solid var(--color-cork-shadow)',
+                      border: '1px solid var(--border)',
                       borderRadius: 12,
                       padding: '12px',
                       fontSize: 14,
@@ -245,7 +245,7 @@ export default function RecruiterJobs() {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      borderBottom: '1px solid var(--color-warm-cream)',
+                      borderBottom: '1px solid var(--border)',
                       borderRadius: 0,
                       padding: '8px 0',
                       fontSize: 15,
@@ -260,7 +260,7 @@ export default function RecruiterJobs() {
                     type="button" 
                     onClick={() => setIsModalOpen(false)}
                     className="btn btn--secondary" 
-                    style={{ borderRadius: 22.5 }}
+                    style={{ borderRadius: 'var(--radius-buttons)' }}
                   >
                     Cancel
                   </button>
@@ -268,7 +268,7 @@ export default function RecruiterJobs() {
                     type="submit" 
                     disabled={submitting}
                     className="btn btn--primary" 
-                    style={{ borderRadius: 36, opacity: submitting ? 0.6 : 1 }}
+                    style={{ borderRadius: 'var(--radius-buttons)', opacity: submitting ? 0.6 : 1 }}
                   >
                     {submitting ? 'Creating...' : 'Create Job'}
                   </button>

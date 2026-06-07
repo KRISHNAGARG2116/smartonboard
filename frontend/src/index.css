@@ -68,6 +68,8 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
   --duration-normal: 220ms;
+  --radius-buttons-pill: var(--radius-buttons);
+  --radius-buttons-rounded: var(--radius-xl);
 }
 
 [data-theme="dark"] {

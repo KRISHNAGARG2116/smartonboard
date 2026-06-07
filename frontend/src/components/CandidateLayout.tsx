@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchCandidateProfile } from '../api'
 import AnimatedPage from './AnimatedPage'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface CandidateLayoutProps {
   children: ReactNode
@@ -177,7 +177,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               width: '32px',
               height: '32px',
               borderRadius: '0px',
-              background: '#382416',
+              background: 'var(--accent)',
               display: 'grid',
               placeItems: 'center',
               color: 'var(--text)',
@@ -311,7 +311,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 width: '32px',
                 height: '32px',
                 borderRadius: '0px',
-                background: '#382416',
+                background: 'var(--accent)',
                 display: 'grid',
                 placeItems: 'center',
                 color: 'var(--text)',
@@ -504,7 +504,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: '#382416',
+                      background: 'var(--accent)',
                       display: 'grid',
                       placeItems: 'center',
                       color: 'var(--text)',
@@ -596,7 +596,9 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               ⚠️ <strong>Verification Required:</strong> You must verify your email and phone number to upload resumes, apply to jobs, or schedule interviews. <Link to="/candidate/profile" style={{ textDecoration: 'underline', fontWeight: 600 }}>Go to Profile Settings</Link> to complete verification.
             </div>
           )}
-          <AnimatedPage key={pathname}>{children}</AnimatedPage>
+          <AnimatePresence mode="wait">
+            <AnimatedPage key={pathname}>{children}</AnimatedPage>
+          </AnimatePresence>
         </main>
       </div>
 

@@ -36,14 +36,65 @@ export default function Landing() {
     }
   }
 
+  const headlineWords = "AI-Powered Hiring & Candidate Management".split(' ')
+
   return (
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg)',
       color: 'var(--text)',
       fontFamily: "var(--font-sans)",
-      overflowX: 'hidden'
+      overflowX: 'hidden',
+      position: 'relative'
     }}>
+      {/* Background Decorative Parallax Blobs */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+        <motion.div
+          animate={{
+            y: [0, -15, 0],
+            x: [0, 10, 0]
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          style={{
+            position: 'absolute',
+            top: '15%',
+            left: '10%',
+            width: '300px',
+            height: '300px',
+            background: 'var(--accent-subtle)',
+            filter: 'blur(120px)',
+            opacity: 0.2,
+            borderRadius: '50%'
+          }}
+        />
+        <motion.div
+          animate={{
+            y: [0, 20, 0],
+            x: [0, -15, 0]
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          style={{
+            position: 'absolute',
+            top: '40%',
+            right: '10%',
+            width: '350px',
+            height: '350px',
+            background: 'var(--accent-muted)',
+            filter: 'blur(140px)',
+            opacity: 0.18,
+            borderRadius: '50%'
+          }}
+        />
+      </div>
+
       {/* Top Navbar */}
       <header style={{
         position: 'sticky',
@@ -62,6 +113,8 @@ export default function Landing() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 'var(--space-4)',
+          position: 'relative',
+          zIndex: 1
         }}>
           {/* Logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', fontWeight: 500, fontSize: 'var(--text-lg)', letterSpacing: '0.04em', color: 'var(--text)', textDecoration: 'none' }}>
@@ -111,6 +164,8 @@ export default function Landing() {
           padding: 'var(--space-16) var(--space-6)',
           maxWidth: 900,
           margin: '0 auto',
+          position: 'relative',
+          zIndex: 1
         }}
       >
         <span style={{
@@ -133,7 +188,21 @@ export default function Landing() {
           margin: 'var(--space-2) 0 var(--space-4)',
           maxWidth: '20ch'
         }}>
-          AI-Powered Hiring & Candidate Management
+          {headlineWords.map((word, i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.3,
+                delay: i * 0.05,
+                ease: [0.16, 1, 0.3, 1]
+              }}
+              style={{ display: 'inline-block', marginRight: '0.25em' }}
+            >
+              {word}
+            </motion.span>
+          ))}
         </h1>
 
         <p style={{

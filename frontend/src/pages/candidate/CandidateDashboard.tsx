@@ -6,6 +6,29 @@ import CandidateOnboardingWizard from '../../components/CandidateOnboardingWizar
 import AnimatedCounter from '../../components/AnimatedCounter'
 import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
 import EmptyState from '../../components/EmptyState'
+import { motion, type Variants } from 'framer-motion'
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: 'easeOut' as any
+    }
+  }
+}
 import {
   fetchCandidateResumes,
   fetchCandidateProfile,
@@ -215,7 +238,10 @@ export default function CandidateDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', minWidth: 0 }}>
             
             {/* Overview Stats Cards */}
-            <div 
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
               style={{ 
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
@@ -231,49 +257,67 @@ export default function CandidateDashboard() {
               ) : (
                 <>
                   {/* Resume Library Card */}
-                  <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume Status</span>
-                      <span style={{ fontSize: '18px' }}>📄</span>
-                    </div>
-                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                      <AnimatedCounter value={resumes.length} /> <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 400 }}>/ 3 Uploaded</span>
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                      {resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
-                    </div>
-                  </Link>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -2, scale: 1.015 }}
+                    style={{ display: 'flex', flexDirection: 'column' }}
+                  >
+                    <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume Status</span>
+                        <span style={{ fontSize: '18px' }}>📄</span>
+                      </div>
+                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                        <AnimatedCounter value={resumes.length} /> <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 400 }}>/ 3 Uploaded</span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                        {resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
+                      </div>
+                    </Link>
+                  </motion.div>
 
                   {/* Applications Card */}
-                  <Link to="/candidate/applications" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Applications</span>
-                      <span style={{ fontSize: '18px' }}>📨</span>
-                    </div>
-                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                      <AnimatedCounter value={applications.length} />
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                      Submitted applications tracking
-                    </div>
-                  </Link>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -2, scale: 1.015 }}
+                    style={{ display: 'flex', flexDirection: 'column' }}
+                  >
+                    <Link to="/candidate/applications" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Applications</span>
+                        <span style={{ fontSize: '18px' }}>📨</span>
+                      </div>
+                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                        <AnimatedCounter value={applications.length} />
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                        Submitted applications tracking
+                      </div>
+                    </Link>
+                  </motion.div>
 
                   {/* Interviews Card */}
-                  <Link to="/candidate/interviews" className="card card__body" style={{ textDecoration: 'none', background: 'transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Interviews</span>
-                      <span style={{ fontSize: '18px' }}>📅</span>
-                    </div>
-                    <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                      <AnimatedCounter value={activeInterviews.length} />
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                      Scheduled recruiter synchronization
-                    </div>
-                  </Link>
+                  <motion.div
+                    variants={itemVariants}
+                    whileHover={{ y: -2, scale: 1.015 }}
+                    style={{ display: 'flex', flexDirection: 'column' }}
+                  >
+                    <Link to="/candidate/interviews" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Interviews</span>
+                        <span style={{ fontSize: '18px' }}>📅</span>
+                      </div>
+                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
+                        <AnimatedCounter value={activeInterviews.length} />
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+                        Scheduled recruiter synchronization
+                      </div>
+                    </Link>
+                  </motion.div>
                 </>
               )}
-            </div>
+            </motion.div>
 
             {/* Setup Checklist */}
             <div className="card" style={{ background: 'transparent' }}>

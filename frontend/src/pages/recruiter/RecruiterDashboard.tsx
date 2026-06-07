@@ -6,6 +6,29 @@ import { useAuth } from '../../context/AuthContext'
 import RecruiterOnboardingWizard from '../../components/RecruiterOnboardingWizard'
 import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
 import EmptyState from '../../components/EmptyState'
+import { motion, type Variants } from 'framer-motion'
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: 'easeOut' as any
+    }
+  }
+}
 import {
   api,
   recruitCandidate,
@@ -475,7 +498,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
         </header>
 
         {/* 1. TOP KPI Row Panel */}
-        <section
+        <motion.section
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -496,8 +522,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               { label: 'Pipeline Health', value: pipelineHealth, icon: '📈' },
               { label: 'AI Queue', value: aiQueueStatus, icon: '🤖' },
             ].map((kpi, idx) => (
-              <div
+              <motion.div
                 key={idx}
+                variants={itemVariants}
+                whileHover={{ y: -2, scale: 1.015, borderColor: 'var(--accent)' }}
                 className="card"
                 style={{
                   padding: 'var(--space-5)',
@@ -506,7 +534,9 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   gap: 'var(--space-4)',
                   boxShadow: 'none',
                   borderRadius: '12px',
-                  border: '1px dashed var(--color-cork-shadow)'
+                  border: '1px dashed var(--color-cork-shadow)',
+                  cursor: 'default',
+                  transition: 'border-color 0.15s ease'
                 }}
               >
                 <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
@@ -520,10 +550,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     <AnimatedCounter value={kpi.value} />
                   </span>
                 </div>
-              </div>
+              </motion.div>
             ))
           )}
-        </section>
+        </motion.section>
 
         {/* Action Center Block (Urgent Tasks & Domain verification status) */}
         <section

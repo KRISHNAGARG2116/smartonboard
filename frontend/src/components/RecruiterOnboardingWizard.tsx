@@ -23,11 +23,11 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
     width: '100%',
     background: 'transparent',
     border: 'none',
-    borderBottom: '1px solid var(--color-warm-cream)',
+    borderBottom: '1px solid var(--border)',
     borderRadius: 0,
     padding: '8px 0',
     fontSize: 15,
-    color: '#ffedd7',
+    color: 'var(--text)',
     outline: 'none',
     boxSizing: 'border-box',
     marginTop: 8
@@ -37,17 +37,17 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: '#100904',
+      background: 'var(--bg)',
       zIndex: 2000,
       display: 'grid',
       placeItems: 'center',
       padding: 24,
-      fontFamily: "'Plus Jakarta Sans', sans-serif"
+      fontFamily: "var(--font-sans)"
     }}>
       <div style={{
         maxWidth: 500,
         width: '100%',
-        border: '1px solid var(--color-warm-cream)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: 40,
         boxSizing: 'border-box'
@@ -61,7 +61,7 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
         {/* Step Content */}
         {step === 1 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Create Company Space</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Create Company Space</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Set up your company details to brand candidate applications.
             </p>
@@ -80,7 +80,7 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
 
         {step === 2 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Post Your First Job</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Post Your First Job</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Add a job opening to start matching candidates immediately.
             </p>
@@ -99,7 +99,7 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
 
         {step === 3 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Configure Hiring Pipeline</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Configure Hiring Pipeline</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Define default milestones for review stages.
             </p>
@@ -113,26 +113,26 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
                 width: '100%',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: '1px solid var(--color-warm-cream)',
+                borderBottom: '1px solid var(--border)',
                 borderRadius: 0,
                 padding: '8px 0',
                 fontSize: 15,
-                color: '#ffedd7',
+                color: 'var(--text)',
                 outline: 'none',
                 cursor: 'pointer',
                 marginTop: 8
               }}
             >
-              <option value="Standard Technical" style={{ background: '#100904' }}>Standard Technical (Parsing &rarr; Technical Exam &rarr; Interview)</option>
-              <option value="Executive Focus" style={{ background: '#100904' }}>Executive Focus (Parsing &rarr; Panel Evaluation &rarr; Offer)</option>
-              <option value="General Screening" style={{ background: '#100904' }}>General Screening (Parsing &rarr; Screening Call &rarr; Hire)</option>
+              <option value="Standard Technical" style={{ background: 'var(--bg)' }}>Standard Technical (Parsing &rarr; Technical Exam &rarr; Interview)</option>
+              <option value="Executive Focus" style={{ background: 'var(--bg)' }}>Executive Focus (Parsing &rarr; Panel Evaluation &rarr; Offer)</option>
+              <option value="General Screening" style={{ background: 'var(--bg)' }}>General Screening (Parsing &rarr; Screening Call &rarr; Hire)</option>
             </select>
           </div>
         )}
 
         {step === 4 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Invite Team Members</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Invite Team Members</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Invite co-recruiters to collaborate in this workspace.
             </p>
@@ -150,11 +150,11 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
 
         {step === 5 && (
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 500, color: '#ffedd7', margin: '0 0 8px' }}>Onboarding Completed!</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>Onboarding Completed!</h2>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 24px' }}>
               Your workspace is set up and ready to match candidates. Let's enter your Hiring Command Center.
             </p>
-            <div style={{ padding: 16, border: '1px dashed var(--color-cork-shadow)', borderRadius: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div style={{ padding: 16, border: '1px dashed var(--border)', borderRadius: 12, fontSize: 13, color: 'var(--text-secondary)' }}>
               &bull; Company: {companyName || 'Acme Workspace'}<br/>
               &bull; First Job: {jobTitle || 'Senior Developer'}<br/>
               &bull; Schema: {pipelineType}
@@ -167,7 +167,7 @@ export default function RecruiterOnboardingWizard({ onComplete }: RecruiterOnboa
           <button 
             onClick={handleNext}
             className="btn btn--primary" 
-            style={{ borderRadius: 36, padding: '12px 32px' }}
+            style={{ borderRadius: 'var(--radius-buttons)', padding: '12px 32px' }}
           >
             {step === 5 ? 'Enter Dashboard' : 'Next Step'}
           </button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AppLayout from '../components/AppLayout'
 import {
   AreaChart,
@@ -17,26 +17,47 @@ import {
   Cell
 } from 'recharts'
 import { fetchSyncMetrics } from '../api'
+import { useTheme } from '../context/ThemeContext'
 
 export default function AnalyticsDashboard() {
+  const { resolvedTheme } = useTheme()
+
   useEffect(() => {
     fetchSyncMetrics().catch(() => {})
   }, [])
 
-  // SmartOnboard design tokens colors for charts
-  const chartColors = useMemo(() => {
-    return {
-      primary: '#ffedd7',       // Warm Cream
-      accent: '#dc5000',        // Burnt Sienna
-      success: '#ffedd7',       // Warm Cream
-      warning: '#6c5f51',       // Grey Brown
-      danger: '#dc5000',        // Burnt Sienna
-      grid: '#40372e',          // Cork Shadow
-      text: '#6c5f51',          // Grey Brown
-      tooltipBg: '#100904',     // Studio Black
-      tooltipBorder: '#40372e'  // Cork Shadow
+  // SmartOnboard design tokens colors for charts, retrieved dynamically
+  const [chartColors, setChartColors] = useState({
+    primary: '#5d2a1a',
+    accent: '#5d2a1a',
+    success: '#2e7d32',
+    warning: '#a3a6af',
+    danger: '#d32f2f',
+    grid: '#4c4c4c',
+    text: '#4c4c4c',
+    tooltipBg: '#ffffff',
+    tooltipBorder: '#4c4c4c'
+  })
+
+  useEffect(() => {
+    const rootStyle = getComputedStyle(document.documentElement)
+    const getVal = (varName: string, fallback: string) => {
+      const val = rootStyle.getPropertyValue(varName).trim()
+      return val || fallback
     }
-  }, [])
+
+    setChartColors({
+      primary: getVal('--color-rust', '#5d2a1a'),
+      accent: getVal('--accent', '#5d2a1a'),
+      success: getVal('--success', '#2e7d32'),
+      warning: getVal('--color-dove', '#a3a6af'),
+      danger: getVal('--danger', '#d32f2f'),
+      grid: getVal('--border', '#4c4c4c'),
+      text: getVal('--text-secondary', '#4c4c4c'),
+      tooltipBg: getVal('--bg', '#ffffff'),
+      tooltipBorder: getVal('--border', '#4c4c4c')
+    })
+  }, [resolvedTheme])
 
   // 1. Hiring Funnel Density
   const funnelData = [
@@ -73,7 +94,7 @@ export default function AnalyticsDashboard() {
     { name: 'Overdue Checklist Tasks', value: 18 },
     { name: 'Active Escalation Breaches', value: 10 }
   ]
-  const PIE_COLORS = [chartColors.primary, chartColors.warning, chartColors.accent]
+  const PIE_COLORS = useMemo(() => [chartColors.primary, chartColors.warning, chartColors.accent], [chartColors])
 
   return (
     <AppLayout>
