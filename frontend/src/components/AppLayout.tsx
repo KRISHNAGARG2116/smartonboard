@@ -312,14 +312,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               width: '32px',
               height: '32px',
               minWidth: '32px',
-              borderRadius: '0px',
-              background: 'var(--accent)',
+              borderRadius: '6px',
+              background: 'var(--color-rust)',
               display: 'grid',
               placeItems: 'center',
               color: 'var(--text)',
               fontWeight: 800,
               fontSize: '14px',
-              boxShadow: 'none',
+              
             }}
           >
             OR
@@ -368,11 +368,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 left: '16px',
                 right: '16px',
                 zIndex: 220,
-                boxShadow: 'none',
+                
                 background: 'var(--bg)',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-cards)',
                 padding: 'var(--space-2)',
-                border: '1px dashed var(--color-cork-shadow)',
+                border: '1px solid var(--border)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -401,7 +401,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     fontWeight: ten.id === activeTenant.id ? 700 : 500,
                     color: ten.id === activeTenant.id ? 'var(--accent)' : 'var(--text)',
                     background: ten.id === activeTenant.id ? 'var(--accent-subtle)' : 'transparent',
-                    borderRadius: '8px',
+                    borderRadius: 'var(--radius-cards)',
                   }}
                   onClick={() => {
                     setActiveTenant(ten)
@@ -748,7 +748,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'none',
+              
             }}
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -837,7 +837,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   cursor: 'pointer',
                   width: 'min(380px, 100%)',
                   textAlign: 'left',
-                  boxShadow: 'none',
+                  
                   fontWeight: 500,
                 }}
               >
@@ -954,7 +954,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       border: '1px solid var(--color-cork-shadow)',
                       background: 'transparent',
                       cursor: 'pointer',
-                      boxShadow: 'none',
+                      
                     }}
                   >
                     <div
@@ -987,11 +987,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         right: 0,
                         width: '220px',
                         zIndex: 180,
-                        boxShadow: 'none',
+                        
                         background: 'var(--bg)',
-                        borderRadius: '12px',
+                        borderRadius: 'var(--radius-cards)',
                         padding: 'var(--space-2)',
-                        border: '1px dashed var(--color-cork-shadow)',
+                        border: '1px solid var(--border)',
                       }}
                     >
                       <div
@@ -1017,7 +1017,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           justifyContent: 'flex-start',
                           fontSize: '13px',
                           padding: '8px var(--space-3)',
-                          borderRadius: '8px',
+                          borderRadius: 'var(--radius-cards)',
                         }}
                       >
                         Theme: Toggle
@@ -1036,7 +1036,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                           color: 'var(--danger)',
                           fontSize: '13px',
                           padding: '8px var(--space-3)',
-                          borderRadius: '8px',
+                          borderRadius: 'var(--radius-cards)',
                         }}
                       >
                         Sign out
@@ -1046,10 +1046,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <Link to="/recruiter/login" className="btn btn--ghost btn--sm" style={{ borderRadius: '22.5px' }}>
+                  <Link to="/recruiter/login" className="btn btn--ghost btn--sm" style={{ borderRadius: 'var(--radius-buttons)' }}>
                     Sign in
                   </Link>
-                  <Link to="/recruiter/register" className="btn btn--primary btn--sm" style={{ borderRadius: '36px' }}>
+                  <Link to="/recruiter/register" className="btn btn--primary btn--sm" style={{ borderRadius: 'var(--radius-buttons)' }}>
                     Get started
                   </Link>
                 </div>
@@ -1151,8 +1151,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       flexDirection: 'column',
                       gap: '6px',
                       padding: 'var(--space-4)',
-                      borderRadius: '12px',
-                      border: '1px dashed var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-cards)',
+                      border: '1px solid var(--border)',
                       background: 'transparent',
                       transition: 'transform var(--duration-fast)',
                     }}
@@ -1263,9 +1263,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               style={{
                 padding: 0,
                 overflow: 'hidden',
-                boxShadow: 'none',
-                borderRadius: '12px',
-                border: '1px dashed var(--color-cork-shadow)',
+                
+                borderRadius: 'var(--radius-cards)',
+                border: '1px solid var(--border)',
                 background: 'var(--bg)',
               }}
               onKeyDown={handlePaletteKeyDown}
@@ -1303,7 +1303,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <button
                   type="button"
                   className="btn btn--secondary btn--sm"
-                  style={{ borderRadius: '8px', padding: '4px 10px', fontSize: '11px', fontWeight: 700 }}
+                  style={{ borderRadius: 'var(--radius-cards)', padding: '4px 10px', fontSize: '11px', fontWeight: 700 }}
                   onClick={() => setIsCommandPaletteOpen(false)}
                 >
                   ESC

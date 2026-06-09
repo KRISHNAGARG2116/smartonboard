@@ -5,16 +5,16 @@
   /* Old Layout Variables mapping to Steep Design System */
   --font-sans: var(--font-sohne);
   --font-mono: var(--font-sohne);
-  --bg: var(--surface-canvas);
-  --bg-subtle: var(--surface-fog);
-  --surface: var(--surface-canvas);
-  --surface-raised: var(--surface-canvas);
-  --surface-inset: var(--surface-fog);
+  --bg: var(--color-fog); /* Soft grey background so cards pop out */
+  --bg-subtle: var(--color-fog);
+  --surface: var(--color-pure-white); /* Cards are pure white */
+  --surface-raised: var(--color-pure-white);
+  --surface-inset: var(--color-fog);
   --text: var(--color-ink);
   --text-secondary: var(--color-ash);
   --text-tertiary: var(--color-graphite);
   --text-inverse: var(--color-pure-white);
-  --border: var(--color-dove);
+  --border: rgba(23, 25, 28, 0.08); /* Modern low-opacity border */
   --border-strong: var(--color-ink);
   --accent: var(--color-rust);
   --accent-hover: var(--color-ink);
@@ -401,32 +401,34 @@ button {
 
 /* Cards */
 .card {
-  background: var(--surface-card);
-  border: 1px dashed var(--color-cork-shadow);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-cards);
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform var(--duration-normal) var(--ease-out), border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
 }
 
 .card--flat {
-  background: var(--surface-card);
-  border: 1px solid var(--color-cork-shadow);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .card__header {
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-cork-shadow);
 }
 
 .card__body {
-  padding: var(--space-6);
+  padding: var(--space-5);
 }
 
 .card__body--compact {
-  padding: var(--space-5);
+  padding: var(--space-3);
 }
 
 /* Forms */
 .form-group {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .form-label {
@@ -451,8 +453,8 @@ button {
   width: 100%;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-warm-cream);
-  color: var(--color-warm-cream);
+  border-bottom: 1px solid var(--color-dove);
+  color: var(--text);
   border-radius: var(--radius-inputs);
   padding: 8px 2px;
   font-size: 14px;
@@ -485,34 +487,34 @@ button {
   align-items: center;
   gap: var(--space-1);
   padding: 2px 8px;
-  border-radius: 0px;
+  border-radius: var(--radius-tags);
   font-size: 10px;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: normal;
   text-transform: uppercase;
-  border: 1px solid var(--color-warm-cream);
-  color: var(--color-warm-cream);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
   background: transparent;
 }
 
 .badge--hire {
-  border-color: var(--color-warm-cream);
-  color: var(--color-warm-cream);
+  border-color: var(--success);
+  color: var(--success);
 }
 
 .badge--interview {
-  border-color: var(--color-warm-cream);
-  color: var(--color-warm-cream);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .badge--reject {
-  border-color: var(--color-burnt-sienna);
-  color: var(--color-burnt-sienna);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .badge--neutral {
-  border-color: var(--color-cork-shadow);
-  color: var(--color-grey-brown);
+  border-color: var(--border);
+  color: var(--text-tertiary);
 }
 
 /* Tabs */
@@ -739,7 +741,7 @@ button {
 }
 
 .data-table th {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -750,7 +752,7 @@ button {
 }
 
 .data-table td {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;

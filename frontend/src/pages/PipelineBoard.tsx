@@ -179,7 +179,7 @@ export default function PipelineBoard() {
                   width: '280px',
                   minWidth: '280px',
                   background: 'transparent',
-                  borderRadius: '12px',
+                  borderRadius: 'var(--radius-cards)',
                   border: isHovered ? '1.5px dashed var(--color-burnt-sienna)' : '1px dashed var(--color-cork-shadow)',
                   padding: 'var(--space-4)',
                   display: 'flex',
@@ -252,8 +252,8 @@ export default function PipelineBoard() {
                             padding: 'var(--space-4)',
                             background: 'transparent',
                             border: '1px solid var(--color-cork-shadow)',
-                            borderRadius: '12px',
-                            boxShadow: 'none',
+                            borderRadius: 'var(--radius-cards)',
+                            
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 'var(--space-2)',
@@ -267,8 +267,7 @@ export default function PipelineBoard() {
                               width: '24px',
                               height: '24px',
                               borderRadius: '50%',
-                              background: 'var(--color-dark-cork)',
-                              color: 'var(--text)',
+                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
                               display: 'grid',
                               placeItems: 'center',
                               fontWeight: 500,
@@ -297,11 +296,11 @@ export default function PipelineBoard() {
                         </div>
 
                         {/* Card hover operational triggers */}
-                        <div style={{ display: 'flex', gap: '6px', marginTop: 'var(--space-2)', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-2)' }}>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: 'var(--space-2)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-2)' }}>
                           <button
                             type="button"
                             className="btn btn--secondary btn--sm btn--block"
-                            style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
+                            style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
                             onClick={() => {
                               setSelectedApp(app)
                               setDrawerTab('overview')
@@ -313,7 +312,7 @@ export default function PipelineBoard() {
                             <button
                               type="button"
                               className="btn btn--secondary btn--sm btn--block"
-                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
+                              style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
                               onClick={() => {
                                 setSelectedApp(app)
                                 setDrawerTab('interviews')
@@ -329,7 +328,7 @@ export default function PipelineBoard() {
                   })}
                   
                   {colApps.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--color-grey-brown)', fontSize: '12px', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--color-grey-brown)', fontSize: '12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
                       Drag cards here
                     </div>
                   )}

@@ -71,7 +71,7 @@ export default function RecruiterSettings() {
       <div className="container" style={{ padding: 'var(--space-6) 0 var(--space-12)' }}>
         {/* Header */}
         <div style={{
-          borderBottom: '1px dashed var(--color-cork-shadow)',
+          borderBottom: '1px solid var(--border)',
           paddingBottom: 'var(--space-6)',
           marginBottom: 'var(--space-6)'
         }}>
@@ -136,7 +136,7 @@ export default function RecruiterSettings() {
                     Verify company email domain records to secure workspace operations and candidate communication channels.
                   </p>
                   <div style={{
-                    border: '1px dashed var(--color-cork-shadow)',
+                    border: '1px solid var(--border)',
                     borderRadius: 12,
                     padding: 16,
                     display: 'flex',
@@ -159,7 +159,7 @@ export default function RecruiterSettings() {
                 
                 {/* Billing Placeholder Card */}
                 <div style={{
-                  border: '1px solid var(--color-warm-cream)',
+                  border: '1px solid var(--border)',
                   borderRadius: 12,
                   padding: 'var(--space-6)',
                   background: 'transparent'
@@ -180,7 +180,7 @@ export default function RecruiterSettings() {
                   <p style={{ fontSize: 13, lineHeight: 1.35, color: 'var(--text-secondary)', margin: 0 }}>
                     SmartOnboard platform subscription controls, invoice tracking, plan selectors, and payment gateway configurations will be made available in the next release cycle.
                   </p>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', marginTop: 16, paddingTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
                     Planned Plan Rates: <strong>$49/month per active job</strong>
                   </div>
                 </div>
@@ -189,7 +189,7 @@ export default function RecruiterSettings() {
 
             {/* DLQ Monitoring and Retry Section */}
             <div style={{
-              border: '1px dashed var(--color-cork-shadow)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               padding: 'var(--space-6)',
               marginTop: 'var(--space-4)'
@@ -208,12 +208,12 @@ export default function RecruiterSettings() {
               )}
 
               {actionMessage && (
-                <div className="banner banner--success" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
+                <div className="banner banner--success" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
                   ✅ {actionMessage}
                 </div>
               )}
 
-              <div className="card" style={{ background: 'transparent', border: '1px solid var(--color-cork-shadow)', borderRadius: '8px', boxShadow: 'none', overflow: 'hidden' }}>
+              <div className="card" style={{ background: 'transparent', border: '1px solid var(--color-cork-shadow)', borderRadius: 'var(--radius-cards)', overflow: 'hidden' }}>
                 <div className="tabs" role="tablist" aria-label="DLQ Navigation" style={{ display: 'flex', borderBottom: '1px solid var(--color-cork-shadow)' }}>
                   {dlqTabs.map((t) => (
                     <button
@@ -260,7 +260,7 @@ export default function RecruiterSettings() {
                         <div style={{ overflowX: 'auto' }}>
                           <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                              <tr style={{ textAlign: 'left', borderBottom: '1px dashed var(--color-cork-shadow)' }}>
+                              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Provider</th>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failure Reason</th>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Created At</th>
@@ -270,7 +270,7 @@ export default function RecruiterSettings() {
                             </thead>
                             <tbody>
                               {dlqRecords.map((rec) => (
-                                <tr key={rec.id} style={{ borderBottom: '1px dashed var(--color-cork-shadow)' }}>
+                                <tr key={rec.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                   <td style={{ padding: 'var(--space-4)', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{(rec.provider || '').toUpperCase()}</td>
                                   <td style={{ padding: 'var(--space-4)', fontSize: '14px', color: 'var(--color-burnt-sienna)' }}>
                                     <div style={{ fontWeight: 500 }}>{rec.error_detail || rec.error_message || 'Connection timeout or invalid sync parameters'}</div>
@@ -290,7 +290,7 @@ export default function RecruiterSettings() {
                                         type="button"
                                         className="btn btn--primary btn--sm"
                                         onClick={() => handleRetry(rec.id)}
-                                        style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '4px 10px', fontSize: '11px', boxShadow: 'none' }}
+                                        style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 10px', fontSize: '11px' }}
                                       >
                                         Retry Sync
                                       </button>
@@ -317,7 +317,7 @@ export default function RecruiterSettings() {
                         <div style={{ overflowX: 'auto' }}>
                           <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                              <tr style={{ textAlign: 'left', borderBottom: '1px dashed var(--color-cork-shadow)' }}>
+                              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sync Snapshot</th>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Provider</th>
                                 <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Successful Syncs</th>
@@ -331,7 +331,7 @@ export default function RecruiterSettings() {
                                 const healthRatio = total > 0 ? ((met.success_count / total) * 100).toFixed(1) : '100'
                                 const ratioVal = parseFloat(healthRatio)
                                 return (
-                                  <tr key={met.id} style={{ borderBottom: '1px dashed var(--color-cork-shadow)' }}>
+                                  <tr key={met.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                     <td style={{ padding: 'var(--space-4)', fontSize: '12px', color: 'var(--color-grey-brown)' }}>
                                       {new Date(met.timestamp || met.created_at || Date.now()).toLocaleString()}
                                     </td>

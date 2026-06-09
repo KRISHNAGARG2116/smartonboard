@@ -85,7 +85,7 @@ export default function CandidateInterviews() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Card */}
-          <div className="card card__body" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+          <div className="card card__body" style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
             <h3 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 'var(--space-2)', lineHeight: 1.09, color: 'var(--text)' }}>My Interviews</h3>
             <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', lineHeight: 1.33, marginBottom: 0 }}>
               Review your upcoming and past structured interview slots. Join video meetings or reschedule confirmed bookings.
@@ -109,7 +109,7 @@ export default function CandidateInterviews() {
               ))}
             </div>
           ) : interviews.length === 0 ? (
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
               <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>📅</span>
               <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>No Interviews Scheduled</h4>
               <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
@@ -131,8 +131,8 @@ export default function CandidateInterviews() {
                       display: 'flex', 
                       flexDirection: 'column',
                       gap: 'var(--space-3)',
-                      borderRadius: '12px',
-                      border: '1px dashed var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-cards)',
+                      border: '1px solid var(--border)',
                       background: 'transparent',
                       opacity: isCancelled ? 0.6 : 1
                     }}
@@ -166,7 +166,7 @@ export default function CandidateInterviews() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-3)', marginTop: 'var(--space-1)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)', marginTop: 'var(--space-1)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                       <div style={{ fontSize: '12px', color: 'var(--color-grey-brown)' }}>
                         Interviewer: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{iv.interviewer_name}</strong>
                       </div>
@@ -178,7 +178,7 @@ export default function CandidateInterviews() {
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="btn btn--primary btn--sm"
-                            style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '6px 12px', fontSize: '12px', boxShadow: 'none' }}
+                            style={{ borderRadius: 'var(--radius-buttons)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '6px 12px', fontSize: '12px' }}
                           >
                             💻 Join Video Call
                           </a>
@@ -189,7 +189,7 @@ export default function CandidateInterviews() {
                             <button
                               type="button"
                               className="btn btn--secondary btn--sm"
-                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '6px 12px', fontSize: '12px' }}
+                              style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '6px 12px', fontSize: '12px' }}
                               onClick={() => setSelectedIv(iv)}
                             >
                               Reschedule
@@ -197,7 +197,7 @@ export default function CandidateInterviews() {
                             <button
                               type="button"
                               className="btn btn--ghost btn--sm"
-                              style={{ borderRadius: '22.5px', border: '1px solid var(--color-burnt-sienna)', background: 'transparent', padding: '6px 12px', fontSize: '12px', color: 'var(--color-burnt-sienna)' }}
+                              style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--color-burnt-sienna)', background: 'transparent', padding: '6px 12px', fontSize: '12px', color: 'var(--color-burnt-sienna)' }}
                               disabled={cancellingId === iv.slot.id}
                               onClick={() => handleCancel(iv.slot!.id)}
                             >
@@ -236,12 +236,12 @@ export default function CandidateInterviews() {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               width: 'min(460px, 90vw)',
-              background: 'var(--color-studio-black)',
-              border: '1px solid var(--color-warm-cream)',
-              borderRadius: '12px',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-cards)',
               padding: 'var(--space-6)',
               zIndex: 1000,
-              boxShadow: 'none',
+              
               display: 'flex',
               flexDirection: 'column',
               gap: 'var(--space-4)'
@@ -270,7 +270,7 @@ export default function CandidateInterviews() {
             )}
 
             {rescheduleSuccess && (
-              <div style={{ background: 'transparent', color: 'var(--text)', padding: 'var(--space-3)', borderRadius: '0px', fontSize: '12px', border: '1px solid var(--color-warm-cream)', textAlign: 'center' }}>
+              <div style={{ background: 'transparent', color: 'var(--text)', padding: 'var(--space-3)', borderRadius: '0px', fontSize: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
                 {rescheduleSuccess}
               </div>
             )}
@@ -305,7 +305,7 @@ export default function CandidateInterviews() {
                   type="button"
                   className="btn btn--secondary"
                   onClick={() => setSelectedIv(null)}
-                  style={{ flex: 1, borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
+                  style={{ flex: 1, borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)' }}
                 >
                   Cancel
                 </button>
@@ -315,9 +315,8 @@ export default function CandidateInterviews() {
                   disabled={rescheduling || !newStartTime}
                   style={{ 
                     flex: 1, 
-                    borderRadius: '36px',
-                    background: 'var(--color-dark-cork)',
-                    color: 'var(--text)',
+                    borderRadius: 'var(--radius-buttons)',
+                    background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
                     fontWeight: 500,
                     border: 'none',
                     boxShadow: 'none'

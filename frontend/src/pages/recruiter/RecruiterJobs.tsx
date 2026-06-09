@@ -61,7 +61,7 @@ export default function RecruiterJobs() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          borderBottom: '1px dashed var(--color-cork-shadow)',
+          borderBottom: '1px solid var(--border)',
           paddingBottom: 'var(--space-6)',
           marginBottom: 'var(--space-6)'
         }}>
@@ -91,7 +91,7 @@ export default function RecruiterJobs() {
           <div style={{
             padding: 'var(--space-12)',
             textAlign: 'center',
-            border: '1px dashed var(--color-cork-shadow)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             color: 'var(--text-secondary)'
           }}>

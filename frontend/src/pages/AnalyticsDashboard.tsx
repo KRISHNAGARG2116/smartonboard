@@ -126,7 +126,7 @@ export default function AnalyticsDashboard() {
             { label: 'Active Employees Directory', value: 3, pct: 'Gusto / BambooHR sync active' },
             { label: 'Failed Outbox Sweeps (DLQ)', value: 0, pct: 'Outbox processors healthy' }
           ].map((card, idx) => (
-            <div key={idx} className="card" style={{ padding: 'var(--space-5)', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', background: 'transparent', boxShadow: 'none' }}>
+            <div key={idx} className="card" style={{ padding: 'var(--space-5)', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', background: 'transparent' }}>
               <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</span>
               <strong style={{ fontSize: '29px', fontWeight: 500, color: 'var(--text)', display: 'block', marginTop: '4px' }}>{card.value}</strong>
               <span style={{ fontSize: '10px', color: 'var(--color-grey-brown)', display: 'block', marginTop: '6px' }}>{card.pct}</span>
@@ -144,7 +144,7 @@ export default function AnalyticsDashboard() {
           aria-label="Analytics Visualizations"
         >
           {/* Graph 1: Hiring Funnel Conversion (Bar Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Hiring Funnel Yield (Applicant Density)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -160,7 +160,7 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Graph 2: Stage Velocity - Average Days (Area Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Average Days In Hiring Stage (Velocity)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -176,7 +176,7 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Graph 3: Offer Acceptance Yield (Line Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Offer Acceptance Rate Percentage (Yield)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -192,7 +192,7 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Graph 4: Onboarding Completion Distribution (Pie Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)', background: 'transparent' }}>
+          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Onboarding Checklist Distribution</h3>
             <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: '50%', height: '100%' }}>

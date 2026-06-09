@@ -219,8 +219,8 @@ export default function CandidateDashboard() {
           style={{ 
             background: 'transparent', 
             padding: 'var(--space-6)', 
-            border: '1px dashed var(--color-cork-shadow)',
-            borderRadius: '12px',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-cards)',
             marginBottom: 'var(--space-6)',
             boxShadow: 'none'
           }}
@@ -350,7 +350,7 @@ export default function CandidateDashboard() {
                         padding: 'var(--space-3)', 
                         background: 'transparent', 
                         borderRadius: 'var(--radius-xl)',
-                        border: '1px dashed var(--color-cork-shadow)',
+                        border: '1px solid var(--border)',
                         opacity: task.completed ? 0.7 : 1
                       }}
                     >
@@ -372,8 +372,7 @@ export default function CandidateDashboard() {
                             style={{ 
                               borderRadius: 'var(--radius-buttons-rounded)',
                               padding: '6px 14px',
-                              background: 'var(--color-dark-cork)',
-                              color: 'var(--text)',
+                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
                               border: 'none'
                             }}
                           >
@@ -386,8 +385,7 @@ export default function CandidateDashboard() {
                             style={{ 
                               borderRadius: 'var(--radius-buttons-rounded)',
                               padding: '6px 14px',
-                              background: 'var(--color-dark-cork)',
-                              color: 'var(--text)',
+                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
                               border: 'none'
                             }}
                           >
@@ -456,7 +454,7 @@ export default function CandidateDashboard() {
 
                 {/* Top Missing Skills */}
                 {missingSkillsToShow.length > 0 && (
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
                     <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                       Top Missing Skills
                     </h4>
@@ -470,7 +468,7 @@ export default function CandidateDashboard() {
                             color: 'var(--color-burnt-sienna)',
                             fontSize: '10px',
                             padding: '3px 10px',
-                            borderRadius: '12px'
+                            borderRadius: 'var(--radius-cards)'
                           }}
                         >
                           {skill}
@@ -522,7 +520,7 @@ export default function CandidateDashboard() {
                         <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>
                           {job.applicability_score}% Match
                         </div>
-                        <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}>
+                        <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)' }}>
                           View &amp; Apply
                         </Link>
                       </div>
@@ -587,11 +585,11 @@ export default function CandidateDashboard() {
                               target="_blank" 
                               rel="noreferrer" 
                               className="btn btn--primary btn--sm"
-                              style={{ borderRadius: '12px' }}
+                              style={{ borderRadius: 'var(--radius-cards)' }}
                             >
                               Join Call
                             </a>
-                            <Link to="/candidate/interviews" className="btn btn--secondary btn--sm" style={{ borderRadius: '12px' }}>
+                            <Link to="/candidate/interviews" className="btn btn--secondary btn--sm" style={{ borderRadius: 'var(--radius-cards)' }}>
                               Reschedule
                             </Link>
                           </div>
@@ -702,13 +700,13 @@ export default function CandidateDashboard() {
                 </h3>
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: 'var(--space-4)' }}>
-                <Link to="/candidate/resumes" className="btn btn--primary btn--sm btn--block" style={{ background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', borderRadius: '12px' }}>
+                <Link to="/candidate/resumes" className="btn btn--primary btn--sm btn--block" style={{ background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', borderRadius: 'var(--radius-cards)' }}>
                   Upload New Resume (Max 3)
                 </Link>
-                <Link to="/candidate/profile" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: '12px' }}>
+                <Link to="/candidate/profile" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: 'var(--radius-cards)' }}>
                   Verify Phone &amp; Email OTP
                 </Link>
-                <Link to="/candidate/jobs" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: '12px' }}>
+                <Link to="/candidate/jobs" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: 'var(--radius-cards)' }}>
                   Search Open Roles
                 </Link>
               </div>
@@ -728,7 +726,7 @@ export default function CandidateDashboard() {
               </div>
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', padding: 'var(--space-4)' }}>
                 {bioSuccess && (
-                  <div style={{ fontSize: '11px', color: 'var(--text)', border: '1px solid var(--color-warm-cream)', padding: '6px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text)', border: '1px solid var(--border)', padding: '6px', borderRadius: '4px' }}>
                     ✅ Statement saved successfully!
                   </div>
                 )}
@@ -757,7 +755,7 @@ export default function CandidateDashboard() {
                 <button 
                   type="submit" 
                   className="btn btn--accent btn--sm"
-                  style={{ alignSelf: 'flex-end', borderRadius: '12px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '6px 14px' }}
+                  style={{ alignSelf: 'flex-end', borderRadius: 'var(--radius-cards)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '6px 14px' }}
                   disabled={submittingBio}
                 >
                   {submittingBio ? 'Saving...' : 'Save Statement'}

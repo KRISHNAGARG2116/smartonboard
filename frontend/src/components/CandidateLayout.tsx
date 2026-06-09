@@ -176,14 +176,14 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             style={{
               width: '32px',
               height: '32px',
-              borderRadius: '0px',
-              background: 'var(--accent)',
+              borderRadius: '6px',
+              background: 'var(--color-rust)',
               display: 'grid',
               placeItems: 'center',
               color: 'var(--text)',
               fontWeight: 800,
               fontSize: '14px',
-              boxShadow: 'none',
+              
             }}
           >
             OR
@@ -254,7 +254,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             type="button"
             className="btn btn--secondary btn--block"
             onClick={handleLogout}
-            style={{ padding: '10px 14px', borderRadius: '22.5px', fontSize: '13px' }}
+            style={{ padding: '10px 14px', borderRadius: 'var(--radius-buttons)', fontSize: '13px' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -310,8 +310,8 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
               style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '0px',
-                background: 'var(--accent)',
+                borderRadius: '6px',
+                background: 'var(--color-rust)',
                 display: 'grid',
                 placeItems: 'center',
                 color: 'var(--text)',
@@ -510,7 +510,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                       color: 'var(--text)',
                       fontWeight: 700,
                       fontSize: '13px',
-                      boxShadow: 'none',
+                      
                     }}
                   >
                     {userInitials}
@@ -530,11 +530,11 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                         right: 0,
                         top: '46px',
                         width: '240px',
-                        boxShadow: 'none',
+                        
                         zIndex: 181,
                         background: 'var(--bg)',
-                        borderRadius: '12px',
-                        border: '1px dashed var(--color-cork-shadow)',
+                        borderRadius: 'var(--radius-cards)',
+                        border: '1px solid var(--border)',
                         padding: 'var(--space-2)',
                       }}
                     >
@@ -592,7 +592,7 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
         {/* Scrollable child viewport content */}
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {profile && (!profile.email_verified || !profile.phone_verified) && (
-            <div className="banner banner--warning" style={{ margin: 'var(--space-4) var(--space-6) 0', borderRadius: '8px', padding: '12px 16px', fontSize: 'var(--text-sm)', border: '1px solid var(--warning)', background: 'var(--warning-bg)', color: 'var(--text)' }}>
+            <div className="banner banner--warning" style={{ margin: 'var(--space-4) var(--space-6) 0', borderRadius: 'var(--radius-cards)', padding: '12px 16px', fontSize: 'var(--text-sm)', border: '1px solid var(--warning)', background: 'var(--warning-bg)', color: 'var(--text)' }}>
               ⚠️ <strong>Verification Required:</strong> You must verify your email and phone number to upload resumes, apply to jobs, or schedule interviews. <Link to="/candidate/profile" style={{ textDecoration: 'underline', fontWeight: 600 }}>Go to Profile Settings</Link> to complete verification.
             </div>
           )}

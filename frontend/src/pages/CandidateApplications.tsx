@@ -61,7 +61,7 @@ export default function CandidateApplications() {
   const getStatusBadgeStyle = (status: string) => {
     const s = status.toLowerCase()
     if (s === 'submitted') {
-      return { border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', label: 'Applied' }
+      return { border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', label: 'Applied' }
     } else if (s === 'screening') {
       return { border: '1px solid var(--color-grey-brown)', background: 'transparent', color: 'var(--color-grey-brown)', label: 'Reviewing' }
     } else if (s === 'interview') {
@@ -69,7 +69,7 @@ export default function CandidateApplications() {
     } else if (s === 'offer') {
       return { border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', label: 'Offer Extended' }
     } else if (s === 'hired') {
-      return { border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', label: 'Hired' }
+      return { border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', label: 'Hired' }
     } else if (s === 'rejected') {
       return { border: '1px solid var(--color-cork-shadow)', background: 'transparent', color: 'var(--color-grey-brown)', label: 'Declined' }
     } else {
@@ -83,7 +83,7 @@ export default function CandidateApplications() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Card */}
-          <div className="card card__body" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+          <div className="card card__body" style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
             <h3 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 'var(--space-2)', lineHeight: 1.09, color: 'var(--text)' }}>My Applications</h3>
             <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', lineHeight: 1.33, marginBottom: 0 }}>
               Track the progress and history of your submitted job applications. View historical resume and profile snapshots.
@@ -97,7 +97,7 @@ export default function CandidateApplications() {
           )}
 
           {withdrawSuccess && (
-            <div className="card card__body" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', borderRadius: '0px' }}>
+            <div className="card card__body" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', borderRadius: '0px' }}>
               {withdrawSuccess}
             </div>
           )}
@@ -113,7 +113,7 @@ export default function CandidateApplications() {
               ))}
             </div>
           ) : applications.length === 0 ? (
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
               <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>📨</span>
               <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>No Applications Yet</h4>
               <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
@@ -132,8 +132,8 @@ export default function CandidateApplications() {
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
-                      borderRadius: '12px',
-                      border: '1px dashed var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-cards)',
+                      border: '1px solid var(--border)',
                       background: 'transparent',
                       cursor: 'pointer',
                       transition: 'transform 150ms ease, border-color 150ms ease'
@@ -180,7 +180,7 @@ export default function CandidateApplications() {
                       <button 
                         type="button" 
                         className="btn btn--secondary btn--sm" 
-                        style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '8px 14px' }}
+                        style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '8px 14px' }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setWithdrawSuccess(null)
@@ -221,12 +221,12 @@ export default function CandidateApplications() {
               right: 0,
               bottom: 0,
               width: 'min(560px, 100vw)',
-              background: 'var(--color-studio-black)',
+              background: 'var(--surface)',
               borderLeft: '1px solid var(--color-cork-shadow)',
               display: 'flex',
               flexDirection: 'column',
               zIndex: 1000,
-              boxShadow: 'none',
+              
               overflow: 'hidden'
             }}
           >
@@ -280,8 +280,8 @@ export default function CandidateApplications() {
                   style={{ 
                     padding: 'var(--space-4)', 
                     background: 'transparent', 
-                    borderRadius: '12px', 
-                    border: '1px dashed var(--color-cork-shadow)',
+                    borderRadius: 'var(--radius-cards)', 
+                    border: '1px solid var(--border)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px'
@@ -316,7 +316,7 @@ export default function CandidateApplications() {
                     <h4 style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-grey-brown)', margin: 0 }}>
                       Profile Snapshot
                     </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', border: '1px dashed var(--color-cork-shadow)', padding: 'var(--space-4)', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', border: '1px solid var(--border)', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px', fontSize: '14px' }}>
                         <span style={{ color: 'var(--color-grey-brown)', fontWeight: 400 }}>Full Name:</span>
                         <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{selectedApp.snapshot.candidate_snapshot.full_name}</strong>
@@ -338,7 +338,7 @@ export default function CandidateApplications() {
                     <h4 style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-grey-brown)', margin: 0 }}>
                       Resume Library snapshot
                     </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', border: '1px dashed var(--color-cork-shadow)', padding: 'var(--space-4)', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', border: '1px solid var(--border)', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)' }}>
                       <div>
                         <span style={{ fontSize: '10px', color: 'var(--color-grey-brown)', display: 'block' }}>Submitted Resume File:</span>
                         <strong style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>📄 {selectedApp.snapshot.resume_snapshot.filename}</strong>
@@ -404,7 +404,7 @@ export default function CandidateApplications() {
                   style={{ 
                     width: '100%', 
                     padding: '12px', 
-                    borderRadius: '36px', 
+                    borderRadius: 'var(--radius-buttons)', 
                     fontWeight: 500,
                     border: '1px solid var(--color-burnt-sienna)',
                     color: 'var(--color-burnt-sienna)',

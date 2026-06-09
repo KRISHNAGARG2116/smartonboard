@@ -151,7 +151,7 @@ export default function Login() {
               style={{
                 width: '100%',
                 marginTop: 'var(--space-6)',
-                border: '1px solid var(--color-warm-cream)',
+                border: '1px solid var(--border)',
                 color: 'var(--color-warm-cream)',
                 background: 'transparent',
                 cursor: 'pointer'

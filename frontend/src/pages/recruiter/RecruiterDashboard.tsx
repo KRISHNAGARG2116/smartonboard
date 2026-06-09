@@ -490,7 +490,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               type="button"
               className="btn btn--secondary btn--sm"
               onClick={loadData}
-              style={{ borderRadius: '22.5px', height: 'fit-content' }}
+              style={{ borderRadius: 'var(--radius-buttons)', height: 'fit-content' }}
             >
               🔄 Refresh Cockpit
             </button>
@@ -532,14 +532,14 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-4)',
-                  boxShadow: 'none',
-                  borderRadius: '12px',
-                  border: '1px dashed var(--color-cork-shadow)',
+                  
+                  borderRadius: 'var(--radius-cards)',
+                  border: '1px solid var(--border)',
                   cursor: 'default',
                   transition: 'border-color 0.15s ease'
                 }}
               >
-                <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
+                <div style={{ width: '46px', height: '46px', borderRadius: 'var(--radius-cards)', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
                   {kpi.icon}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -598,7 +598,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             
             {/* Widget: AI Resume Processing Queue */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>AI Resume Processing Queue</h3>
                 <span className={`badge ${isScreenerProcessing ? 'badge--interview' : 'badge--neutral'}`}>
@@ -607,7 +607,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               </div>
               
               {isScreenerProcessing ? (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', borderRadius: '8px', border: '1px dashed var(--color-cork-shadow)' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
                   <div className="spinner" />
                   <div>
                     <strong style={{ fontSize: '14px', color: 'var(--text)' }}>Parsing & Scoring Resumes...</strong>
@@ -617,7 +617,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)', textAlign: 'center' }}>
+                <div style={{ padding: '16px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)', textAlign: 'center' }}>
                   <div style={{ fontSize: '24px', marginBottom: '8px' }}>🟢</div>
                   <strong style={{ fontSize: '14px', color: 'var(--text)', display: 'block' }}>Queue Idle</strong>
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
@@ -627,7 +627,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               )}
 
               {screenerOutcomes.length > 0 && (
-                <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', border: '1px dashed var(--color-cork-shadow)' }}>
+                <div style={{ marginTop: '16px', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
                   <strong style={{ fontSize: '12px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Recent Queue Outputs:</strong>
                   {screenerOutcomes.map((out, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0' }}>
@@ -643,7 +643,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             </div>
 
             {/* Widget: Active Jobs */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Active Jobs & Candidates</h3>
                 <Link to="/recruiter/jobs" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Manage Jobs</Link>
@@ -658,7 +658,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   jobs.filter(j => j.status === 'open').map((job) => {
                     const activeAppsCount = applications.filter(a => a.job_id === job.id && a.status !== 'rejected').length
                     return (
-                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{job.title}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{job.department}</div>
@@ -680,7 +680,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             </div>
 
             {/* Widget: Screening Queue / Active Applicants List */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Screening Queue & Applicants</h3>
               {loading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -700,7 +700,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 <div style={{ overflowX: 'auto' }}>
                   <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ textAlign: 'left', borderBottom: '1px dashed var(--color-cork-shadow)' }}>
+                      <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                         <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Candidate</th>
                         <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Role</th>
                         <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Match</th>
@@ -713,9 +713,9 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                           key={app.id}
                           onClick={() => setSelectedAppForAi(app)}
                           style={{
-                            borderBottom: '1px dashed var(--color-cork-shadow)',
+                            borderBottom: '1px solid var(--border)',
                             cursor: 'pointer',
-                            background: selectedAppForAi?.id === app.id ? 'var(--color-dark-cork)' : 'transparent',
+                            background: selectedAppForAi?.id === app.id ? 'var(--accent-subtle)' : 'transparent',
                             transition: 'background var(--duration-fast)'
                           }}
                         >
@@ -748,7 +748,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             </div>
 
             {/* Widget: Upcoming Interviews */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Upcoming Interviews</h3>
                 <Link to="/recruiter/interviews" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Scheduler</Link>
@@ -761,7 +761,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </>
                 ) : applications.filter(a => a.status === 'interview').length > 0 ? (
                   applications.filter(a => a.status === 'interview').map((app) => (
-                    <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                    <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{app.candidate?.full_name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{app.job?.title}</div>
@@ -782,38 +782,38 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             </div>
 
             {/* Widget: Hiring Metrics */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Hiring Metrics</h3>
               {loading ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
                     <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
                   </div>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
                     <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
                   </div>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
                     <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-burnt-sienna)' }}>
                       <AnimatedCounter value={averageMatchScore === 'N/A' ? 'N/A' : `${averageMatchScore}%`} />
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
                   </div>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
                       <AnimatedCounter value={averageDaysToClose} />
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
                   </div>
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
                       <AnimatedCounter value={averageTrustLevel} />
                     </div>
@@ -829,7 +829,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             
             {/* Widget: Quick Actions */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', background: 'transparent' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Quick Actions</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button className="btn btn--secondary btn--block" onClick={() => setIsJobModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
@@ -856,10 +856,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
             </div>
 
             {/* Widget: first-class AI Command Center Hub (Match Insights, Risk Indicators, Recommendations) */}
-            <div className="card" style={{ borderRadius: '12px', padding: '24px', border: '1px solid var(--color-burnt-sienna)', background: 'transparent' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px dashed var(--color-cork-shadow)', paddingBottom: '12px' }}>
+            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', border: '1px solid var(--color-burnt-sienna)', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-warm-cream)' }}>🤖 AI Copilot Command Hub</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🤖 AI Copilot Command Hub</h3>
                   <span style={{ fontSize: '10px', color: 'var(--color-burnt-sienna)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Intelligence</span>
                 </div>
                 <span className="badge badge--neutral">Candidate Analyst</span>
@@ -872,7 +872,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{aiDetails.name}</h4>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Target Role: {aiDetails.title}</span>
                     
-                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: '8px', background: 'var(--color-dark-cork)', fontSize: '13px', lineHeight: 1.35 }}>
+                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: 'var(--radius-cards)', background: 'var(--color-sky-wash)', fontSize: '13px', lineHeight: 1.35 }}>
                       <strong>AI Candidate Summary:</strong><br />
                       {aiDetails.summary}
                     </div>
@@ -889,7 +889,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     {aiDetails.hasScore && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                         {aiDetails.skills.map((s, i) => (
-                          <span key={i} className="chip" style={{ borderColor: 'var(--color-forest-grid)', color: 'var(--color-warm-cream)' }}>✓ {s}</span>
+                          <span key={i} className="chip" style={{ borderColor: 'var(--color-forest-grid)', color: 'var(--text)' }}>✓ {s}</span>
                         ))}
                       </div>
                     )}
@@ -906,23 +906,23 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
 
                   {/* AI Risk Indicators */}
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '12px' }}>AI Risk & Trust Indicators</span>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-burnt-sienna)' }}>
                           {aiDetails.hasScore ? aiDetails.riskScore : '—'}
                         </div>
                         <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Risk Score</div>
                       </div>
-                      <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
                           {aiDetails.hasScore ? `${aiDetails.authenticityScore}%` : '—'}
                         </div>
                         <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Authenticity</div>
                       </div>
-                      <div style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
                           {aiDetails.hasScore ? `${aiDetails.evidenceScore}%` : '—'}
                         </div>
@@ -948,13 +948,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
 
                   {/* AI Hiring Recommendations */}
-                  <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Hiring Recommendations</span>
                       <span className="badge badge--neutral" style={{ color: 'var(--color-burnt-sienna)', borderColor: 'var(--color-burnt-sienna)' }}>Confidence: {aiDetails.confidence}</span>
                     </div>
                     
-                    <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px' }}>Suggested Action:</span>
                         <strong style={{ fontSize: '14px', color: 'var(--color-burnt-sienna)' }}>{aiDetails.decision}</strong>
@@ -964,7 +964,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                         <strong>Reasoning:</strong> {aiDetails.reasoning}
                       </div>
 
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '8px', marginTop: '4px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
                         <strong>Compensation Guidance:</strong> {aiDetails.salary}
                       </div>
                     </div>
@@ -999,7 +999,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
         {isJobModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsJobModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Create New Job Opening</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsJobModalOpen(false)}>✕</button>
@@ -1070,7 +1070,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
         {isCandidateModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsCandidateModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
+            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Resume Screening Pipeline</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
@@ -1081,7 +1081,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 <div
                   className="dropzone"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
                 >
                   <input
                     type="file"
@@ -1104,7 +1104,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 {pdfFiles.length > 0 && (
                   <ul className="file-list" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
                     {pdfFiles.map((file, idx) => (
-                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'transparent', borderRadius: '12px', fontSize: 'var(--text-xs)', marginBottom: '4px', border: '1px dashed var(--color-cork-shadow)' }}>
+                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'transparent', borderRadius: 'var(--radius-cards)', fontSize: 'var(--text-xs)', marginBottom: '4px', border: '1px solid var(--border)' }}>
                         <span>{file.name}</span>
                         <button type="button" onClick={() => setPdfFiles(prev => prev.filter((_, i) => i !== idx))} style={{ color: 'var(--color-burnt-sienna)' }}>Remove</button>
                       </li>
@@ -1128,7 +1128,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 </div>
 
                 {!selectedJobId && (
-                  <fieldset style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <fieldset style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                     <legend style={{ fontSize: '11px', fontWeight: 700, padding: '0 8px', color: 'var(--text-tertiary)' }}>New Opening Parameters</legend>
                     <div className="form-group">
                       <label className="form-label">Job Role Title</label>
@@ -1148,7 +1148,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 )}
 
                 {isScreenerProcessing && (
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'transparent', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
                     <div className="spinner" />
                     <div>
                       <strong style={{ fontSize: 'var(--text-sm)' }}>AI Analysis Running...</strong>
@@ -1174,7 +1174,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
         {isInterviewModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsInterviewModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
+            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Quick Schedule Interview</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsInterviewModalOpen(false)}>✕</button>
@@ -1219,7 +1219,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
         {isBriefModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsBriefModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(650px, 92vw)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none', border: '1px dashed var(--color-cork-shadow)' }}>
+            <div className="card" style={{ zIndex: 260, width: 'min(650px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Generate AI Hiring Brief</h3>
                 <button type="button" className="icon-btn" onClick={() => setIsBriefModalOpen(false)}>✕</button>
@@ -1247,7 +1247,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 </form>
 
                 {generatedBrief && (
-                  <div style={{ marginTop: '16px', borderTop: '1px dashed var(--color-cork-shadow)', paddingTop: '16px' }}>
+                  <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <strong style={{ fontSize: '14px', color: 'var(--text)' }}>AI Co-pilot Hiring Brief</strong>
                       <button className="btn btn--secondary btn--sm" onClick={() => {
@@ -1256,14 +1256,14 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                       }}>Copy Brief</button>
                     </div>
                     <pre style={{
-                      background: 'var(--color-studio-black)',
+                      background: 'var(--surface)',
                       border: '1px solid var(--color-cork-shadow)',
                       padding: '16px',
-                      borderRadius: '8px',
+                      borderRadius: 'var(--radius-cards)',
                       whiteSpace: 'pre-wrap',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '12px',
-                      color: 'var(--color-warm-cream)',
+                      color: 'var(--text)',
                       lineHeight: 1.4
                     }}>
                       {generatedBrief.briefText}

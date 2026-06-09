@@ -131,14 +131,14 @@ export default function CandidateJobFeed() {
   const getMatchStyles = (score: number, isNoSkills: boolean) => {
     if (isNoSkills || score === 100) {
       return {
-        border: '1px solid var(--color-warm-cream)',
+        border: '1px solid var(--border)',
         background: 'transparent',
         color: 'var(--text)',
         label: '100% Match'
       }
     } else if (score >= 80) {
       return {
-        border: '1px solid var(--color-warm-cream)',
+        border: '1px solid var(--border)',
         background: 'transparent',
         color: 'var(--text)',
         label: `${score}% Match`
@@ -168,7 +168,7 @@ export default function CandidateJobFeed() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Dashboard section */}
-          <div className="card card__body" style={{ background: 'transparent', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
+          <div className="card card__body" style={{ background: 'transparent', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '24px', fontWeight: 500, marginBottom: 'var(--space-2)', color: 'var(--text)', lineHeight: 1.1 }}>Explore Openings</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: 0, lineHeight: 1.33 }}>
               Discover active job opportunities matching your background. Review applicability percentages driven by your active resume profile.
@@ -219,8 +219,8 @@ export default function CandidateJobFeed() {
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
-                      borderRadius: '12px',
-                      border: '1px dashed var(--color-cork-shadow)',
+                      borderRadius: 'var(--radius-cards)',
+                      border: '1px solid var(--border)',
                       cursor: 'pointer'
                     }}
                     onClick={() => setSelectedJob(job)}
@@ -242,7 +242,7 @@ export default function CandidateJobFeed() {
                           {matchStyle.label}
                         </span>
                         {isApplied && (
-                          <span style={{ fontSize: '10px', fontWeight: 500, padding: '3px 8px', borderRadius: '999px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--color-warm-cream)' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 500, padding: '3px 8px', borderRadius: '999px', background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)' }}>
                             Applied
                           </span>
                         )}
@@ -299,7 +299,7 @@ export default function CandidateJobFeed() {
                       <button 
                         type="button" 
                         className="btn btn--secondary btn--sm" 
-                        style={{ borderRadius: '22.5px', padding: '8px 16px', fontWeight: 500 }}
+                        style={{ borderRadius: 'var(--radius-buttons)', padding: '8px 16px', fontWeight: 500 }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedJob(job)
@@ -322,7 +322,7 @@ export default function CandidateJobFeed() {
                 className="btn btn--secondary btn--sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                style={{ borderRadius: '22.5px' }}
+                style={{ borderRadius: 'var(--radius-buttons)' }}
               >
                 ← Previous
               </button>
@@ -334,7 +334,7 @@ export default function CandidateJobFeed() {
                 className="btn btn--secondary btn--sm"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                style={{ borderRadius: '22.5px' }}
+                style={{ borderRadius: 'var(--radius-buttons)' }}
               >
                 Next →
               </button>
@@ -372,7 +372,7 @@ export default function CandidateJobFeed() {
               display: 'flex',
               flexDirection: 'column',
               zIndex: 1000,
-              boxShadow: 'none',
+              
               overflow: 'hidden'
             }}
           >
@@ -380,7 +380,7 @@ export default function CandidateJobFeed() {
             <div 
               style={{ 
                 padding: 'var(--space-6)', 
-                borderBottom: '1px dashed var(--color-cork-shadow)', 
+                borderBottom: '1px solid var(--border)', 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'flex-start' 
@@ -425,8 +425,8 @@ export default function CandidateJobFeed() {
                   gap: 'var(--space-5)', 
                   padding: 'var(--space-4)', 
                   background: 'transparent', 
-                  borderRadius: '12px', 
-                  border: '1px dashed var(--color-cork-shadow)' 
+                  borderRadius: 'var(--radius-cards)', 
+                  border: '1px solid var(--border)' 
                 }}
               >
                 {/* Visual Circular Ring */}
@@ -480,7 +480,7 @@ export default function CandidateJobFeed() {
                     
                     {/* Matching */}
                     {selectedJob.matching_skills.length > 0 && (
-                      <div style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--success)', display: 'block', marginBottom: '8px' }}>
                           ✓ Matching Skills ({selectedJob.matching_skills.length})
                         </span>
@@ -506,7 +506,7 @@ export default function CandidateJobFeed() {
 
                     {/* Missing */}
                     {selectedJob.missing_skills.length > 0 && (
-                      <div style={{ border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
                           ? Missing Skills ({selectedJob.missing_skills.length})
                         </span>
@@ -548,8 +548,8 @@ export default function CandidateJobFeed() {
                     whiteSpace: 'pre-wrap',
                     background: 'transparent',
                     padding: 'var(--space-4)',
-                    borderRadius: '12px',
-                    border: '1px dashed var(--color-cork-shadow)'
+                    borderRadius: 'var(--radius-cards)',
+                    border: '1px solid var(--border)'
                   }}
                 >
                   {selectedJob.description}
@@ -557,7 +557,7 @@ export default function CandidateJobFeed() {
               </div>
 
               {/* Job Metadata Properties */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'transparent', padding: 'var(--space-4)', borderRadius: '12px', border: '1px dashed var(--color-cork-shadow)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'transparent', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
                 <div>
                   <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Target Start Date</span>
                   <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>
@@ -578,7 +578,7 @@ export default function CandidateJobFeed() {
             <div 
               style={{ 
                 padding: 'var(--space-6)', 
-                borderTop: '1px dashed var(--color-cork-shadow)', 
+                borderTop: '1px solid var(--border)', 
                 background: 'transparent',
                 display: 'flex',
                 flexDirection: 'column',
@@ -620,7 +620,7 @@ export default function CandidateJobFeed() {
               ) : (
                 <>
                   {applyError && (
-                    <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--danger)' }}>
+                    <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: 'var(--space-3)', borderRadius: 'var(--radius-cards)', fontSize: 'var(--text-xs)', border: '1px solid var(--danger)' }}>
                       <strong>Submission Failed:</strong> {applyError}
                     </div>
                   )}
@@ -631,7 +631,7 @@ export default function CandidateJobFeed() {
                     </div>
                   ) : resumes.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                      <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--warning)' }}>
+                      <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: 'var(--space-3)', borderRadius: 'var(--radius-cards)', fontSize: 'var(--text-xs)', border: '1px solid var(--warning)' }}>
                         <strong>No Resumes Found:</strong> You must upload a resume to your library before applying.
                       </div>
                       <Link 
@@ -677,7 +677,7 @@ export default function CandidateJobFeed() {
 
                       {profile && (!profile.email_verified || !profile.phone_verified) ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
-                          <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: 'var(--space-3)', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--warning)' }}>
+                          <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', padding: 'var(--space-3)', borderRadius: 'var(--radius-cards)', fontSize: 'var(--text-xs)', border: '1px solid var(--warning)' }}>
                             <strong>Verification Required:</strong> You must verify your email and phone number in <Link to="/candidate/profile" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Profile Settings</Link> to apply.
                           </div>
                           <button
@@ -703,11 +703,10 @@ export default function CandidateJobFeed() {
                           style={{ 
                           width: '100%', 
                           padding: '12px', 
-                          borderRadius: '36px', 
+                          borderRadius: 'var(--radius-buttons)', 
                           fontWeight: 500,
-                          background: 'var(--color-dark-cork)',
-                          color: 'var(--text)',
-                          boxShadow: 'none',
+                          background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
+                          
                           border: 'none'
                         }}
                         >

@@ -171,7 +171,7 @@ export default function CandidateProfilePage() {
         <div className="dashboard-grid">
           {/* Main Form Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <form onSubmit={handleSave} className="card" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
+            <form onSubmit={handleSave} className="card" style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
               <div className="card__header" style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
                 <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Personal Information</h3>
                 <p style={{ fontSize: '12px', color: 'var(--color-grey-brown)', marginTop: '4px', margin: 0 }}>
@@ -181,7 +181,7 @@ export default function CandidateProfilePage() {
 
               <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: 'var(--space-6)' }}>
                 {successMsg && (
-                  <div className="banner banner--success" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', fontSize: '12px' }}>
+                  <div className="banner banner--success" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', fontSize: '12px' }}>
                     ✅ {successMsg}
                   </div>
                 )}
@@ -287,7 +287,7 @@ export default function CandidateProfilePage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
-                  <button type="submit" className="btn btn--accent" disabled={submitting} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '12px 24px', fontWeight: 500, boxShadow: 'none' }}>
+                  <button type="submit" className="btn btn--accent" disabled={submitting} style={{ borderRadius: 'var(--radius-buttons)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '12px 24px', fontWeight: 500 }}>
                     {submitting ? 'Saving changes…' : 'Save Profile'}
                   </button>
                 </div>
@@ -298,7 +298,7 @@ export default function CandidateProfilePage() {
           {/* Right Sidebar Status Column */}
           <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             {/* Status Summary */}
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-6) var(--space-4)', background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-6) var(--space-4)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
               <div
                 style={{
                   width: '72px',
@@ -319,7 +319,7 @@ export default function CandidateProfilePage() {
               <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{fullName || 'Candidate'}</h4>
               <p style={{ fontSize: '12px', color: 'var(--color-grey-brown)', marginTop: '4px', margin: 0 }}>{email}</p>
 
-              <div style={{ borderTop: '1px dashed var(--color-cork-shadow)', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)' }}>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)' }}>
                 <div style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
                   Profile Completion
                 </div>
@@ -333,7 +333,7 @@ export default function CandidateProfilePage() {
             </div>
 
             {/* Verification Badges */}
-            <div className="card" style={{ background: 'transparent', border: '1px dashed var(--color-cork-shadow)', borderRadius: '12px', boxShadow: 'none' }}>
+            <div className="card" style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
               <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
                 <h3 style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
                   Verification Status
@@ -345,7 +345,7 @@ export default function CandidateProfilePage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
                     <span style={{ fontWeight: 400, color: 'var(--text)' }}>Email Address</span>
                     {profile?.email_verified ? (
-                      <span className="badge" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
+                      <span className="badge" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
                     ) : (
                       <span className="badge" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Unverified</span>
                     )}
@@ -355,21 +355,21 @@ export default function CandidateProfilePage() {
                       type="button"
                       onClick={handleSendEmailOtp}
                       className="btn btn--secondary btn--sm"
-                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)' }}
                     >
                       Verify Email
                     </button>
                   )}
                 </div>
 
-                <hr style={{ border: 'none', borderTop: '1px dashed var(--color-cork-shadow)', margin: 0 }} />
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
 
                 {/* Phone verification row */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
                     <span style={{ fontWeight: 400, color: 'var(--text)' }}>Phone Number</span>
                     {profile?.phone_verified ? (
-                      <span className="badge" style={{ border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
+                      <span className="badge" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Verified</span>
                     ) : (
                       <span className="badge" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px' }}>Unverified</span>
                     )}
@@ -379,7 +379,7 @@ export default function CandidateProfilePage() {
                       type="button"
                       onClick={handleSendPhoneOtp}
                       className="btn btn--secondary btn--sm"
-                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)' }}
+                      style={{ fontSize: '11px', alignSelf: 'flex-start', padding: '4px 10px', borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)' }}
                       disabled={!phone}
                     >
                       Verify Phone
@@ -396,7 +396,7 @@ export default function CandidateProfilePage() {
       {showEmailModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,9,4,0.7)' }} onClick={() => setShowEmailModal(false)} />
-          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--color-studio-black)', border: '1px solid var(--color-warm-cream)', borderRadius: '12px', boxShadow: 'none', overflow: 'hidden' }}>
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', overflow: 'hidden' }}>
             <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Verify Email</h3>
               <button type="button" onClick={() => setShowEmailModal(false)} style={{ fontSize: '18px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--color-grey-brown)' }}>✕</button>
@@ -421,8 +421,8 @@ export default function CandidateProfilePage() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setShowEmailModal(false)} style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
-                <button type="submit" className="btn btn--accent" disabled={emailVerifying} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500, boxShadow: 'none' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowEmailModal(false)} style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={emailVerifying} style={{ borderRadius: 'var(--radius-buttons)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500 }}>
                   {emailVerifying ? 'Verifying...' : 'Verify'}
                 </button>
               </div>
@@ -435,7 +435,7 @@ export default function CandidateProfilePage() {
       {showPhoneModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,9,4,0.7)' }} onClick={() => setShowPhoneModal(false)} />
-          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--color-studio-black)', border: '1px solid var(--color-warm-cream)', borderRadius: '12px', boxShadow: 'none', overflow: 'hidden' }}>
+          <div className="card" style={{ zIndex: 310, width: 'min(400px, 90vw)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', overflow: 'hidden' }}>
             <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Verify Phone</h3>
               <button type="button" onClick={() => setShowPhoneModal(false)} style={{ fontSize: '18px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--color-grey-brown)' }}>✕</button>
@@ -460,8 +460,8 @@ export default function CandidateProfilePage() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setShowPhoneModal(false)} style={{ borderRadius: '22.5px', border: '1px solid var(--color-warm-cream)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
-                <button type="submit" className="btn btn--accent" disabled={phoneVerifying} style={{ borderRadius: '36px', background: 'var(--color-dark-cork)', color: 'var(--text)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500, boxShadow: 'none' }}>
+                <button type="button" className="btn btn--secondary" onClick={() => setShowPhoneModal(false)} style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '8px 16px', fontSize: '12px' }}>Cancel</button>
+                <button type="submit" className="btn btn--accent" disabled={phoneVerifying} style={{ borderRadius: 'var(--radius-buttons)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '8px 16px', fontSize: '12px', fontWeight: 500 }}>
                   {phoneVerifying ? 'Verifying...' : 'Verify'}
                 </button>
               </div>

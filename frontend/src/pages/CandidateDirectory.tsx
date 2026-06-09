@@ -63,8 +63,7 @@ export default function CandidateDirectory() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'var(--color-dark-cork)',
-              color: 'var(--text)',
+              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
               display: 'grid',
               placeItems: 'center',
               fontWeight: 500,
@@ -142,7 +141,7 @@ export default function CandidateDirectory() {
         hideOnMobile: true,
         render: () => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)' }}>
-            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-dark-cork)', color: 'var(--text)', display: 'grid', placeItems: 'center', fontWeight: 500, fontSize: '8px' }}>R</div>
+            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', display: 'grid', placeItems: 'center', fontWeight: 500, fontSize: '8px' }}>R</div>
             <span>Sarah Recruiter</span>
           </div>
         )

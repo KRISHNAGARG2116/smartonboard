@@ -24,7 +24,7 @@ export default function RecruiterInterviews() {
       <div className="container" style={{ padding: 'var(--space-6) 0 var(--space-12)' }}>
         {/* Header */}
         <div style={{
-          borderBottom: '1px dashed var(--color-cork-shadow)',
+          borderBottom: '1px solid var(--border)',
           paddingBottom: 'var(--space-6)',
           marginBottom: 'var(--space-6)'
         }}>
@@ -44,7 +44,7 @@ export default function RecruiterInterviews() {
           <div style={{
             padding: 'var(--space-12)',
             textAlign: 'center',
-            border: '1px dashed var(--color-cork-shadow)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             color: 'var(--text-secondary)'
           }}>
