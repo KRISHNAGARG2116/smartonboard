@@ -123,3 +123,37 @@ def validate_domain_dns(email: str) -> dict:
         logger.info(f"MX query error for {domain}: {e}, allowing with pending verification")
 
     return result
+
+
+import re
+
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+DISPOSABLE_MAIL_HOSTS = frozenset({
+    "mailinator.com",
+    "yopmail.com",
+    "tempmail.com",
+    "dispostable.com",
+    "sharklasers.com",
+    "guerrillamail.com",
+    "guerrillamailblock.com",
+    "guerrillamail.net",
+    "guerrillamail.org",
+    "guerrillamail.biz",
+    "10minutemail.com",
+    "trashmail.com",
+    "getairmail.com",
+})
+
+
+def validate_email_strict(email: str) -> dict:
+    """Validate email format and check if it's from a disposable provider."""
+    email = email.lower().strip()
+    if not EMAIL_REGEX.match(email):
+        return {"valid": False, "error": "Invalid email format"}
+
+    domain = email.split("@")[-1]
+    if domain in DISPOSABLE_MAIL_HOSTS:
+        return {"valid": False, "error": "Disposable email addresses are not allowed"}
+
+    return {"valid": True, "error": None}

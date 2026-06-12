@@ -116,6 +116,7 @@ export interface User {
   email: string
   full_name: string
   role: string
+  email_verified: boolean
   company_id: string | null
 }
 

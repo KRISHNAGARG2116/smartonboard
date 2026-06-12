@@ -15,3 +15,5 @@ scratch/brave-user-data/
 scratch/chrome-user-data/
 chrome-profile/
 
+chrome-profile-fresh/
+.DS_Store

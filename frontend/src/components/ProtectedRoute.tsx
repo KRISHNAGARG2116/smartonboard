@@ -24,6 +24,16 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to={redirectLoginPath} replace state={{ from: location.pathname }} />
   }
 
+  // Recruiter Email Verification Route Guard
+  if (user.role !== 'candidate') {
+    if (!user.email_verified && location.pathname !== '/recruiter/verify-email') {
+      return <Navigate to="/recruiter/verify-email" replace />
+    }
+    if (user.email_verified && location.pathname === '/recruiter/verify-email') {
+      return <Navigate to="/recruiter/dashboard" replace />
+    }
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === 'candidate') {
       return <Navigate to="/candidate/dashboard" replace />

@@ -26,6 +26,7 @@ class User(Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    email_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

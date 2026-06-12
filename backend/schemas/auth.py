@@ -52,6 +52,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: str
     role: str
+    email_verified: bool = False
     company_id: Optional[uuid.UUID] = None
 
     model_config = {"from_attributes": True}

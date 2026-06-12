@@ -80,6 +80,17 @@ def get_current_user(
     return user
 
 
+def get_verified_recruiter(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required"
+        )
+    return current_user
+
+
 def get_current_candidate(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: Annotated[Session, Depends(get_db)],
@@ -234,7 +245,7 @@ def get_portal_db(
 
 
 TenantDb = Annotated[Session, Depends(get_tenant_db)]
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUser = Annotated[User, Depends(get_verified_recruiter)]
 CurrentCandidate = Annotated[User, Depends(get_current_candidate)]
 RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
 RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]
@@ -259,6 +270,9 @@ def get_verified_candidate(
     return current_candidate
 
 VerifiedCandidate = Annotated[User, Depends(get_verified_candidate)]
+
+
+VerifiedRecruiter = Annotated[User, Depends(get_verified_recruiter)]
 
 
 

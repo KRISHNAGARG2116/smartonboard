@@ -43,6 +43,15 @@ def register_candidate(
     """
     email_lower = body.email.lower()
 
+    # Strict email validation & Disposable Check
+    from core.domain_validation import validate_email_strict
+    email_strict = validate_email_strict(email_lower)
+    if not email_strict["valid"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=email_strict["error"],
+        )
+
     try:
         with tenant_context(auth_mode="true"):
             existing = db.scalar(select(User.id).where(User.email == email_lower))
@@ -58,6 +67,7 @@ def register_candidate(
                 password_hash=hash_password(body.password),
                 full_name=body.full_name,
                 role=UserRole.CANDIDATE,
+                email_verified=False,
             )
             db.add(user)
             db.flush()
@@ -72,6 +82,14 @@ def register_candidate(
             db.add(profile)
             db.commit()
             db.refresh(user)
+
+            # Generate and send email verification OTP immediately
+            otp_code = DBVerificationTokenProvider.create_token(
+                db=db,
+                user_id=user.id,
+                token_type="email_otp"
+            )
+            get_otp_provider().send_otp(user.email, otp_code)
     except IntegrityError as e:
         db.rollback()
         err_msg = str(e.orig).lower()
@@ -298,13 +316,15 @@ def candidate_verify_email_otp(
         )
 
     with tenant_context(auth_mode="true"):
+        user.email_verified = True
+        db.add(user)
         profile = db.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == user.id)
         )
         if profile:
             profile.email_verified = True
             db.add(profile)
-            db.commit()
+        db.commit()
 
     from core.audit import log_audit_event
     log_audit_event(

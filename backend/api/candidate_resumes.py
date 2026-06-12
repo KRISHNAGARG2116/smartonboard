@@ -145,7 +145,7 @@ def candidate_list_resumes(
 @router.post("/candidate/resumes/{resume_id}/toggle-active")
 def candidate_toggle_resume_active(
     resume_id: uuid.UUID,
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Set specified resume as the active one and update the profile data (provenance sync)."""
@@ -190,7 +190,7 @@ def candidate_toggle_resume_active(
 @router.delete("/candidate/resumes/{resume_id}")
 def candidate_delete_resume(
     resume_id: uuid.UUID,
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Delete a resume from library database and disk storage."""

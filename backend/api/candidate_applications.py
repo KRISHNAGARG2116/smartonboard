@@ -207,7 +207,7 @@ def get_my_applications(
 @router.post("/{application_id}/withdraw")
 def withdraw_application(
     application_id: uuid.UUID,
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)]
 ):
     """Withdraw an application and generate recruiter notification drafts."""

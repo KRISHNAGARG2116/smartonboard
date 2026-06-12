@@ -9,6 +9,7 @@ import Register from './pages/Register'
 // Split Auth Pages
 import RecruiterLogin from './pages/recruiter/RecruiterLogin'
 import RecruiterRegister from './pages/recruiter/RecruiterRegister'
+import RecruiterVerifyEmail from './pages/recruiter/RecruiterVerifyEmail'
 import CandidateLogin from './pages/candidate/CandidateLogin'
 import CandidateRegister from './pages/candidate/CandidateRegister'
 
@@ -49,6 +50,14 @@ function AppRoutes() {
         <Route path="/candidate/register" element={<AnimatedPage><CandidateRegister /></AnimatedPage>} />
 
         {/* Recruiter Workspace Routes (Prefixed with /recruiter/) */}
+        <Route
+          path="/recruiter/verify-email"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><RecruiterVerifyEmail /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/recruiter/dashboard"
           element={

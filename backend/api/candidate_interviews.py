@@ -110,7 +110,7 @@ def cancel_candidate_booking(
     slot_id: uuid.UUID,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-    current_candidate: CurrentCandidate
+    current_candidate: VerifiedCandidate
 ):
     """Authenticate and cancel a candidate slot booking using active credentials."""
     with tenant_context(auth_mode="true"):

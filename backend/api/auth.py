@@ -112,7 +112,16 @@ def register(
     # --- Recruiter Domain Validation ---
     email_lower = body.email.lower()
 
-    # 1. Block public mail hosts
+    # 1. Strict email validation & Disposable Check
+    from core.domain_validation import validate_email_strict
+    email_strict = validate_email_strict(email_lower)
+    if not email_strict["valid"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=email_strict["error"],
+        )
+
+    # 2. Block public mail hosts
     if is_public_mail_host(email_lower):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -160,10 +169,19 @@ def register(
                 password_hash=hash_password(body.password),
                 full_name=body.full_name,
                 role=UserRole.OWNER,
+                email_verified=False,
             )
             db.add(user)
             db.commit()
             db.refresh(user)
+
+            # Generate and send email verification OTP
+            otp_code = DBVerificationTokenProvider.create_token(
+                db=db,
+                user_id=user.id,
+                token_type="email_otp"
+            )
+            get_otp_provider().send_otp(user.email, otp_code)
     except IntegrityError as e:
         db.rollback()
         err_msg = str(e.orig).lower()
@@ -345,6 +363,13 @@ def login(
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
+    # Enforce email verification check
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required"
+        )
+
     # Clear failed logins on success
     clear_failed_logins(ip)
 
@@ -377,9 +402,126 @@ def login(
             email=user.email,
             full_name=user.full_name,
             role=user.role.value,
+            email_verified=user.email_verified,
             company_id=user.company_id,
         ),
     )
+
+
+class RecruiterVerifyEmailRequest(BaseModel):
+    email: str
+    code: str
+
+
+class RecruiterResendOTPRequest(BaseModel):
+    email: str
+
+
+@router.post("/verify-email", response_model=AuthResponse)
+def verify_email(
+    request: Request,
+    response: Response,
+    body: RecruiterVerifyEmailRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    email_lower = body.email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(User.email == email_lower)
+        )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Verify the OTP token
+    result = DBVerificationTokenProvider.verify_token(
+        db=db,
+        user_id=user.id,
+        token_type="email_otp",
+        code=body.code
+    )
+
+    if not result["valid"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"]
+        )
+
+    # Set user.email_verified = True and company.verification_state
+    with tenant_context(auth_mode="true"):
+        user.email_verified = True
+        if user.company:
+            user.company.verification_state = VerificationState.VERIFIED_RECRUITER
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Issue access/refresh tokens
+    access_token, refresh_token = create_user_session_and_tokens(
+        db=db,
+        user=user,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        response=response
+    )
+
+    # Audit log verification success
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="verification.email_success",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
+
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role.value,
+            email_verified=user.email_verified,
+            company_id=user.company_id,
+        ),
+    )
+
+
+@router.post("/verify-email/resend")
+def resend_verify_email(
+    request: Request,
+    body: RecruiterResendOTPRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    email_lower = body.email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(User.email == email_lower)
+        )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    if user.email_verified:
+        return {"message": "Email already verified"}
+
+    # Generate and send email verification OTP
+    otp_code = DBVerificationTokenProvider.create_token(
+        db=db,
+        user_id=user.id,
+        token_type="email_otp"
+    )
+    get_otp_provider().send_otp(user.email, otp_code)
+
+    return {"message": "Verification code sent successfully"}
 
 
 @router.post("/otp/send")
@@ -727,12 +869,16 @@ def logout(
 
 @router.get("/me", response_model=UserResponse)
 @limiter.limit("100/minute")
-def me(request: Request, current_user: CurrentUser):
+def me(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)]
+):
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
         full_name=current_user.full_name,
         role=current_user.role.value,
+        email_verified=current_user.email_verified,
         company_id=current_user.company_id,
     )
 
@@ -740,7 +886,7 @@ def me(request: Request, current_user: CurrentUser):
 @router.get("/sessions", response_model=list[SessionResponse])
 def list_sessions(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)]
+    current_user: CurrentUser
 ):
     sessions = db.scalars(
         select(UserSession)
@@ -755,7 +901,7 @@ def revoke_session(
     body: RevokeSessionRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)]
+    current_user: CurrentUser
 ):
     session = db.scalar(
         select(UserSession).where(UserSession.id == body.session_id, UserSession.user_id == current_user.id)
