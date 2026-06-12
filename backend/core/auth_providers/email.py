@@ -1,21 +1,8 @@
-"""
-Abstract Authentication Provider Layer for SmartOnboard.
-
-Provides a pluggable interface for authentication delivery mechanisms,
-supporting future expansion to OAuth, Passkeys, magic-link, etc.
-
-Current implementations:
-- MockOTPProvider: Development/testing stub that logs OTP codes
-- TwilioOTPProvider: Production SMS delivery via Twilio
-- DBVerificationTokenProvider: Database-backed verification token management
-"""
-
 import hashlib
 import logging
 import os
 import secrets
 import uuid
-from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -24,95 +11,31 @@ from sqlalchemy.orm import Session
 
 from db.session import tenant_context
 
-logger = logging.getLogger("smartonboard.auth_providers")
+logger = logging.getLogger("smartonboard.auth_providers.email")
 
 
-# ---------------------------------------------------------------------------
-# Abstract base for OTP delivery
-# ---------------------------------------------------------------------------
+class EmailProvider:
+    @staticmethod
+    def send_verification_email(destination: str, code: str) -> bool:
+        # SMTP email verification code delivery fallback
+        from core.auth_providers.sms import get_otp_provider
+        return get_otp_provider().send_otp(destination, code)
 
-class OTPDeliveryProvider(ABC):
-    """Abstract interface for OTP code delivery (SMS, Email, etc.)."""
-
-    @abstractmethod
-    def send_otp(self, destination: str, code: str) -> bool:
-        """Send an OTP code to the given destination.
-
-        Args:
-            destination: Phone number or email address.
-            code: The OTP code string.
-
-        Returns:
-            True if delivery succeeded, False otherwise.
-        """
-        ...
-
-    @abstractmethod
-    def provider_name(self) -> str:
-        """Human-readable name of this provider."""
-        ...
-
-
-class MockOTPProvider(OTPDeliveryProvider):
-    """Development/testing provider that logs OTP codes instead of sending."""
-
-    def send_otp(self, destination: str, code: str) -> bool:
-        logger.info(f"[MOCK OTP] Code {code} → {destination}")
-        print(f"MOCK OTP for {destination}: {code}")
+    @staticmethod
+    def send_password_reset_email(destination: str, token: str) -> bool:
+        logger.info(f"[EMAIL MOCK] Password reset link sent to {destination} with token {token}")
+        print(f"EMAIL PASSWORD RESET for {destination}: {token}")
         return True
 
-    def provider_name(self) -> str:
-        return "mock"
+    @staticmethod
+    def send_notification_email(destination: str, subject: str, body: str) -> bool:
+        logger.info(f"[EMAIL MOCK] Notification to {destination} subject '{subject}': {body}")
+        print(f"EMAIL NOTIFICATION for {destination} [{subject}]: {body}")
+        return True
 
-
-class TwilioOTPProvider(OTPDeliveryProvider):
-    """Production SMS provider via Twilio REST API."""
-
-    def __init__(self):
-        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
-        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
-        self.from_phone = os.getenv("TWILIO_FROM_PHONE", "")
-
-    def send_otp(self, destination: str, code: str) -> bool:
-        if not all([self.account_sid, self.auth_token, self.from_phone]):
-            logger.warning("Twilio credentials not configured, falling back to mock")
-            return MockOTPProvider().send_otp(destination, code)
-
-        try:
-            from twilio.rest import Client
-            client = Client(self.account_sid, self.auth_token)
-            client.messages.create(
-                body=f"Your SmartOnboard verification code is: {code}. It expires in 5 minutes.",
-                from_=self.from_phone,
-                to=destination,
-            )
-            logger.info(f"Twilio OTP sent to {destination}")
-            return True
-        except Exception as e:
-            logger.error(f"Twilio delivery failed for {destination}: {e}")
-            return False
-
-    def provider_name(self) -> str:
-        return "twilio"
-
-
-def get_otp_provider() -> OTPDeliveryProvider:
-    """Factory: return the appropriate OTP provider based on environment config."""
-    if os.getenv("TWILIO_ACCOUNT_SID") and os.getenv("TWILIO_AUTH_TOKEN"):
-        return TwilioOTPProvider()
-    return MockOTPProvider()
-
-
-# ---------------------------------------------------------------------------
-# Database-backed verification token management
-# ---------------------------------------------------------------------------
 
 class DBVerificationTokenProvider:
-    """Manages verification tokens stored in the `verification_tokens` table.
-
-    Handles OTP generation, hashing, storage, and verification with
-    attempt limiting and expiration enforcement.
-    """
+    """Manages verification tokens stored in the `verification_tokens` table."""
 
     TOKEN_EXPIRY_MINUTES = 5
     MAX_ATTEMPTS = 3
@@ -181,13 +104,7 @@ class DBVerificationTokenProvider:
         token_type: str,
         code: str,
     ) -> dict:
-        """Verify a submitted OTP code against stored tokens.
-
-        Returns a dict:
-            - valid: True if code matches and is not expired
-            - error: error message if invalid
-            - token_id: UUID of matched token (if valid)
-        """
+        """Verify a submitted OTP code against stored tokens."""
         from models.verification_token import VerificationToken
 
         code_hash = cls.hash_token(code)

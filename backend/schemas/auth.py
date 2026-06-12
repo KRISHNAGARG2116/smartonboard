@@ -47,6 +47,9 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+from models.enums import AuthProvider
+
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
@@ -54,6 +57,7 @@ class UserResponse(BaseModel):
     role: str
     email_verified: bool = False
     company_id: Optional[uuid.UUID] = None
+    auth_provider: AuthProvider = AuthProvider.LOCAL
 
     model_config = {"from_attributes": True}
 

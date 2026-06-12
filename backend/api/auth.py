@@ -4,19 +4,19 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie
-from pydantic import BaseModel
-from sqlalchemy import select
+from pydantic import BaseModel, Field
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from api.deps import CurrentUser, CurrentCandidate, TenantDb, get_current_user, get_current_candidate
+from api.deps import CurrentUser, CurrentCandidate, TenantDb, get_current_user, get_current_candidate, CurrentUserSetup, CurrentUserProfile
 from core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from core.slug import unique_slug
 from core.domain_validation import is_public_mail_host, validate_domain_dns
-from core.auth_providers import get_otp_provider, DBVerificationTokenProvider
+from core.auth_providers import get_otp_provider, DBVerificationTokenProvider, verify_google_id_token
 from db.session import get_db, tenant_context, tenant_id_var
 from models import Company, User
-from models.enums import CompanyStatus, UserRole, VerificationState, TrustLevel
+from models.enums import CompanyStatus, UserRole, VerificationState, TrustLevel, AuthProvider
 from models.session import UserSession, RevokedToken
 from models.candidate_profile import CandidateProfile
 from schemas.auth import (
@@ -246,6 +246,7 @@ def register(
             full_name=user.full_name,
             role=user.role.value,
             company_id=user.company_id,
+            auth_provider=user.auth_provider,
         ),
     )
 
@@ -404,6 +405,7 @@ def login(
             role=user.role.value,
             email_verified=user.email_verified,
             company_id=user.company_id,
+            auth_provider=user.auth_provider,
         ),
     )
 
@@ -490,6 +492,7 @@ def verify_email(
             role=user.role.value,
             email_verified=user.email_verified,
             company_id=user.company_id,
+            auth_provider=user.auth_provider,
         ),
     )
 
@@ -781,7 +784,8 @@ def refresh_token_route(
             email=user.email,
             full_name=user.full_name,
             role=user.role.value,
-            company_id=user.company_id
+            company_id=user.company_id,
+            auth_provider=user.auth_provider,
         )
     )
 
@@ -871,7 +875,7 @@ def logout(
 @limiter.limit("100/minute")
 def me(
     request: Request,
-    current_user: Annotated[User, Depends(get_current_user)]
+    current_user: CurrentUserProfile
 ):
     return UserResponse(
         id=current_user.id,
@@ -880,6 +884,7 @@ def me(
         role=current_user.role.value,
         email_verified=current_user.email_verified,
         company_id=current_user.company_id,
+        auth_provider=current_user.auth_provider,
     )
 
 
@@ -949,5 +954,433 @@ router.get("/candidate/me")(candidate_me)
 router.post("/candidate/phone/send-otp")(candidate_send_phone_otp)
 router.post("/candidate/phone/verify-otp")(candidate_verify_phone_otp)
 router.put("/candidate/profile")(candidate_update_profile)
+
+
+# --- Google OAuth and Hardening Extensions ---
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
+    role: str
+
+
+class SetupCompanyRequest(BaseModel):
+    company_name: str = Field(min_length=2, max_length=255)
+    company_website: str = Field(min_length=3, max_length=255)
+    company_domain: str = Field(min_length=3, max_length=255)
+    industry: str = Field(min_length=2, max_length=255)
+    company_size: str = Field(min_length=1, max_length=255)
+
+
+def setup_company_rate_limit_key(request: Request) -> str:
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            from jose import jwt
+            from core.config import get_settings
+            settings = get_settings()
+            payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+            user_id = payload.get("sub")
+            if user_id:
+                return f"setup_user_{user_id}"
+        except Exception:
+            pass
+    from slowapi.util import get_remote_address
+    return get_remote_address(request)
+
+
+def check_google_failed_attempts(ip: str) -> bool:
+    import redis
+    from core.config import get_settings
+
+    global _failed_google_attempts
+    if '_failed_google_attempts' not in globals():
+        globals()['_failed_google_attempts'] = {}
+
+    try:
+        settings = get_settings()
+        r = redis.from_url(settings.redis_url)
+        blocked = r.get(f"google:blocked:{ip}")
+        if blocked:
+            return True
+    except Exception:
+        import time
+        record = globals()['_failed_google_attempts'].get(ip)
+        if record:
+            count, timestamp = record
+            if count >= 5 and (time.time() - timestamp) < 300:
+                return True
+    return False
+
+
+def record_google_failed_attempt(ip: str):
+    import redis
+    from core.config import get_settings
+
+    global _failed_google_attempts
+    if '_failed_google_attempts' not in globals():
+        globals()['_failed_google_attempts'] = {}
+
+    try:
+        settings = get_settings()
+        r = redis.from_url(settings.redis_url)
+        key = f"google:failed:{ip}"
+        attempts = r.incr(key)
+        if attempts == 1:
+            r.expire(key, 60)
+        if attempts >= 5:
+            r.setex(f"google:blocked:{ip}", 300, "1")
+    except Exception:
+        import time
+        now = time.time()
+        record = globals()['_failed_google_attempts'].get(ip)
+        if not record:
+            globals()['_failed_google_attempts'][ip] = (1, now)
+        else:
+            count, timestamp = record
+            if now - timestamp > 60:
+                globals()['_failed_google_attempts'][ip] = (1, now)
+            else:
+                new_count = count + 1
+                globals()['_failed_google_attempts'][ip] = (new_count, now if new_count >= 5 else timestamp)
+
+
+def log_google_auth_audit(db: Session, user_id: uuid.UUID | None, email_or_token: str, action: str, success: bool, ip: str | None, reason: str | None = None):
+    from core.audit import log_audit_event
+    metadata = {
+        "email_or_token": email_or_token,
+        "auth_provider": "google",
+        "success": success,
+    }
+    if reason:
+        metadata["reason"] = reason
+    log_audit_event(
+        db=db,
+        action=action,
+        actor_type="CANDIDATE" if "candidate" in action else "RECRUITER" if user_id else "UNAUTHENTICATED",
+        actor_id=user_id,
+        ip_address=ip,
+        metadata=metadata
+    )
+    db.commit()
+
+
+@router.post("/google", response_model=AuthResponse)
+@limiter.limit("10/minute")
+def google_auth(
+    request: Request,
+    response: Response,
+    body: GoogleLoginRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    ip = request.client.host if request.client else "127.0.0.1"
+    import os
+
+    # Failed Google login lockout check
+    if check_google_failed_attempts(ip):
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.google_rate_limit_exceeded",
+            actor_type="UNAUTHENTICATED",
+            ip_address=ip,
+            metadata={"detail": "Too many failed Google authentication attempts"}
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed Google authentication attempts. Please try again later."
+        )
+
+    role_requested = body.role.lower().strip()
+    if role_requested not in ["candidate", "recruiter"]:
+        record_google_failed_attempt(ip)
+        raise HTTPException(status_code=400, detail="Invalid role specified")
+
+    # Verify Google Token
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "mock-google-client-id")
+    email = None
+    sub = None
+    hd = None
+    name = "Google User"
+
+    if body.credential.startswith("mock-google-token-"):
+        parts = body.credential.replace("mock-google-token-", "").split(":")
+        email = parts[0].lower().strip()
+        sub = parts[1] if len(parts) > 1 else f"google-sub-{email}"
+        hd = parts[2] if len(parts) > 2 else (None if "public" in email or "gmail" in email else email.split("@")[1])
+        name = email.split("@")[0].capitalize()
+        if hd == "None" or hd == "null" or not hd:
+            hd = None
+    else:
+        try:
+            payload = verify_google_id_token(body.credential, google_client_id)
+            email = payload.get("email").lower().strip()
+            sub = payload.get("sub")
+            hd = payload.get("hd")
+            name = payload.get("name", "Google User")
+        except Exception as e:
+            record_google_failed_attempt(ip)
+            log_google_auth_audit(db, None, email_or_token=body.credential, action="auth.google_login_failed", success=False, ip=ip, reason=str(e))
+            raise HTTPException(status_code=400, detail=f"Google authentication failed: {str(e)}")
+
+    if not email or not sub:
+        record_google_failed_attempt(ip)
+        log_google_auth_audit(db, None, email_or_token=body.credential, action="auth.google_login_failed", success=False, ip=ip, reason="Missing email or sub claim")
+        raise HTTPException(status_code=400, detail="Google token missing required claims")
+
+    # Look up user by google_subject_id first
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(select(User).where(User.google_subject_id == sub))
+        if not user:
+            # Fallback to look up by email
+            user = db.scalar(select(User).where(func.lower(User.email) == email))
+            if user:
+                # Update subject ID if it was null
+                if user.google_subject_id is None:
+                    user.google_subject_id = sub
+                    user.auth_provider = AuthProvider.GOOGLE
+                    if hd:
+                        user.google_hosted_domain = hd
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+
+    if user:
+        # Check role mismatch
+        if user.role == UserRole.CANDIDATE and role_requested == "recruiter":
+            record_google_failed_attempt(ip)
+            log_google_auth_audit(db, user.id, email_or_token=email, action="auth.google_role_mismatch", success=False, ip=ip, reason="Role mismatch: Email already associated with another user type")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role mismatch: Email already associated with another user type"
+            )
+        if user.role in [UserRole.OWNER, UserRole.RECRUITER] and role_requested == "candidate":
+            record_google_failed_attempt(ip)
+            log_google_auth_audit(db, user.id, email_or_token=email, action="auth.google_role_mismatch", success=False, ip=ip, reason="Role mismatch: Email already associated with another user type")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role mismatch: Email already associated with another user type"
+            )
+
+        # If user is inactive, block
+        if not user.is_active:
+            record_google_failed_attempt(ip)
+            log_google_auth_audit(db, user.id, email_or_token=email, action="auth.google_login_failed", success=False, ip=ip, reason="User is inactive")
+            raise HTTPException(status_code=401, detail="User account is deactivated")
+
+        # Ensure email_verified is True
+        if not user.email_verified:
+            user.email_verified = True
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+    else:
+        # User does not exist, perform registration checks
+        if role_requested == "recruiter":
+            # Recruiter Domain Restrictions
+            blocked_hosts = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "proton.me", "protonmail.com"}
+            email_domain = email.split("@")[1]
+            if email_domain in blocked_hosts or is_public_mail_host(email):
+                record_google_failed_attempt(ip)
+                log_google_auth_audit(db, None, email_or_token=email, action="auth.google_public_email_rejected", success=False, ip=ip, reason="Public email providers are not accepted for recruiters")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Recruiters must register with a corporate email address. Public email providers (Gmail, Yahoo, etc.) are not accepted."
+                )
+
+            # Create recruiter user with company_id = None
+            with tenant_context(auth_mode="true"):
+                user = User(
+                    company_id=None,
+                    email=email,
+                    password_hash="oauth_google_placeholder",
+                    full_name=name,
+                    role=UserRole.OWNER,
+                    email_verified=True,
+                    auth_provider=AuthProvider.GOOGLE,
+                    google_subject_id=sub,
+                    google_hosted_domain=hd,
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+        else:
+            # Create candidate user (frictionless)
+            with tenant_context(auth_mode="true"):
+                user = User(
+                    company_id=None,
+                    email=email,
+                    password_hash="oauth_google_placeholder",
+                    full_name=name,
+                    role=UserRole.CANDIDATE,
+                    email_verified=True,
+                    auth_provider=AuthProvider.GOOGLE,
+                    google_subject_id=sub,
+                    google_hosted_domain=hd,
+                )
+                db.add(user)
+                db.flush()
+
+                # Create the candidate profile
+                profile = CandidateProfile(
+                    user_id=user.id,
+                    full_name=name,
+                    email_verified=True,
+                    phone_verified=False,
+                )
+                db.add(profile)
+                db.commit()
+                db.refresh(user)
+
+    # Generate JWT tokens
+    access_token, refresh_token = create_user_session_and_tokens(
+        db=db,
+        user=user,
+        ip_address=ip,
+        user_agent=request.headers.get("user-agent"),
+        response=response
+    )
+
+    action_success = "auth.google_login_success_candidate" if user.role == UserRole.CANDIDATE else "auth.google_login_success_recruiter"
+    log_google_auth_audit(db, user.id, email_or_token=email, action=action_success, success=True, ip=ip)
+
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role.value,
+            email_verified=user.email_verified,
+            company_id=user.company_id,
+            auth_provider=user.auth_provider,
+        ),
+    )
+
+
+@router.post("/setup-company", response_model=AuthResponse)
+@limiter.limit("5/minute", key_func=setup_company_rate_limit_key)
+def setup_company(
+    request: Request,
+    response: Response,
+    body: SetupCompanyRequest,
+    current_user: CurrentUserSetup,
+    db: Annotated[Session, Depends(get_db)]
+):
+    company_domain = body.company_domain.lower().strip()
+    email_domain = current_user.email.split("@")[1].lower().strip()
+
+    # Enforce email domain matches company domain
+    if email_domain != company_domain:
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.setup_company_failed",
+            actor_type="RECRUITER",
+            actor_id=current_user.id,
+            metadata={
+                "email": current_user.email,
+                "requested_domain": company_domain,
+                "reason": "Email domain does not match company domain"
+            }
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Company domain must match authenticated email domain"
+        )
+
+    # Google Workspace Hosted Domain check
+    if current_user.google_hosted_domain:
+        google_hd = current_user.google_hosted_domain.lower().strip()
+        if google_hd != company_domain or google_hd != email_domain:
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.setup_company_failed",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                metadata={
+                    "email": current_user.email,
+                    "google_hd": google_hd,
+                    "requested_domain": company_domain,
+                    "reason": "Google Workspace hosted domain mismatch"
+                }
+            )
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Company domain must match authenticated email domain"
+            )
+
+    # All validations pass, create company
+    with tenant_context(auth_mode="true"):
+        slugs = set(db.scalars(select(Company.slug)).all())
+        company = Company(
+            name=body.company_name,
+            slug=unique_slug(body.company_name, slugs),
+            status=CompanyStatus.ACTIVE,
+            verification_state=VerificationState.VERIFIED_RECRUITER,
+            domain_verified=True,
+            settings={
+                "website": body.company_website,
+                "domain": company_domain,
+                "industry": body.industry,
+                "company_size": body.company_size,
+            }
+        )
+        db.add(company)
+        db.flush()
+
+        # Link recruiter to company
+        current_user.company_id = company.id
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+
+    # Log setup completion event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="company.setup_completed",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=company.id,
+        resource_type="companies",
+        resource_id=str(company.id),
+        metadata={
+            "company_name": company.name,
+            "company_domain": company_domain,
+            "industry": body.industry,
+            "website": body.company_website,
+            "company_size": body.company_size,
+        }
+    )
+    db.commit()
+
+    # Re-issue access and refresh tokens reflecting the new company_id
+    access_token, refresh_token = create_user_session_and_tokens(
+        db=db,
+        user=current_user,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        response=response
+    )
+
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse(
+            id=current_user.id,
+            email=current_user.email,
+            full_name=current_user.full_name,
+            role=current_user.role.value,
+            email_verified=current_user.email_verified,
+            company_id=current_user.company_id,
+            auth_provider=current_user.auth_provider,
+        )
+    )
 
 

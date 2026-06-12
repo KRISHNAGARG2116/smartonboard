@@ -134,6 +134,7 @@ def register_candidate(
             full_name=user.full_name,
             role=user.role.value,
             company_id=None,
+            auth_provider=user.auth_provider,
         ),
     )
 
@@ -228,6 +229,7 @@ def login_candidate(
             full_name=user.full_name,
             role=user.role.value,
             company_id=None,
+            auth_provider=user.auth_provider,
         ),
     )
 
@@ -361,6 +363,7 @@ def candidate_me(
             "email": current_candidate.email,
             "full_name": current_candidate.full_name,
             "role": current_candidate.role.value,
+            "auth_provider": current_candidate.auth_provider.value,
         },
         "profile": None,
     }
@@ -575,6 +578,7 @@ def candidate_update_profile(
             "email": current_candidate.email,
             "full_name": body.full_name,
             "role": current_candidate.role.value,
+            "auth_provider": current_candidate.auth_provider.value,
         },
         "profile": {
             "id": str(profile.id),

@@ -80,6 +80,135 @@ def get_current_user(
     return user
 
 
+def get_current_user_setup(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+        role = payload.get("role")
+        if role == UserRole.CANDIDATE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Candidates are not permitted to access recruiter resources",
+            )
+        user_id = payload.get("sub")
+        jti = payload.get("jti")
+        session_id = payload.get("session_id")
+        if not user_id or not jti:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        # Check if access token is blacklisted
+        from models.session import RevokedToken, UserSession
+        from datetime import datetime, timezone
+        from uuid import UUID
+
+        revoked = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
+        if revoked:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
+        # Check and update session activity
+        if session_id:
+            session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
+            if not session or session.is_revoked or session.expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has expired or is revoked")
+
+            session.last_active = datetime.now(timezone.utc)
+            db.add(session)
+            db.commit()
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+
+    # No company context yet, query user directly (bypass RLS / query in auth_mode)
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User)
+            .where(
+                User.id == UUID(user_id),
+                User.is_active.is_(True),
+            )
+        )
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if user.company_id is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already belongs to a company")
+    return user
+
+
+def get_current_user_for_profile(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+        role = payload.get("role")
+        if role == UserRole.CANDIDATE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Candidates are not permitted to access recruiter resources",
+            )
+        user_id = payload.get("sub")
+        company_id = payload.get("company_id")
+        jti = payload.get("jti")
+        session_id = payload.get("session_id")
+        if not user_id or not jti:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        # Check if access token is blacklisted
+        from models.session import RevokedToken, UserSession
+        from datetime import datetime, timezone
+        from uuid import UUID
+
+        revoked = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
+        if revoked:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
+        # Check and update session activity
+        if session_id:
+            session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
+            if not session or session.is_revoked or session.expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has expired or is revoked")
+
+            session.last_active = datetime.now(timezone.utc)
+            db.add(session)
+            db.commit()
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+
+    if company_id:
+        tenant_id_var.set(company_id)
+        set_tenant_context(db, company_id)
+        user = db.scalar(
+            select(User)
+            .join(Company, User.company_id == Company.id)
+            .where(
+                User.id == UUID(user_id),
+                User.company_id == UUID(company_id),
+                User.is_active.is_(True),
+                Company.status == CompanyStatus.ACTIVE,
+            )
+        )
+    else:
+        with tenant_context(auth_mode="true"):
+            user = db.scalar(
+                select(User)
+                .where(
+                    User.id == UUID(user_id),
+                    User.is_active.is_(True),
+                )
+            )
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or company is inactive/suspended")
+    return user
+
+
 def get_verified_recruiter(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
@@ -246,6 +375,8 @@ def get_portal_db(
 
 TenantDb = Annotated[Session, Depends(get_tenant_db)]
 CurrentUser = Annotated[User, Depends(get_verified_recruiter)]
+CurrentUserSetup = Annotated[User, Depends(get_current_user_setup)]
+CurrentUserProfile = Annotated[User, Depends(get_current_user_for_profile)]
 CurrentCandidate = Annotated[User, Depends(get_current_candidate)]
 RequireOwner = Annotated[User, Depends(RoleChecker([UserRole.OWNER]))]
 RequireRecruiter = Annotated[User, Depends(RoleChecker([UserRole.OWNER, UserRole.RECRUITER]))]

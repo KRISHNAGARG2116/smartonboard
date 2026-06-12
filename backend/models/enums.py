@@ -7,6 +7,11 @@ class UserRole(str, enum.Enum):
     CANDIDATE = "candidate"
 
 
+class AuthProvider(str, enum.Enum):
+    LOCAL = "local"
+    GOOGLE = "google"
+
+
 class VerificationState(str, enum.Enum):
     PENDING_VERIFICATION = "pending_verification"
     VERIFIED_RECRUITER = "verified_recruiter"

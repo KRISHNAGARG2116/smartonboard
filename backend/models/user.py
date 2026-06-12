@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
-from models.enums import UserRole
+from models.enums import UserRole, AuthProvider
 
 
 class User(Base):
@@ -27,6 +27,18 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     email_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    auth_provider: Mapped[AuthProvider] = mapped_column(
+        Enum(AuthProvider, name="auth_provider", values_callable=lambda x: [e.value for e in x]),
+        default=AuthProvider.LOCAL,
+        server_default="local",
+        nullable=False,
+    )
+    google_subject_id: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True
+    )
+    google_hosted_domain: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
