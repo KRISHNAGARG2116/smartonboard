@@ -40,6 +40,13 @@ def test_registration_and_login_creates_session(api_client, db_session):
 
     # Check database to verify that UserSession was created with correct metadata
     with tenant_context(auth_mode="true"):
+        # Set email_verified=True to allow logging in
+        user = db_session.get(User, reg_data["user"]["id"])
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
+
         sessions = db_session.scalars(
             select(UserSession).where(UserSession.user_id == reg_data["user"]["id"])
         ).all()
@@ -143,6 +150,14 @@ def test_session_listing_and_revocation(api_client, db_session):
     response = api_client.post("/api/v1/auth/register", json=register_payload)
     reg_data = response.json()
     access_token = reg_data["access_token"]
+
+    # Mark user as verified so that sessions endpoint is authorized
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, reg_data["user"]["id"])
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
 
     headers = {"Authorization": f"Bearer {access_token}"}
 

@@ -43,6 +43,14 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
     owner_a_id = uuid.UUID(reg_a["user"]["id"])
 
+    # Mark Owner A as verified
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, owner_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+            db_session.commit()
+
     # 2. Register Company B (Owner B)
     resp = api_client.post("/api/v1/auth/register", json={
         "company_name": "Company B",
@@ -55,6 +63,15 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     token_b = reg_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
     comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
+    owner_b_id = uuid.UUID(reg_b["user"]["id"])
+
+    # Mark Owner B as verified
+    with tenant_context(auth_mode="true"):
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+            db_session.commit()
 
     # 3. Register a Recruiter for Company A (to test permissions!)
     with tenant_context(auth_mode="true"):
@@ -64,6 +81,7 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
             password_hash="dummy",
             role=UserRole.RECRUITER,
             company_id=comp_a_id,
+            email_verified=True,
         )
         db_session.add(recruiter_a)
         db_session.commit()
@@ -150,8 +168,8 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     resp = api_client.get("/api/v1/audit/logs", headers=headers_a)
     assert resp.status_code == 200
     logs_data = resp.json()
-    # It will contain 5 logs: the 3 above + auth.register + verification.domain_check of the Owner A registration!
-    assert len(logs_data) == 5
+    # It will contain 6 logs: the 3 above + auth.register + verification.domain_check + auth.email_verification_sent of the Owner A registration!
+    assert len(logs_data) == 6
     actions = [l["action"] for l in logs_data]
     assert "auth.login" in actions
     assert "job.created" in actions
@@ -177,7 +195,7 @@ def test_audit_logs_search_filtering_and_pagination(api_client, db_session):
     resp = api_client.get(f"/api/v1/audit/logs?start_date={start_str}", headers=headers_a)
     assert resp.status_code == 200
     date_data = resp.json()
-    assert len(date_data) == 4  # domain_check + register + log1 + log2
+    assert len(date_data) == 5  # domain_check + register + email_verification_sent + log1 + log2
     assert "auth.logout" not in [l["action"] for l in date_data]
 
     # 9. Test Pagination and Sorting
@@ -202,6 +220,15 @@ def test_audit_logs_export(api_client, db_session):
     token = reg_data["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     comp_id = uuid.UUID(reg_data["user"]["company_id"])
+    owner_id = uuid.UUID(reg_data["user"]["id"])
+
+    # Mark Owner as verified
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, owner_id)
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
 
     # 2. Export as CSV
     csv_resp = api_client.get("/api/v1/audit/logs/export?format=csv", headers=headers)
@@ -240,6 +267,15 @@ def test_audit_logs_archival_and_retrieval(api_client, db_session):
     token_a = reg_a["access_token"]
     headers_a = {"Authorization": f"Bearer {token_a}"}
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_a_id = uuid.UUID(reg_a["user"]["id"])
+
+    # Mark Owner A as verified
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, owner_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+            db_session.commit()
 
     # 2. Register Company B (Owner B)
     resp = api_client.post("/api/v1/auth/register", json={
@@ -252,6 +288,15 @@ def test_audit_logs_archival_and_retrieval(api_client, db_session):
     token_b = reg_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
     comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
+    owner_b_id = uuid.UUID(reg_b["user"]["id"])
+
+    # Mark Owner B as verified
+    with tenant_context(auth_mode="true"):
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+            db_session.commit()
 
     # 3. Insert a log older than 90 days for Company A
     now = datetime.now(timezone.utc)

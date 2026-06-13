@@ -38,6 +38,7 @@ def test_company_suspension_blocks_protected_routes(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner Suspended",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         db_session.add(user)
         db_session.commit()
@@ -83,6 +84,7 @@ def test_rbac_require_owner_enforcement(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner Admin",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         recruiter = User(
             company_id=company.id,
@@ -90,6 +92,7 @@ def test_rbac_require_owner_enforcement(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Recruiter Admin",
             role=UserRole.RECRUITER,
+            email_verified=True,
         )
         db_session.add(owner)
         db_session.add(recruiter)
@@ -137,6 +140,7 @@ def test_rbac_require_recruiter_enforcement(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner Job",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         recruiter = User(
             company_id=company.id,
@@ -144,6 +148,7 @@ def test_rbac_require_recruiter_enforcement(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Recruiter Job",
             role=UserRole.RECRUITER,
+            email_verified=True,
         )
         db_session.add(owner)
         db_session.add(recruiter)

@@ -59,6 +59,19 @@ def test_recruitment_workflow_complete_phase1(api_client, db_session):
     token_b = reg_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
     comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
+    owner_b_id = uuid.UUID(reg_b["user"]["id"])
+
+    # Mark users as verified in the DB for the test client
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, owner_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+        db_session.commit()
 
     # 3. Create a Job in Company A with Structured Hiring Criteria Templates inside Job.settings
     with tenant_context(auth_mode="true"):
@@ -184,6 +197,7 @@ def test_recruitment_workflow_complete_phase1(api_client, db_session):
         int_logs = db_session.scalars(
             select(AuditLog).where(AuditLog.action == "interview.scheduled").order_by(AuditLog.timestamp.desc())
         ).all()
+        print("DEBUG INT LOGS:", [(log.id, log.company_id, log.timestamp, log.metadata_json) for log in int_logs])
         assert len(int_logs) == 1
         assert int_logs[0].metadata_json["interview_id"] == str(interview_id)
         assert int_logs[0].metadata_json["previous_status"] == "screening"

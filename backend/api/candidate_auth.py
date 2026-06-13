@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from api.deps import CurrentCandidate, get_db
 from core.security import hash_password, verify_password
-from core.auth_providers import get_otp_provider, DBVerificationTokenProvider
+from core.auth_providers import get_otp_provider, DBVerificationTokenProvider, EmailProvider
 from db.session import tenant_context
 from models import User
 from models.enums import UserRole
@@ -87,9 +87,21 @@ def register_candidate(
             otp_code = DBVerificationTokenProvider.create_token(
                 db=db,
                 user_id=user.id,
-                token_type="email_otp"
+                token_type="email_otp",
+                expires_in_minutes=10
             )
-            get_otp_provider().send_otp(user.email, otp_code)
+            EmailProvider.send_verification_email(user.email, otp_code)
+
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.email_verification_sent",
+                actor_type="CANDIDATE",
+                actor_id=user.id,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"email": user.email}
+            )
     except IntegrityError as e:
         db.rollback()
         err_msg = str(e.orig).lower()
@@ -242,7 +254,7 @@ def candidate_send_email_otp(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Send an email verification OTP to a candidate."""
-    email_lower = body.email.lower()
+    email_lower = body.email.lower().strip()
 
     with tenant_context(auth_mode="true"):
         user = db.scalar(
@@ -256,19 +268,70 @@ def candidate_send_email_otp(
     if not user:
         return {"success": True, "message": "If that email is registered, a verification code has been sent."}
 
+    # Rate limit: 5 requests per hour per email
+    import redis
+    from core.config import get_settings
+    from datetime import datetime, timezone, timedelta
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        rate_key = f"otp:email:rate:{email_lower}"
+        attempts = r.get(rate_key)
+        if attempts and int(attempts) >= 5:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Verification OTP resend limit exceeded. Please try again after 1 hour."
+            )
+        p = r.pipeline()
+        p.incr(rate_key)
+        p.ttl(rate_key)
+        res = p.execute()
+        new_attempts = res[0]
+        ttl = res[1]
+        if ttl < 0:
+            r.expire(rate_key, 3600)
+    except HTTPException:
+        raise
+    except Exception:
+        # DB fallback rate limiting
+        with tenant_context(auth_mode="true"):
+            from models.verification_token import VerificationToken
+            one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+            count = db.scalar(
+                select(func.count(VerificationToken.id)).where(
+                    VerificationToken.user_id == user.id,
+                    VerificationToken.token_type == "email_otp",
+                    VerificationToken.created_at >= one_hour_ago
+                )
+            )
+            if count >= 5:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Verification OTP resend limit exceeded. Please try again after 1 hour."
+                )
+
     code = DBVerificationTokenProvider.create_token(
         db=db,
         user_id=user.id,
         token_type="email_otp",
+        expires_in_minutes=10
     )
 
-    provider = get_otp_provider()
-    provider.send_otp(email_lower, code)
+    EmailProvider.send_verification_email(email_lower, code)
 
     from core.audit import log_audit_event
     log_audit_event(
         db=db,
         action="auth.candidate_email_otp_sent",
+        actor_type="CANDIDATE",
+        actor_id=user.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": email_lower},
+    )
+    log_audit_event(
+        db=db,
+        action="auth.email_verification_sent",
         actor_type="CANDIDATE",
         actor_id=user.id,
         ip_address=request.client.host if request.client else None,
@@ -332,6 +395,17 @@ def candidate_verify_email_otp(
     log_audit_event(
         db=db,
         action="auth.candidate_email_verified",
+        actor_type="CANDIDATE",
+        actor_id=user.id,
+        resource_type="candidate_profiles",
+        resource_id=str(profile.id) if profile else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": email_lower},
+    )
+    log_audit_event(
+        db=db,
+        action="auth.email_verification_completed",
         actor_type="CANDIDATE",
         actor_id=user.id,
         resource_type="candidate_profiles",

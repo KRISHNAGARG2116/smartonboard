@@ -44,7 +44,16 @@ def api_client(db_session):
     app.dependency_overrides.clear()
 
 
-def test_scorecard_template_weight_sum_validation(api_client):
+def verify_user_in_db(db, user_id):
+    with tenant_context(auth_mode="true"):
+        user = db.get(User, user_id)
+        if user:
+            user.email_verified = True
+            db.add(user)
+            db.commit()
+
+
+def test_scorecard_template_weight_sum_validation(api_client, db_session):
     """
     1. Creating a scorecard template where skill weights sum to 1.0 succeeds.
     2. Creating a scorecard template where skill weights do not sum to 1.0 fails.
@@ -57,7 +66,9 @@ def test_scorecard_template_weight_sum_validation(api_client):
         "full_name": "Owner A"
     })
     assert resp.status_code == 201
-    headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    reg_data = resp.json()
+    headers = {"Authorization": f"Bearer {reg_data['access_token']}"}
+    verify_user_in_db(db_session, uuid.UUID(reg_data["user"]["id"]))
 
     # 1. Valid template (sum of weights = 1.0)
     resp_valid = api_client.post(
@@ -105,9 +116,11 @@ def test_committee_review_consensus_weighted_normalization_and_handoff(api_clien
         "full_name": "Owner User"
     })
     assert resp_a.status_code == 201
-    headers_owner = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
-    comp_id = uuid.UUID(resp_a.json()["user"]["company_id"])
-    owner_id = uuid.UUID(resp_a.json()["user"]["id"])
+    reg_a = resp_a.json()
+    headers_owner = {"Authorization": f"Bearer {reg_a['access_token']}"}
+    comp_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_id = uuid.UUID(reg_a["user"]["id"])
+    verify_user_in_db(db_session, owner_id)
 
     # Register reviewer User B (recruiter)
     resp_b = api_client.post("/api/v1/auth/register", json={
@@ -117,8 +130,10 @@ def test_committee_review_consensus_weighted_normalization_and_handoff(api_clien
         "full_name": "Reviewer B"
     })
     assert resp_b.status_code == 201
-    headers_reviewer = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
-    rev_id = uuid.UUID(resp_b.json()["user"]["id"])
+    reg_b = resp_b.json()
+    headers_reviewer = {"Authorization": f"Bearer {reg_b['access_token']}"}
+    rev_id = uuid.UUID(reg_b["user"]["id"])
+    verify_user_in_db(db_session, rev_id)
 
     # Binds User B to Company A (isolation bypass to unify company)
     with tenant_context(auth_mode="true"):
@@ -316,9 +331,11 @@ def test_committee_membership_snapshotting(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner A"
     })
-    headers_owner = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
-    comp_id = uuid.UUID(resp_a.json()["user"]["company_id"])
-    owner_id = uuid.UUID(resp_a.json()["user"]["id"])
+    reg_data = resp_a.json()
+    headers_owner = {"Authorization": f"Bearer {reg_data['access_token']}"}
+    comp_id = uuid.UUID(reg_data["user"]["company_id"])
+    owner_id = uuid.UUID(reg_data["user"]["id"])
+    verify_user_in_db(db_session, owner_id)
 
     # Create scorecard template
     resp_tpl = api_client.post(
@@ -406,9 +423,11 @@ def test_configurable_sd_threshold(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner A"
     })
-    headers_owner = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
-    comp_id = uuid.UUID(resp_a.json()["user"]["company_id"])
-    owner_id = uuid.UUID(resp_a.json()["user"]["id"])
+    reg_a = resp_a.json()
+    headers_owner = {"Authorization": f"Bearer {reg_a['access_token']}"}
+    comp_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_id = uuid.UUID(reg_a["user"]["id"])
+    verify_user_in_db(db_session, owner_id)
 
     resp_b = api_client.post("/api/v1/auth/register", json={
         "company_name": "SD Reviewer",
@@ -416,8 +435,10 @@ def test_configurable_sd_threshold(api_client, db_session):
         "password": "secure-password",
         "full_name": "Reviewer B"
     })
-    headers_rev = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
-    rev_id = uuid.UUID(resp_b.json()["user"]["id"])
+    reg_b = resp_b.json()
+    headers_rev = {"Authorization": f"Bearer {reg_b['access_token']}"}
+    rev_id = uuid.UUID(reg_b["user"]["id"])
+    verify_user_in_db(db_session, rev_id)
 
     with tenant_context(auth_mode="true"):
         db_session.get(User, rev_id).company_id = comp_id
@@ -513,9 +534,11 @@ def test_configurable_veto_logic(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner A"
     })
-    headers_owner = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
-    comp_id = uuid.UUID(resp_a.json()["user"]["company_id"])
-    owner_id = uuid.UUID(resp_a.json()["user"]["id"])
+    reg_a = resp_a.json()
+    headers_owner = {"Authorization": f"Bearer {reg_a['access_token']}"}
+    comp_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_id = uuid.UUID(reg_a["user"]["id"])
+    verify_user_in_db(db_session, owner_id)
 
     # Create scorecard template
     resp_tpl = api_client.post("/api/v1/scorecards/templates", headers=headers_owner, json={
@@ -585,9 +608,11 @@ def test_reconciliation_authorization(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner A"
     })
-    headers_owner = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
-    comp_id = uuid.UUID(resp_a.json()["user"]["company_id"])
-    owner_id = uuid.UUID(resp_a.json()["user"]["id"])
+    reg_a = resp_a.json()
+    headers_owner = {"Authorization": f"Bearer {reg_a['access_token']}"}
+    comp_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_id = uuid.UUID(reg_a["user"]["id"])
+    verify_user_in_db(db_session, owner_id)
 
     resp_b = api_client.post("/api/v1/auth/register", json={
         "company_name": "Recruiter B",
@@ -595,8 +620,10 @@ def test_reconciliation_authorization(api_client, db_session):
         "password": "secure-password",
         "full_name": "Recruiter B"
     })
-    headers_recruiter = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
-    rec_id = uuid.UUID(resp_b.json()["user"]["id"])
+    reg_b = resp_b.json()
+    headers_recruiter = {"Authorization": f"Bearer {reg_b['access_token']}"}
+    rec_id = uuid.UUID(reg_b["user"]["id"])
+    verify_user_in_db(db_session, rec_id)
 
     with tenant_context(auth_mode="true"):
         u_b = db_session.get(User, rec_id)
@@ -720,7 +747,9 @@ def test_multi_tenant_rls_isolation(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner A"
     })
-    headers_a = {"Authorization": f"Bearer {resp_a.json()['access_token']}"}
+    reg_a = resp_a.json()
+    headers_a = {"Authorization": f"Bearer {reg_a['access_token']}"}
+    verify_user_in_db(db_session, uuid.UUID(reg_a["user"]["id"]))
 
     resp_b = api_client.post("/api/v1/auth/register", json={
         "company_name": "Tenant B",
@@ -728,7 +757,9 @@ def test_multi_tenant_rls_isolation(api_client, db_session):
         "password": "secure-password",
         "full_name": "Owner B"
     })
-    headers_b = {"Authorization": f"Bearer {resp_b.json()['access_token']}"}
+    reg_b = resp_b.json()
+    headers_b = {"Authorization": f"Bearer {reg_b['access_token']}"}
+    verify_user_in_db(db_session, uuid.UUID(reg_b["user"]["id"]))
 
     # Create scorecard template under Company A
     resp_tpl = api_client.post("/api/v1/scorecards/templates", headers=headers_a, json={

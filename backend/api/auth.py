@@ -13,7 +13,7 @@ from api.deps import CurrentUser, CurrentCandidate, TenantDb, get_current_user, 
 from core.security import create_access_token, create_refresh_token, hash_password, verify_password
 from core.slug import unique_slug
 from core.domain_validation import is_public_mail_host, validate_domain_dns
-from core.auth_providers import get_otp_provider, DBVerificationTokenProvider, verify_google_id_token
+from core.auth_providers import get_otp_provider, DBVerificationTokenProvider, verify_google_id_token, EmailProvider
 from db.session import get_db, tenant_context, tenant_id_var
 from models import Company, User
 from models.enums import CompanyStatus, UserRole, VerificationState, TrustLevel, AuthProvider
@@ -179,9 +179,21 @@ def register(
             otp_code = DBVerificationTokenProvider.create_token(
                 db=db,
                 user_id=user.id,
-                token_type="email_otp"
+                token_type="email_otp",
+                expires_in_minutes=10
             )
-            get_otp_provider().send_otp(user.email, otp_code)
+            EmailProvider.send_verification_email(user.email, otp_code)
+
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.email_verification_sent",
+                actor_type="RECRUITER",
+                actor_id=user.id,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"email": user.email}
+            )
     except IntegrityError as e:
         db.rollback()
         err_msg = str(e.orig).lower()
@@ -481,6 +493,16 @@ def verify_email(
         user_agent=request.headers.get("user-agent"),
         metadata={"email": user.email}
     )
+    log_audit_event(
+        db=db,
+        action="auth.email_verification_completed",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
 
     return AuthResponse(
         access_token=access_token,
@@ -516,13 +538,66 @@ def resend_verify_email(
     if user.email_verified:
         return {"message": "Email already verified"}
 
-    # Generate and send email verification OTP
+    # Rate limit: 5 requests per hour per email
+    import redis
+    from core.config import get_settings
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        rate_key = f"otp:email:rate:{email_lower}"
+        attempts = r.get(rate_key)
+        if attempts and int(attempts) >= 5:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Verification OTP resend limit exceeded. Please try again after 1 hour."
+            )
+        p = r.pipeline()
+        p.incr(rate_key)
+        p.ttl(rate_key)
+        res = p.execute()
+        new_attempts = res[0]
+        ttl = res[1]
+        if ttl < 0:
+            r.expire(rate_key, 3600)
+    except HTTPException:
+        raise
+    except Exception:
+        # DB fallback rate limiting
+        with tenant_context(auth_mode="true"):
+            from models.verification_token import VerificationToken
+            one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+            count = db.scalar(
+                select(func.count(VerificationToken.id)).where(
+                    VerificationToken.user_id == user.id,
+                    VerificationToken.token_type == "email_otp",
+                    VerificationToken.created_at >= one_hour_ago
+                )
+            )
+            if count >= 5:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Verification OTP resend limit exceeded. Please try again after 1 hour."
+                )
+
+    # Generate and send email verification OTP (10-minute expiry)
     otp_code = DBVerificationTokenProvider.create_token(
         db=db,
         user_id=user.id,
-        token_type="email_otp"
+        token_type="email_otp",
+        expires_in_minutes=10
     )
-    get_otp_provider().send_otp(user.email, otp_code)
+    EmailProvider.send_verification_email(user.email, otp_code)
+
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.email_verification_sent",
+        actor_type="RECRUITER",
+        actor_id=user.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
 
     return {"message": "Verification code sent successfully"}
 
@@ -1121,12 +1196,14 @@ def google_auth(
             name = payload.get("name", "Google User")
         except Exception as e:
             record_google_failed_attempt(ip)
-            log_google_auth_audit(db, None, email_or_token=body.credential, action="auth.google_login_failed", success=False, ip=ip, reason=str(e))
+            masked_cred = body.credential if body.credential.startswith("mock-google-token-") else "[MASKED_GOOGLE_TOKEN]"
+            log_google_auth_audit(db, None, email_or_token=masked_cred, action="auth.google_login_failed", success=False, ip=ip, reason=str(e))
             raise HTTPException(status_code=400, detail=f"Google authentication failed: {str(e)}")
 
     if not email or not sub:
         record_google_failed_attempt(ip)
-        log_google_auth_audit(db, None, email_or_token=body.credential, action="auth.google_login_failed", success=False, ip=ip, reason="Missing email or sub claim")
+        masked_cred = body.credential if body.credential.startswith("mock-google-token-") else "[MASKED_GOOGLE_TOKEN]"
+        log_google_auth_audit(db, None, email_or_token=masked_cred, action="auth.google_login_failed", success=False, ip=ip, reason="Missing email or sub claim")
         raise HTTPException(status_code=400, detail="Google token missing required claims")
 
     # Look up user by google_subject_id first
@@ -1382,5 +1459,149 @@ def setup_company(
             auth_provider=current_user.auth_provider,
         )
     )
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    email_lower = body.email.lower().strip()
+    
+    # Check if user exists
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(select(User).where(User.email == email_lower))
+        
+    if not user:
+        # Standard silent return to prevent email enumeration
+        return {"message": "If that email is registered, a password reset link has been sent."}
+
+    # Rate limiting: 3 requests per 15 minutes per email
+    import redis
+    from core.config import get_settings
+    settings = get_settings()
+    try:
+        r = redis.from_url(settings.redis_url)
+        rate_key = f"forgot:rate:{email_lower}"
+        attempts = r.get(rate_key)
+        if attempts and int(attempts) >= 3:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Password reset limit exceeded. Please try again after 15 minutes."
+            )
+        p = r.pipeline()
+        p.incr(rate_key)
+        p.ttl(rate_key)
+        res = p.execute()
+        new_attempts = res[0]
+        ttl = res[1]
+        if ttl < 0:
+            r.expire(rate_key, 900)  # 15 minutes
+    except HTTPException:
+        raise
+    except Exception:
+        # DB fallback rate limiting for forgot password
+        with tenant_context(auth_mode="true"):
+            from models.verification_token import VerificationToken
+            fifteen_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=15)
+            count = db.scalar(
+                select(func.count(VerificationToken.id)).where(
+                    VerificationToken.user_id == user.id,
+                    VerificationToken.token_type == "password_reset",
+                    VerificationToken.created_at >= fifteen_mins_ago
+                )
+            )
+            if count >= 3:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Password reset limit exceeded. Please try again after 15 minutes."
+                )
+
+    # Generate token (30-minute expiry) and invalidate existing password_reset tokens
+    import secrets
+    reset_token = secrets.token_urlsafe(32)
+    DBVerificationTokenProvider.create_token(
+        db=db,
+        user_id=user.id,
+        token_type="password_reset",
+        code=reset_token,
+        expires_in_minutes=30
+    )
+    
+    # Send email via EmailProvider
+    EmailProvider.send_password_reset_email(user.email, reset_token)
+
+    # Log audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.password_reset_requested",
+        actor_type="RECRUITER" if user.role != UserRole.CANDIDATE else "CANDIDATE",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
+
+    return {"message": "If that email is registered, a password reset link has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    db: Annotated[Session, Depends(get_db)]
+):
+    email_lower = body.email.lower().strip()
+    
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(select(User).where(User.email == email_lower))
+        
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid email or token.")
+
+    # Verify token
+    result = DBVerificationTokenProvider.verify_token(
+        db=db,
+        user_id=user.id,
+        token_type="password_reset",
+        code=body.token
+    )
+    
+    if not result["valid"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    # Update password
+    with tenant_context(auth_mode="true"):
+        user.password_hash = hash_password(body.new_password)
+        db.add(user)
+        db.commit()
+
+    # Log audit event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.password_reset_completed",
+        actor_type="RECRUITER" if user.role != UserRole.CANDIDATE else "CANDIDATE",
+        actor_id=user.id,
+        company_id=user.company_id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": user.email}
+    )
+
+    return {"message": "Password has been reset successfully."}
 
 

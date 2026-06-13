@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
 
 export default function CandidateLogin() {
-  const { loginCandidate } = useAuth()
+  const { loginCandidate, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -121,21 +122,24 @@ export default function CandidateLogin() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label
-              htmlFor="password"
-              style={{
-                display: 'block',
-                fontSize: 10,
-                fontWeight: 500,
-                color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                marginBottom: 8,
-              }}
-            >
-              Password
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <label
+                htmlFor="password"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: 'var(--text-secondary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  lineHeight: 1.2,
+                }}
+              >
+                Password
+              </label>
+              <Link to="/forgot-password" style={{ fontSize: 11, color: 'var(--text-secondary)', textDecoration: 'underline' }}>
+                Forgot Password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"
@@ -179,6 +183,41 @@ export default function CandidateLogin() {
           >
             {submitting ? 'Signing in…' : 'Sign In'}
           </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+            <span style={{ padding: '0 10px' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+          </div>
+
+          {/* Google OAuth Login Button */}
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                setError(null)
+                setSubmitting(true)
+                try {
+                  if (credentialResponse.credential) {
+                    await loginWithGoogle(credentialResponse.credential, 'candidate')
+                    navigate('/candidate/dashboard')
+                  } else {
+                    setError('No credential returned from Google.')
+                  }
+                } catch (err: any) {
+                  setError(err.response?.data?.detail || 'Google authentication failed.')
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+              onError={() => {
+                setError('Google Sign-In failed.')
+              }}
+              theme="outline"
+              size="large"
+              width="350"
+            />
+          </div>
         </form>
 
         {/* Footer link */}

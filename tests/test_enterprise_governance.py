@@ -54,8 +54,17 @@ def test_ip_whitelist_middleware_and_lockout_protection(api_client, db_session, 
         "full_name": "Admin User"
     })
     assert resp_reg.status_code == 201
-    headers = {"Authorization": f"Bearer {resp_reg.json()['access_token']}"}
-    company_id = uuid.UUID(resp_reg.json()["user"]["company_id"])
+    reg_data = resp_reg.json()
+    headers = {"Authorization": f"Bearer {reg_data['access_token']}"}
+    company_id = uuid.UUID(reg_data["user"]["company_id"])
+
+    # Mark recruiter as email verified
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, uuid.UUID(reg_data["user"]["id"]))
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
 
     # 2. Test Lockout Protection
     # Client IP is mock socket host (default FastAPI TestClient socket host is 'testclient' or '127.0.0.1')
@@ -168,8 +177,17 @@ def test_smtp_settings_rotation_handshake_and_expiry_sweeper(api_client, db_sess
         "full_name": "Owner User"
     })
     assert resp_reg.status_code == 201
-    headers = {"Authorization": f"Bearer {resp_reg.json()['access_token']}"}
-    company_id = uuid.UUID(resp_reg.json()["user"]["company_id"])
+    reg_data = resp_reg.json()
+    headers = {"Authorization": f"Bearer {reg_data['access_token']}"}
+    company_id = uuid.UUID(reg_data["user"]["company_id"])
+
+    # Mark recruiter as email verified
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, uuid.UUID(reg_data["user"]["id"]))
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
 
     # 2. Create Custom SMTP Settings
     resp_create = api_client.post(

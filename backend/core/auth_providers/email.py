@@ -15,23 +15,96 @@ logger = logging.getLogger("smartonboard.auth_providers.email")
 
 
 class EmailProvider:
-    @staticmethod
-    def send_verification_email(destination: str, code: str) -> bool:
-        # SMTP email verification code delivery fallback
-        from core.auth_providers.sms import get_otp_provider
-        return get_otp_provider().send_otp(destination, code)
+    @classmethod
+    def send_verification_email(cls, destination: str, code: str) -> bool:
+        from core.auth_providers.resend_provider import ResendEmailProvider
+        html = ResendEmailProvider.get_verification_html(code)
+        subject = "Verify Your SmartOnboard Email"
+        log_msg = f"Email verification code sent to {destination} with code {code}"
+        return cls._deliver_chain(destination, subject, html, log_msg)
 
-    @staticmethod
-    def send_password_reset_email(destination: str, token: str) -> bool:
-        logger.info(f"[EMAIL MOCK] Password reset link sent to {destination} with token {token}")
-        print(f"EMAIL PASSWORD RESET for {destination}: {token}")
+    @classmethod
+    def send_password_reset_email(cls, destination: str, token: str) -> bool:
+        from core.auth_providers.resend_provider import ResendEmailProvider
+        html = ResendEmailProvider.get_password_reset_html(destination, token)
+        subject = "Reset Your SmartOnboard Password"
+        log_msg = f"Password reset link sent to {destination} with token {token}"
+        return cls._deliver_chain(destination, subject, html, log_msg)
+
+    @classmethod
+    def send_notification_email(cls, destination: str, subject: str, body: str) -> bool:
+        from core.auth_providers.resend_provider import ResendEmailProvider
+        html = ResendEmailProvider.get_notification_html(subject, body)
+        log_msg = f"Notification to {destination} subject '{subject}': {body}"
+        return cls._deliver_chain(destination, subject, html, log_msg)
+
+    @classmethod
+    def _deliver_chain(cls, to: str, subject: str, html: str, fallback_log_msg: str) -> bool:
+        # 1. Try Resend
+        from core.auth_providers.resend_provider import ResendEmailProvider
+        if ResendEmailProvider._deliver(to, subject, html):
+            return True
+
+        # 2. Try SMTP
+        if cls._send_via_smtp(to, subject, html):
+            return True
+
+        # 3. Try Mock fallback
+        logger.info(f"[EMAIL MOCK FALLBACK] {fallback_log_msg}")
+        print(f"EMAIL MOCK FALLBACK: To={to}, Subject={subject}")
         return True
 
-    @staticmethod
-    def send_notification_email(destination: str, subject: str, body: str) -> bool:
-        logger.info(f"[EMAIL MOCK] Notification to {destination} subject '{subject}': {body}")
-        print(f"EMAIL NOTIFICATION for {destination} [{subject}]: {body}")
-        return True
+    @classmethod
+    def _send_via_smtp(cls, to: str, subject: str, html: str) -> bool:
+        import os
+        import smtplib
+        import ssl
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        host = os.getenv("GLOBAL_SMTP_HOST")
+        port_str = os.getenv("GLOBAL_SMTP_PORT")
+        username = os.getenv("GLOBAL_SMTP_USERNAME")
+        password = os.getenv("GLOBAL_SMTP_PASSWORD")
+        sender = os.getenv("GLOBAL_SMTP_SENDER", "no-reply@smartonboard.com")
+
+        # If any essential SMTP settings are missing or default placeholders, skip
+        if not host or host == "smtp.example.com" or not port_str:
+            logger.info("[SMTP FALLBACK] SMTP not configured. Skipping SMTP step.")
+            return False
+
+        try:
+            port = int(port_str)
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = sender
+            msg["To"] = to
+
+            part = MIMEText(html, "html")
+            msg.attach(part)
+
+            timeout = 5.0
+            if port == 465:
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(host, port, timeout=timeout, context=context)
+            else:
+                server = smtplib.SMTP(host, port, timeout=timeout)
+                server.ehlo()
+                if server.has_extn("starttls"):
+                    context = ssl.create_default_context()
+                    server.starttls(context=context)
+                    server.ehlo()
+
+            if username and password:
+                server.login(username, password)
+
+            server.sendmail(sender, [to], msg.as_string())
+            server.quit()
+            logger.info(f"SMTP successfully sent email to {to}")
+            return True
+        except Exception as e:
+            logger.warning(f"SMTP delivery failed for {to}: {e}")
+            return False
 
 
 class DBVerificationTokenProvider:
@@ -57,6 +130,7 @@ class DBVerificationTokenProvider:
         user_id: uuid.UUID,
         token_type: str,
         code: Optional[str] = None,
+        expires_in_minutes: Optional[int] = None,
     ) -> str:
         """Create a new verification token for the user.
 
@@ -67,7 +141,8 @@ class DBVerificationTokenProvider:
 
         plaintext = code or cls.generate_otp()
         token_hash = cls.hash_token(plaintext)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=cls.TOKEN_EXPIRY_MINUTES)
+        minutes = expires_in_minutes or cls.TOKEN_EXPIRY_MINUTES
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
         with tenant_context(auth_mode="true"):
             # Invalidate (consume) existing tokens of same type
@@ -93,7 +168,7 @@ class DBVerificationTokenProvider:
             db.add(vt)
             db.commit()
 
-        logger.info(f"Verification token created: type={token_type} user_id={user_id}")
+        logger.info(f"Verification token created: type={token_type} user_id={user_id} expires_in={minutes}m")
         return plaintext
 
     @classmethod

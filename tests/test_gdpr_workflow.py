@@ -40,6 +40,14 @@ def setup_gdpr_data(db_session, api_client):
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
     owner_a_id = uuid.UUID(reg_a["user"]["id"])
 
+    # Mark Owner A verified in DB
+    with tenant_context(auth_mode="true"):
+        user_own_a = db_session.get(User, owner_a_id)
+        if user_own_a:
+            user_own_a.email_verified = True
+            db_session.add(user_own_a)
+            db_session.commit()
+
     # 2. Register Recruiter for Company A
     with tenant_context(auth_mode="true"):
         recruiter_a = User(
@@ -48,6 +56,7 @@ def setup_gdpr_data(db_session, api_client):
             password_hash="dummy",
             role=UserRole.RECRUITER,
             company_id=comp_a_id,
+            email_verified=True,
         )
         db_session.add(recruiter_a)
         db_session.commit()
@@ -184,7 +193,7 @@ def test_gdpr_recruiter_forbidden(api_client, setup_gdpr_data):
     assert resp.status_code == 403
 
 
-def test_gdpr_rls_isolation(api_client, setup_gdpr_data):
+def test_gdpr_rls_isolation(api_client, db_session, setup_gdpr_data):
     """Verify multi-tenant RLS isolation blocks foreign company deletion attempts."""
     cand_id = setup_gdpr_data["cand_id"]
 
@@ -197,6 +206,14 @@ def test_gdpr_rls_isolation(api_client, setup_gdpr_data):
     })
     token_b = resp_b.json()["access_token"]
     headers_own_b = {"Authorization": f"Bearer {token_b}"}
+    owner_b_id = uuid.UUID(resp_b.json()["user"]["id"])
+
+    with tenant_context(auth_mode="true"):
+        user_own_b = db_session.get(User, owner_b_id)
+        if user_own_b:
+            user_own_b.email_verified = True
+            db_session.add(user_own_b)
+            db_session.commit()
 
     # Company B Owner attempts to delete Company A's Candidate -> Must return 404
     resp = api_client.post(f"/api/v1/candidates/{cand_id}/delete", json={"confirm": True}, headers=headers_own_b)

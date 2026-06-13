@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
 
 export default function CandidateRegister() {
-  const { registerCandidate } = useAuth()
+  const { registerCandidate, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -178,6 +179,41 @@ export default function CandidateRegister() {
           >
             {submitting ? 'Creating profile…' : 'Create Profile'}
           </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+            <span style={{ padding: '0 10px' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
+          </div>
+
+          {/* Google OAuth Register Button */}
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                setError(null)
+                setSubmitting(true)
+                try {
+                  if (credentialResponse.credential) {
+                    await loginWithGoogle(credentialResponse.credential, 'candidate')
+                    navigate('/candidate/dashboard')
+                  } else {
+                    setError('No credential returned from Google.')
+                  }
+                } catch (err: any) {
+                  setError(err.response?.data?.detail || 'Google authentication failed.')
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+              onError={() => {
+                setError('Google Sign-In failed.')
+              }}
+              theme="outline"
+              size="large"
+              width="350"
+            />
+          </div>
         </form>
 
         {/* Footer link */}

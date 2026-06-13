@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const RECRUITER_EMAIL = 'recruiter_visual@oryzo.ai';
-const CANDIDATE_EMAIL = 'candidate_visual@oryzo.ai';
+const timestamp = Date.now();
+const RECRUITER_EMAIL = `recruiter_visual_${timestamp}@oryzo.ai`;
+const CANDIDATE_EMAIL = `candidate_visual_${timestamp}@oryzo.ai`;
 const PASSWORD = 'super-secure-password-123';
 
 async function getTokens() {
@@ -107,6 +108,7 @@ async function main() {
     { name: 'candidate-applications', url: 'http://localhost:5001/candidate/applications', auth: 'candidate' },
     { name: 'candidate-interviews', url: 'http://localhost:5001/candidate/interviews', auth: 'candidate' },
     { name: 'candidate-profile', url: 'http://localhost:5001/candidate/profile', auth: 'candidate' },
+    { name: 'recruiter-verify-email', url: 'http://localhost:5001/recruiter/verify-email', auth: 'recruiter' },
   ];
 
   try {

@@ -67,6 +67,18 @@ def setup_lifecycle_test(db_session, api_client):
     comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
     owner_b_id = uuid.UUID(reg_b["user"]["id"])
 
+    # Verify both Owner A and Owner B in DB
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, owner_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+        db_session.commit()
+
     # 3. Create a Job in Company A
     with tenant_context(auth_mode="true"):
         job_a = Job(

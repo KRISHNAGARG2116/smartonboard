@@ -219,6 +219,14 @@ def test_audit_event_creation_from_endpoints(api_client, db_session):
         assert logs[0].actor_id == uuid.UUID(user_id)
         assert logs[0].company_id == uuid.UUID(company_id)
         assert logs[0].metadata_json["email"] == "audit_events@test.com"
+
+    # Mark user as verified so that login is authorized
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, uuid.UUID(user_id))
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
         
     # 2. Login successfully
     login_payload = {

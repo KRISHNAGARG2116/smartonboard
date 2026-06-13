@@ -154,6 +154,14 @@ def test_job_lifecycle_audit_events(api_client, db_session):
     headers = {"Authorization": f"Bearer {token}"}
     company_id = uuid.UUID(reg_data["user"]["company_id"])
 
+    # Mark recruiter as email verified
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, uuid.UUID(reg_data["user"]["id"]))
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
+
     # 2. Create Job
     job_payload = {
         "title": "Software Engineer",
@@ -217,6 +225,14 @@ def test_candidate_and_override_lifecycle_events(api_client, db_session):
     token = reg_data["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     company_id = uuid.UUID(reg_data["user"]["company_id"])
+
+    # Mark recruiter as email verified
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, uuid.UUID(reg_data["user"]["id"]))
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+            db_session.commit()
 
     # Create a job first so we can apply to it
     with tenant_context(auth_mode="true"):

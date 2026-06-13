@@ -12,9 +12,12 @@ import RecruiterRegister from './pages/recruiter/RecruiterRegister'
 import RecruiterVerifyEmail from './pages/recruiter/RecruiterVerifyEmail'
 import CandidateLogin from './pages/candidate/CandidateLogin'
 import CandidateRegister from './pages/candidate/CandidateRegister'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 // Recruiter Workspace Pages
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
+import RecruiterCompanySetup from './pages/recruiter/RecruiterCompanySetup'
 import CandidateDirectory from './pages/CandidateDirectory'
 import PipelineBoard from './pages/PipelineBoard'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
@@ -48,6 +51,8 @@ function AppRoutes() {
         <Route path="/recruiter/register" element={<AnimatedPage><RecruiterRegister /></AnimatedPage>} />
         <Route path="/candidate/login" element={<AnimatedPage><CandidateLogin /></AnimatedPage>} />
         <Route path="/candidate/register" element={<AnimatedPage><CandidateRegister /></AnimatedPage>} />
+        <Route path="/forgot-password" element={<AnimatedPage><ForgotPassword /></AnimatedPage>} />
+        <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
 
         {/* Recruiter Workspace Routes (Prefixed with /recruiter/) */}
         <Route
@@ -55,6 +60,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
               <AnimatedPage><RecruiterVerifyEmail /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/setup-company"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><RecruiterCompanySetup /></AnimatedPage>
             </ProtectedRoute>
           }
         />

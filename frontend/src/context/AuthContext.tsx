@@ -8,7 +8,9 @@ import {
   type User,
   loginCandidate as apiLoginCandidate,
   registerCandidate as apiRegisterCandidate,
-  fetchCandidateMe
+  fetchCandidateMe,
+  loginWithGoogle as apiLoginWithGoogle,
+  setupCompany as apiSetupCompany
 } from '../api'
 
 function parseJwt(token: string) {
@@ -34,6 +36,8 @@ interface AuthContextValue {
   register: (data: { company_name: string; email: string; password: string; full_name: string }) => Promise<void>
   loginCandidate: (email: string, password: string) => Promise<void>
   registerCandidate: (data: { email: string; password: string; full_name: string }) => Promise<void>
+  loginWithGoogle: (credential: string, role: string) => Promise<void>
+  setupCompany: (data: { company_name: string; company_website: string; company_domain: string; industry: string; company_size: string }) => Promise<void>
   logout: () => void
 }
 
@@ -95,14 +99,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user)
   }, [])
 
+  const loginWithGoogle = useCallback(async (credential: string, role: string) => {
+    const res = await apiLoginWithGoogle({ credential, role })
+    setAuthToken(res.access_token)
+    setUser(res.user)
+  }, [])
+
+  const setupCompany = useCallback(async (data: {
+    company_name: string
+    company_website: string
+    company_domain: string
+    industry: string
+    company_size: string
+  }) => {
+    const res = await apiSetupCompany(data)
+    setAuthToken(res.access_token)
+    setUser(res.user)
+  }, [])
+
   const logout = useCallback(() => {
     setAuthToken(null)
     setUser(null)
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, login, register, loginCandidate, registerCandidate, logout }),
-    [user, loading, login, register, loginCandidate, registerCandidate, logout],
+    () => ({ user, loading, login, register, loginCandidate, registerCandidate, loginWithGoogle, setupCompany, logout }),
+    [user, loading, login, register, loginCandidate, registerCandidate, loginWithGoogle, setupCompany, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

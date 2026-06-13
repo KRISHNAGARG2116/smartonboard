@@ -57,6 +57,14 @@ def test_analytics_and_productivity_lifecycle(api_client, db_session):
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
     recruiter_a_id = uuid.UUID(reg_a["user"]["id"])
 
+    # Mark Recruiter A as email verified
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, recruiter_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+            db_session.commit()
+
     # 2. Register Company B (Owner B - for tenant isolation checks)
     resp = api_client.post("/api/v1/auth/register", json={
         "company_name": "Analytics Corp B",
@@ -69,6 +77,15 @@ def test_analytics_and_productivity_lifecycle(api_client, db_session):
     token_b = reg_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
     comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
+    owner_b_id = uuid.UUID(reg_b["user"]["id"])
+
+    # Mark Owner B as email verified
+    with tenant_context(auth_mode="true"):
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+            db_session.commit()
 
     # 3. Setup Job, Candidate, Application for Company A
     with tenant_context(auth_mode="true"):

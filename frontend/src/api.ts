@@ -173,6 +173,17 @@ export const login = (data: { email: string; password: string }) =>
 
 export const fetchMe = () => api.get<User>('/v1/auth/me').then(r => r.data)
 
+export const loginWithGoogle = (data: { credential: string; role: string }) =>
+  api.post<AuthResponse>('/v1/auth/google', data).then(r => r.data)
+
+export const setupCompany = (data: {
+  company_name: string
+  company_website: string
+  company_domain: string
+  industry: string
+  company_size: string
+}) => api.post<AuthResponse>('/v1/auth/setup-company', data).then(r => r.data)
+
 export const fetchCompany = () => api.get<Company>('/v1/companies/me').then(r => r.data)
 
 export const fetchJobs = (status?: string) =>

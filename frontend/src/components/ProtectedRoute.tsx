@@ -24,13 +24,19 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to={redirectLoginPath} replace state={{ from: location.pathname }} />
   }
 
-  // Recruiter Email Verification Route Guard
+  // Recruiter Setup Company & Email Verification Guard
   if (user.role !== 'candidate') {
-    if (!user.email_verified && location.pathname !== '/recruiter/verify-email') {
-      return <Navigate to="/recruiter/verify-email" replace />
-    }
-    if (user.email_verified && location.pathname === '/recruiter/verify-email') {
-      return <Navigate to="/recruiter/dashboard" replace />
+    if (!user.company_id) {
+      if (location.pathname !== '/recruiter/setup-company') {
+        return <Navigate to="/recruiter/setup-company" replace />
+      }
+    } else {
+      if (!user.email_verified && location.pathname !== '/recruiter/verify-email') {
+        return <Navigate to="/recruiter/verify-email" replace />
+      }
+      if (user.email_verified && (location.pathname === '/recruiter/verify-email' || location.pathname === '/recruiter/setup-company')) {
+        return <Navigate to="/recruiter/dashboard" replace />
+      }
     }
   }
 
@@ -49,9 +55,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
       return <Navigate to="/candidate/dashboard" replace />
     }
   } else {
-    const onboarded = localStorage.getItem(`smartonboard_onboarded_recruiter_${user.email}`) === 'true'
-    if (!onboarded && location.pathname !== '/recruiter/dashboard') {
-      return <Navigate to="/recruiter/dashboard" replace />
+    if (user.email_verified) {
+      const onboarded = localStorage.getItem(`smartonboard_onboarded_recruiter_${user.email}`) === 'true'
+      if (!onboarded && location.pathname !== '/recruiter/dashboard') {
+        return <Navigate to="/recruiter/dashboard" replace />
+      }
     }
   }
 
