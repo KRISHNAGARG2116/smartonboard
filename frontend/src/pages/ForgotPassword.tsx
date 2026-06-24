@@ -99,27 +99,13 @@ export default function ForgotPassword() {
             {/* Form */}
             <form
               onSubmit={handleSubmit}
+              className="card"
               style={{
-                border: '1px solid var(--border)',
-                borderRadius: 12,
                 padding: 24,
-                background: 'transparent',
               }}
             >
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  htmlFor="email"
-                  style={{
-                    display: 'block',
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    lineHeight: 1.2,
-                    marginBottom: 8,
-                  }}
-                >
+              <div className="form-group">
+                <label htmlFor="email" className="form-label">
                   Email Address
                 </label>
                 <input
@@ -129,38 +115,18 @@ export default function ForgotPassword() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="yourname@domain.com"
-                  style={{
-                    width: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: '1px solid var(--border)',
-                    borderRadius: 0,
-                    padding: '8px 0',
-                    fontSize: 15,
-                    color: 'var(--text)',
-                    fontFamily: "var(--font-sans)",
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
+                  className="form-input"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
+                className="btn btn--primary"
                 style={{
                   width: '100%',
                   padding: '14px 24px',
-                  background: 'var(--color-ink)',
-                  color: 'var(--color-pure-white)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-buttons)',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  fontFamily: "var(--font-sans)",
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.6 : 1,
-                  transition: 'opacity 0.15s ease',
                 }}
               >
                 {loading ? 'Sending link…' : 'Send Recovery Link'}

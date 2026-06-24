@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { GoogleLogin } from '@react-oauth/google'
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepButton from '../../components/design-system/SteepButton'
 
 export default function RecruiterRegister() {
   const { register, loginWithGoogle } = useAuth()
@@ -30,136 +33,74 @@ export default function RecruiterRegister() {
     }
   }
 
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 10,
-    fontWeight: 500,
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    lineHeight: 1.2,
-    marginBottom: 8,
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '1px solid var(--border)',
-    borderRadius: 0,
-    padding: '8px 0',
-    fontSize: 15,
-    color: 'var(--text)',
-    fontFamily: "var(--font-sans)",
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: "var(--font-sans)" }}>
+    <div className="app-shell" style={{ background: 'var(--color-fog)', minHeight: '100vh' }}>
       {/* Minimal top nav */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 56,
-        padding: '0 24px',
+        height: 'var(--header-h)',
+        paddingInline: 'var(--spacing-24)',
         borderBottom: '1px solid var(--border)',
+        background: 'var(--color-pure-white)',
       }}>
-        <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.04em' }}>
+        <Link to="/" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', textDecoration: 'none' }}>
           SmartOnboard
         </Link>
-        <Link to="/recruiter/login" style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', textDecoration: 'none' }}>
-          Sign in
-        </Link>
+        <SteepButton variant="ghost" size="sm" to="/recruiter/login">
+          Sign In
+        </SteepButton>
       </nav>
 
       {/* Centered form container */}
-      <div style={{ maxWidth: 400, margin: '0 auto', padding: '120px 24px 48px' }}>
-        <h1 style={{ fontSize: 29, fontWeight: 500, lineHeight: 1.09, color: 'var(--text)', margin: 0, textAlign: 'left' }}>
+      <div style={{ maxWidth: '400px', margin: '0 auto', padding: 'var(--spacing-80) var(--spacing-24) var(--spacing-40)' }}>
+        <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', color: 'var(--color-ink)', textAlign: 'left', margin: 0 }}>
           Create Recruiter Workspace
         </h1>
-        <p style={{ fontSize: 14, lineHeight: 1.33, color: 'var(--text-secondary)', margin: '8px 0 28px', textAlign: 'left' }}>
+        <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', margin: 'var(--spacing-8) 0 var(--spacing-28)', textAlign: 'left' }}>
           Set up your organization workspace and verify domain parameters.
         </p>
 
         {/* Error banner */}
         {error && (
-          <div
-            role="alert"
-            style={{
-              border: '1px solid var(--danger)',
-              borderRadius: 12,
-              padding: '12px 16px',
-              marginBottom: 20,
-              color: 'var(--danger)',
-              fontSize: 14,
-              lineHeight: 1.33,
-              background: 'transparent',
-            }}
-          >
+          <div className="banner banner--error" role="alert" style={{ marginBottom: 'var(--spacing-20)' }}>
             {error}
           </div>
         )}
 
         {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: 24,
-            background: 'transparent',
-          }}
-        >
-          <div style={{ marginBottom: 20 }}>
-            <label htmlFor="company" style={labelStyle}>
-              Company name
-            </label>
-            <input
+        <form onSubmit={handleSubmit}>
+          <SteepCard>
+            <SteepInput
               id="company"
               required
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
               placeholder="Acme Corp"
-              style={inputStyle}
+              label="Company Name"
             />
-          </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label htmlFor="fullName" style={labelStyle}>
-              Your name
-            </label>
-            <input
+            <SteepInput
               id="fullName"
               required
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Jane Doe"
-              style={inputStyle}
+              label="Your Name"
             />
-          </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label htmlFor="email" style={labelStyle}>
-              Company Email
-            </label>
-            <input
+            <SteepInput
               id="email"
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@company.com"
-              style={inputStyle}
+              label="Company Email"
             />
-          </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <label htmlFor="password" style={labelStyle}>
-              Password
-            </label>
-            <input
+            <SteepInput
               id="password"
               type="password"
               required
@@ -167,76 +108,63 @@ export default function RecruiterRegister() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              style={inputStyle}
+              label="Password"
+              hint="Minimum 8 characters"
             />
-            <p style={{ fontSize: 10, lineHeight: 1.2, color: 'var(--text-secondary)', margin: '6px 0 0' }}>
-              Minimum 8 characters
-            </p>
-          </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              width: '100%',
-              padding: '14px 24px',
-              background: 'var(--color-ink)',
-              color: 'var(--color-pure-white)',
-              border: 'none',
-              borderRadius: 'var(--radius-buttons)',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "var(--font-sans)",
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.6 : 1,
-              transition: 'opacity 0.15s ease',
-            }}
-          >
-            {submitting ? 'Creating workspace…' : 'Create Workspace'}
-          </button>
+            <SteepButton
+              type="submit"
+              disabled={submitting}
+              variant="primary"
+              block
+              style={{ padding: '12px 20px', marginTop: 'var(--spacing-16)' }}
+            >
+              {submitting ? 'Creating workspace…' : 'Create Workspace'}
+            </SteepButton>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
-            <span style={{ padding: '0 10px' }}>or</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }}></div>
-          </div>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', margin: 'var(--spacing-20) 0', color: 'var(--color-ash)', fontSize: 'var(--text-caption)' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+              <span style={{ padding: '0 var(--spacing-12)' }}>or</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+            </div>
 
-          {/* Google OAuth Register Button */}
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <GoogleLogin
-              onSuccess={async (credentialResponse) => {
-                setError(null)
-                setSubmitting(true)
-                try {
-                  if (credentialResponse.credential) {
-                    await loginWithGoogle(credentialResponse.credential, 'recruiter')
-                    navigate('/recruiter/dashboard')
-                  } else {
-                    setError('No credential returned from Google.')
+            {/* Google OAuth Register Button */}
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  setError(null)
+                  setSubmitting(true)
+                  try {
+                    if (credentialResponse.credential) {
+                      await loginWithGoogle(credentialResponse.credential, 'recruiter')
+                      navigate('/recruiter/dashboard')
+                    } else {
+                      setError('No credential returned from Google.')
+                    }
+                  } catch (err: any) {
+                    setError(err.response?.data?.detail || 'Google authentication failed.')
+                  } finally {
+                    setSubmitting(false)
                   }
-                } catch (err: any) {
-                  setError(err.response?.data?.detail || 'Google authentication failed.')
-                } finally {
-                  setSubmitting(false)
-                }
-              }}
-              onError={() => {
-                setError('Google Sign-In failed.')
-              }}
-              theme="outline"
-              size="large"
-              width="350"
-            />
-          </div>
+                }}
+                onError={() => {
+                  setError('Google Sign-In failed.')
+                }}
+                theme="outline"
+                size="large"
+                width="350"
+              />
+            </div>
+          </SteepCard>
         </form>
 
         {/* Footer link */}
-        <p style={{ marginTop: 20, fontSize: 14, lineHeight: 1.33, color: 'var(--text-secondary)' }}>
+        <p style={{ marginTop: 'var(--spacing-20)', fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>
           Already have a workspace?{' '}
           <Link
             to="/recruiter/login"
-            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            style={{ color: 'var(--color-rust)', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             Sign in
           </Link>

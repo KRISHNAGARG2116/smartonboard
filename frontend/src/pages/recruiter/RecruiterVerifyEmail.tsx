@@ -143,27 +143,13 @@ export default function RecruiterVerifyEmail() {
         {/* Form */}
         <form
           onSubmit={handleVerify}
+          className="card"
           style={{
-            border: '1px solid var(--border)',
-            borderRadius: 12,
             padding: 24,
-            background: 'transparent',
           }}
         >
-          <div style={{ marginBottom: 20 }}>
-            <label
-              htmlFor="email"
-              style={{
-                display: 'block',
-                fontSize: 10,
-                fontWeight: 500,
-                color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                marginBottom: 8,
-              }}
-            >
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">
               Company Email
             </label>
             <input
@@ -174,38 +160,16 @@ export default function RecruiterVerifyEmail() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="recruiter@company.com"
+              className="form-input"
               style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: '1px solid var(--border)',
-                borderRadius: 0,
-                padding: '8px 0',
-                fontSize: 15,
-                color: 'var(--text)',
-                fontFamily: "var(--font-sans)",
-                outline: 'none',
-                boxSizing: 'border-box',
                 opacity: user ? 0.6 : 1,
                 cursor: user ? 'not-allowed' : 'text'
               }}
             />
           </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <label
-              htmlFor="code"
-              style={{
-                display: 'block',
-                fontSize: 10,
-                fontWeight: 500,
-                color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                marginBottom: 8,
-              }}
-            >
+          <div className="form-group">
+            <label htmlFor="code" className="form-label">
               Verification Code (OTP)
             </label>
             <input
@@ -216,20 +180,12 @@ export default function RecruiterVerifyEmail() {
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
+              className="form-input"
               style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: '1px solid var(--border)',
-                borderRadius: 0,
-                padding: '8px 0',
-                fontSize: 20,
-                color: 'var(--text)',
-                fontFamily: "var(--font-mono)",
-                letterSpacing: '0.25em',
+                letterSpacing: '0.3em',
                 textAlign: 'center',
-                outline: 'none',
-                boxSizing: 'border-box',
+                fontSize: 20,
+                fontFamily: 'monospace',
               }}
             />
           </div>
@@ -237,19 +193,11 @@ export default function RecruiterVerifyEmail() {
           <button
             type="submit"
             disabled={submitting}
+            className="btn btn--primary"
             style={{
               width: '100%',
               padding: '14px 24px',
-              background: 'var(--color-ink)',
-              color: 'var(--color-pure-white)',
-              border: 'none',
-              borderRadius: 'var(--radius-buttons)',
-              fontSize: 14,
-              fontWeight: 500,
-              fontFamily: "var(--font-sans)",
               cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.6 : 1,
-              transition: 'opacity 0.15s ease',
               marginBottom: 12,
             }}
           >
@@ -260,19 +208,11 @@ export default function RecruiterVerifyEmail() {
             type="button"
             disabled={resending}
             onClick={handleResend}
+            className="btn btn--secondary"
             style={{
               width: '100%',
               padding: '10px 24px',
-              background: 'transparent',
-              color: 'var(--text)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-buttons)',
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: "var(--font-sans)",
               cursor: resending ? 'not-allowed' : 'pointer',
-              opacity: resending ? 0.6 : 1,
-              transition: 'all 0.15s ease',
             }}
           >
             {resending ? 'Sending code…' : 'Resend Code'}

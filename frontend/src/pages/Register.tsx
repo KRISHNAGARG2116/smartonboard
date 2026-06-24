@@ -80,19 +80,13 @@ export default function Register() {
           maxWidth: 800
         }}>
           {/* Recruiter / Hiring Card */}
-          <div style={{
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-cards)',
+          <div className="card gateway-card" style={{
             padding: 'var(--card-padding)',
-            background: 'transparent',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             minHeight: 260,
-            transition: 'border-color var(--duration-fast)'
-          }}
-          className="gateway-card"
-          >
+          }}>
             <div>
               <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 Hiring Workspace
@@ -110,9 +104,6 @@ export default function Register() {
               style={{
                 width: '100%',
                 marginTop: 'var(--space-6)',
-                backgroundColor: 'var(--color-dark-cork)',
-                color: 'var(--color-warm-cream)',
-                border: 'none',
                 cursor: 'pointer'
               }}
             >
@@ -121,19 +112,13 @@ export default function Register() {
           </div>
 
           {/* Candidate / Job Seeker Card */}
-          <div style={{
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-cards)',
+          <div className="card gateway-card" style={{
             padding: 'var(--card-padding)',
-            background: 'transparent',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             minHeight: 260,
-            transition: 'border-color var(--duration-fast)'
-          }}
-          className="gateway-card"
-          >
+          }}>
             <div>
               <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 Job Seeker Portal
@@ -151,9 +136,6 @@ export default function Register() {
               style={{
                 width: '100%',
                 marginTop: 'var(--space-6)',
-                border: '1px solid var(--border)',
-                color: 'var(--color-warm-cream)',
-                background: 'transparent',
                 cursor: 'pointer'
               }}
             >

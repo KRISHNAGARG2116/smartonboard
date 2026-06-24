@@ -83,7 +83,7 @@ export default function CandidateApplications() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Card */}
-          <div className="card card__body" style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
+          <div className="card card__body">
             <h3 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 'var(--space-2)', lineHeight: 1.09, color: 'var(--text)' }}>My Applications</h3>
             <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', lineHeight: 1.33, marginBottom: 0 }}>
               Track the progress and history of your submitted job applications. View historical resume and profile snapshots.
@@ -91,13 +91,13 @@ export default function CandidateApplications() {
           </div>
 
           {error && (
-            <div className="card card__body" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', borderRadius: '0px' }}>
+            <div className="card card__body" style={{ border: '1px solid var(--danger)', background: 'var(--danger-bg)', color: 'var(--text)', borderRadius: '16px' }}>
               <strong>Error:</strong> {error}
             </div>
           )}
 
           {withdrawSuccess && (
-            <div className="card card__body" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', borderRadius: '0px' }}>
+            <div className="card card__body" style={{ border: '1px solid var(--border)', background: 'var(--color-pure-white)', color: 'var(--text)', borderRadius: '16px' }}>
               {withdrawSuccess}
             </div>
           )}
@@ -113,7 +113,7 @@ export default function CandidateApplications() {
               ))}
             </div>
           ) : applications.length === 0 ? (
-            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
+            <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-6)' }}>
               <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>📨</span>
               <h4 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-2)' }}>No Applications Yet</h4>
               <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
@@ -132,9 +132,6 @@ export default function CandidateApplications() {
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
-                      borderRadius: 'var(--radius-cards)',
-                      border: '1px solid var(--border)',
-                      background: 'transparent',
                       cursor: 'pointer',
                       transition: 'transform 150ms ease, border-color 150ms ease'
                     }}
@@ -180,7 +177,7 @@ export default function CandidateApplications() {
                       <button 
                         type="button" 
                         className="btn btn--secondary btn--sm" 
-                        style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '8px 14px' }}
+                        style={{ padding: '8px 14px' }}
                         onClick={(e) => {
                           e.stopPropagation()
                           setWithdrawSuccess(null)
@@ -352,7 +349,7 @@ export default function CandidateApplications() {
                           </p>
                         </div>
                       )}
-
+                      
                       {selectedApp.snapshot.resume_snapshot.parsed_skills.length > 0 && (
                         <div>
                           <span style={{ fontSize: '10px', color: 'var(--color-grey-brown)', display: 'block', marginBottom: '6px' }}>Extracted Skills:</span>
@@ -362,8 +359,8 @@ export default function CandidateApplications() {
                                 key={idx} 
                                 style={{ 
                                   fontSize: '10px', 
-                                  padding: '2px 8px', 
-                                  borderRadius: '0px', 
+                                  padding: '3px 8px', 
+                                  borderRadius: '9999px', 
                                   background: 'transparent', 
                                   color: 'var(--color-grey-brown)',
                                   border: '1px solid var(--color-cork-shadow)'

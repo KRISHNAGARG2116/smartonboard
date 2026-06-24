@@ -168,7 +168,7 @@ export default function CandidateJobFeed() {
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           {/* Header Dashboard section */}
-          <div className="card card__body" style={{ background: 'transparent', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
+          <div className="card card__body">
             <h3 style={{ fontSize: '24px', fontWeight: 500, marginBottom: 'var(--space-2)', color: 'var(--text)', lineHeight: 1.1 }}>Explore Openings</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: 0, lineHeight: 1.33 }}>
               Discover active job opportunities matching your background. Review applicability percentages driven by your active resume profile.
@@ -424,7 +424,7 @@ export default function CandidateJobFeed() {
                   alignItems: 'center', 
                   gap: 'var(--space-5)', 
                   padding: 'var(--space-4)', 
-                  background: 'transparent', 
+                  background: 'var(--color-pure-white)', 
                   borderRadius: 'var(--radius-cards)', 
                   border: '1px solid var(--border)' 
                 }}
@@ -436,7 +436,7 @@ export default function CandidateJobFeed() {
                     width: '60px',
                     height: '60px',
                     borderRadius: '50%',
-                    background: `conic-gradient(var(--color-warm-cream) ${selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%, var(--color-cork-shadow) 0)`,
+                    background: `conic-gradient(var(--color-rust) ${selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%, var(--color-cork-shadow) 0)`,
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0
@@ -447,7 +447,7 @@ export default function CandidateJobFeed() {
                       position: 'absolute',
                       inset: '5px',
                       borderRadius: '50%',
-                      background: 'var(--bg)',
+                      background: 'var(--color-pure-white)',
                       display: 'grid',
                       placeItems: 'center',
                       fontSize: 'var(--text-sm)',
@@ -480,7 +480,7 @@ export default function CandidateJobFeed() {
                     
                     {/* Matching */}
                     {selectedJob.matching_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)', background: 'var(--color-pure-white)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--success)', display: 'block', marginBottom: '8px' }}>
                           ✓ Matching Skills ({selectedJob.matching_skills.length})
                         </span>
@@ -506,7 +506,7 @@ export default function CandidateJobFeed() {
 
                     {/* Missing */}
                     {selectedJob.missing_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)' }}>
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)', background: 'var(--color-pure-white)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
                           ? Missing Skills ({selectedJob.missing_skills.length})
                         </span>
@@ -546,7 +546,7 @@ export default function CandidateJobFeed() {
                     color: 'var(--text)', 
                     lineHeight: 1.6, 
                     whiteSpace: 'pre-wrap',
-                    background: 'transparent',
+                    background: 'var(--color-pure-white)',
                     padding: 'var(--space-4)',
                     borderRadius: 'var(--radius-cards)',
                     border: '1px solid var(--border)'
@@ -557,7 +557,7 @@ export default function CandidateJobFeed() {
               </div>
 
               {/* Job Metadata Properties */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'transparent', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--color-pure-white)', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
                 <div>
                   <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Target Start Date</span>
                   <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>
@@ -654,15 +654,8 @@ export default function CandidateJobFeed() {
                           onChange={(e) => setSelectedResumeId(e.target.value)}
                           className="form-select"
                           style={{ 
-                          padding: '10px 14px', 
-                          borderRadius: '0px', 
-                          fontSize: '14px', 
-                          border: 'none',
-                          borderBottom: '1px solid var(--color-warm-cream)',
-                          background: 'transparent',
-                          color: 'var(--text)',
-                          width: '100%'
-                        }}
+                            width: '100%'
+                          }}
                         >
                           {resumes.map(r => (
                             <option key={r.id} value={r.id}>

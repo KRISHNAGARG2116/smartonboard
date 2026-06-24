@@ -126,7 +126,7 @@ export default function AnalyticsDashboard() {
             { label: 'Active Employees Directory', value: 3, pct: 'Gusto / BambooHR sync active' },
             { label: 'Failed Outbox Sweeps (DLQ)', value: 0, pct: 'Outbox processors healthy' }
           ].map((card, idx) => (
-            <div key={idx} className="card" style={{ padding: 'var(--space-5)', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', background: 'transparent' }}>
+            <div key={idx} className="card card__body" style={{ padding: 'var(--space-5)' }}>
               <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.label}</span>
               <strong style={{ fontSize: '29px', fontWeight: 500, color: 'var(--text)', display: 'block', marginTop: '4px' }}>{card.value}</strong>
               <span style={{ fontSize: '10px', color: 'var(--color-grey-brown)', display: 'block', marginTop: '6px' }}>{card.pct}</span>
@@ -144,7 +144,7 @@ export default function AnalyticsDashboard() {
           aria-label="Analytics Visualizations"
         >
           {/* Graph 1: Hiring Funnel Conversion (Bar Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
+          <div className="card card__body" style={{ padding: 'var(--space-5)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Hiring Funnel Yield (Applicant Density)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -152,15 +152,15 @@ export default function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="name" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
-                  <Bar dataKey="value" fill={chartColors.primary} radius={[0, 0, 0, 0]} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '12px', fontSize: '11px', boxShadow: 'var(--shadow-subtle)' }} />
+                  <Bar dataKey="value" fill={chartColors.primary} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Graph 2: Stage Velocity - Average Days (Area Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
+          <div className="card card__body" style={{ padding: 'var(--space-5)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Average Days In Hiring Stage (Velocity)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -168,7 +168,7 @@ export default function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="stage" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '12px', fontSize: '11px', boxShadow: 'var(--shadow-subtle)' }} />
                   <Area type="monotone" dataKey="days" stroke={chartColors.accent} fill={chartColors.accent} fillOpacity={0.15} strokeWidth={1} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -176,7 +176,7 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Graph 3: Offer Acceptance Yield (Line Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
+          <div className="card card__body" style={{ padding: 'var(--space-5)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Offer Acceptance Rate Percentage (Yield)</h3>
             <div style={{ width: '100%', height: '260px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -184,7 +184,7 @@ export default function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="month" stroke={chartColors.text} style={{ fontSize: '10px' }} />
                   <YAxis stroke={chartColors.text} style={{ fontSize: '10px' }} unit="%" />
-                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '12px', fontSize: '11px', boxShadow: 'var(--shadow-subtle)' }} />
                   <Line type="monotone" dataKey="rate" stroke={chartColors.accent} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -192,7 +192,7 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Graph 4: Onboarding Completion Distribution (Pie Chart) */}
-          <div className="card" style={{ padding: 'var(--space-5)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent' }}>
+          <div className="card card__body" style={{ padding: 'var(--space-5)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Onboarding Checklist Distribution</h3>
             <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: '50%', height: '100%' }}>
@@ -211,7 +211,7 @@ export default function AnalyticsDashboard() {
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '0px', fontSize: '11px' }} />
+                    <Tooltip contentStyle={{ background: chartColors.tooltipBg, borderColor: chartColors.tooltipBorder, borderRadius: '12px', fontSize: '11px', boxShadow: 'var(--shadow-subtle)' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -220,7 +220,7 @@ export default function AnalyticsDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%', fontSize: '11px', fontWeight: 500 }}>
                 {onboardingCompletionData.map((d, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '0px', background: PIE_COLORS[idx] }} />
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: PIE_COLORS[idx] }} />
                     <span style={{ color: 'var(--color-grey-brown)' }}>{d.name}: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{d.value}%</strong></span>
                   </div>
                 ))}

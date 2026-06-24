@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext'
 import { fetchCandidateProfile } from '../api'
 import AnimatedPage from './AnimatedPage'
 import { motion, AnimatePresence } from 'framer-motion'
+import SteepSidebarItem from './design-system/SteepSidebarItem'
 
 interface CandidateLayoutProps {
   children: ReactNode
@@ -151,9 +152,9 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
       {/* Sidebar Desktop */}
       <aside
         style={{
-          width: '260px',
-          background: 'var(--bg)',
-          borderRight: '1px solid var(--color-cork-shadow)',
+          width: '240px',
+          background: 'var(--color-fog)',
+          borderRight: 'none',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 150,
@@ -207,45 +208,15 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             overflowY: 'auto',
           }}
         >
-          {navItems.map((item) => {
-            const isActive = pathname === item.path
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`btn btn--ghost btn--block ${isActive ? 'nav-link--active' : ''}`}
-                style={{
-                  position: 'relative',
-                  justifyContent: 'flex-start',
-                  padding: '10px 14px',
-                  borderRadius: '0px',
-                  fontSize: '13.5px',
-                  fontWeight: 550,
-                  color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
-                  background: 'transparent',
-                }}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-indicator-candidate"
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '2px',
-                      backgroundColor: 'var(--color-burnt-sienna)',
-                    }}
-                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                  />
-                )}
-                <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </Link>
-            )
-          })}
+          {navItems.map((item) => (
+            <SteepSidebarItem
+              key={item.path}
+              to={item.path}
+              label={item.name}
+              icon={item.icon}
+              active={pathname === item.path}
+            />
+          ))}
         </nav>
 
         {/* Sidebar Footer Logout Button */}
@@ -281,16 +252,16 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
       )}
       <aside
         style={{
-          width: '260px',
-          background: 'var(--bg)',
-          borderRight: '1px solid var(--color-cork-shadow)',
+          width: '240px',
+          background: 'var(--color-fog)',
+          borderRight: 'none',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 200,
           position: 'fixed',
           top: 0,
           bottom: 0,
-          left: isMobileOpen ? 0 : '-260px',
+          left: isMobileOpen ? 0 : '-240px',
           transition: 'left 250ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -346,45 +317,15 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
             overflowY: 'auto',
           }}
         >
-          {navItems.map((item) => {
-            const isActive = pathname === item.path
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`btn btn--ghost btn--block ${isActive ? 'nav-link--active' : ''}`}
-                style={{
-                  position: 'relative',
-                  justifyContent: 'flex-start',
-                  padding: '10px 14px',
-                  borderRadius: '0px',
-                  fontSize: '13.5px',
-                  fontWeight: 550,
-                  color: isActive ? 'var(--color-burnt-sienna)' : 'var(--text-secondary)',
-                  background: 'transparent',
-                }}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-indicator-candidate-mobile"
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '2px',
-                      backgroundColor: 'var(--color-burnt-sienna)',
-                    }}
-                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                  />
-                )}
-                <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '8px' }}>
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </Link>
-            )
-          })}
+          {navItems.map((item) => (
+            <SteepSidebarItem
+              key={item.path}
+              to={item.path}
+              label={item.name}
+              icon={item.icon}
+              active={pathname === item.path}
+            />
+          ))}
         </nav>
 
         <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border)' }}>
@@ -501,19 +442,18 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                 >
                   <div
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: 'var(--accent)',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: 'var(--radius-avatars)',
+                      background: 'var(--color-sky-wash)',
                       display: 'grid',
                       placeItems: 'center',
-                      color: 'var(--text)',
-                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      fontWeight: 500,
                       fontSize: '13px',
-                      
                     }}
                   >
-                    {userInitials}
+                    {user?.full_name ? user.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'U'}
                   </div>
                 </button>
 
@@ -530,9 +470,8 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
                         right: 0,
                         top: '46px',
                         width: '240px',
-                        
                         zIndex: 181,
-                        background: 'var(--bg)',
+                        background: 'var(--color-pure-white)',
                         borderRadius: 'var(--radius-cards)',
                         border: '1px solid var(--border)',
                         padding: 'var(--space-2)',

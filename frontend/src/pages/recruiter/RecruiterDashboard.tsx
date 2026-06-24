@@ -8,6 +8,12 @@ import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
 import EmptyState from '../../components/EmptyState'
 import { motion, type Variants } from 'framer-motion'
 
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepButton from '../../components/design-system/SteepButton'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepBadge from '../../components/design-system/SteepBadge'
+import SteepStatCard from '../../components/design-system/SteepStatCard'
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -29,6 +35,7 @@ const itemVariants: Variants = {
     }
   }
 }
+
 import {
   api,
   recruitCandidate,
@@ -318,19 +325,19 @@ export default function RecruiterDashboard() {
           jobTitle: selectedJob.title,
           department: selectedJob.department,
           briefText: `# AI Hiring Brief: ${selectedJob.title} (${selectedJob.department})
-
+ 
 ## 1. Executive Position Summary
 Our team is seeking a qualified **${selectedJob.title}** to join our team. The candidate will drive critical components of the system under robust data access controls.
-
+ 
 ## 2. Ideal Candidate Persona & Core Stack
 - **Experience Level**: 3-6 years of verified experience.
 - **Primary Skills**: Strong execution of core technologies, architecture best practices.
 - **Soft Skills**: Collaboration, self-starting attitude, security-oriented coding mindset.
-
+ 
 ## 3. Targeted Skill Matrix
 - **Required**: Design compliance, performance tuning, automated testing.
 - **Good to Have**: HRIS integrations, queue workers, telemetry logging.
-
+ 
 ## 4. Screening & Verification Strategy
 - **Identity Check**: Twilio SMS and Email OTP verified.
 - **Technical Gaps**: Check compatibility with Supabase RLS and transactional outbox.
@@ -470,30 +477,28 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
     ? (applicationsWithScore.reduce((sum, a) => sum + ((a.match_score || 0) > 80 ? 98 : 94), 0) / applicationsWithScore.length).toFixed(1) + '%'
     : 'N/A'
 
-
   return (
     <AppLayout>
-      <div className="dashboard-page container container--wide" style={{ paddingBottom: 'var(--space-12)' }}>
+      <div style={{ paddingBottom: 'var(--spacing-48)' }}>
         
         {/* Cockpit Title Header */}
-        <header style={{ marginBottom: 'var(--space-8)' }}>
+        <header style={{ marginBottom: 'var(--spacing-32)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.03em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
+              <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
                 Hiring Command Center
               </h1>
-              <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
+              <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: 'var(--spacing-8)', marginBlockEnd: 0 }}>
                 {company ? `${company.name} Workspace` : 'Recruiter Cockpit'} — Instantly review matching metrics, active screening queues, and AI match insights.
               </p>
             </div>
-            <button
-              type="button"
-              className="btn btn--secondary btn--sm"
+            <SteepButton
+              variant="secondary"
+              size="sm"
               onClick={loadData}
-              style={{ borderRadius: 'var(--radius-buttons)', height: 'fit-content' }}
             >
               🔄 Refresh Cockpit
-            </button>
+            </SteepButton>
           </div>
         </header>
 
@@ -505,8 +510,8 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-8)'
+            gap: 'var(--spacing-16)',
+            marginBottom: 'var(--spacing-24)'
           }}
           aria-label="Platform KPIs"
         >
@@ -525,128 +530,107 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                whileHover={{ y: -2, scale: 1.015, borderColor: 'var(--accent)' }}
-                className="card"
-                style={{
-                  padding: 'var(--space-5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-4)',
-                  
-                  borderRadius: 'var(--radius-cards)',
-                  border: '1px solid var(--border)',
-                  cursor: 'default',
-                  transition: 'border-color 0.15s ease'
-                }}
+                style={{ display: 'flex', flexDirection: 'column' }}
               >
-                <div style={{ width: '46px', height: '46px', borderRadius: 'var(--radius-cards)', background: 'transparent', display: 'grid', placeItems: 'center', fontSize: '22px' }}>
-                  {kpi.icon}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.2 }}>
-                    {kpi.label}
-                  </span>
-                  <span style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)', marginTop: '2px', lineHeight: 1.1 }}>
-                    <AnimatedCounter value={kpi.value} />
-                  </span>
-                </div>
+                <SteepStatCard
+                  title={kpi.label}
+                  value={kpi.value}
+                  icon={kpi.icon}
+                  style={{ height: '100%' }}
+                />
               </motion.div>
             ))
           )}
         </motion.section>
 
-        {/* Action Center Block (Urgent Tasks & Domain verification status) */}
-        <section
-          style={{
-            border: '1px solid var(--color-burnt-sienna)',
-            borderRadius: 12,
-            padding: '20px',
-            marginBottom: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-burnt-sienna)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              Action Center
-            </span>
-            <span className="badge badge--reject" style={{ fontSize: 8 }}>Pending Tasks & Alerts</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {applications.filter(a => a.status === 'screening').length > 0 && (
-              <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📌 <span>Urgent: <strong>{applications.filter(a => a.status === 'screening').length}</strong> Candidates waiting for screening on '{jobs[0]?.title || 'Software Engineering'}'.</span>
-              </div>
-            )}
-            {company?.domain_verified ? (
-              <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ✅ <span>Organization MX records verified and secure.</span>
-              </div>
-            ) : (
-              <div style={{ fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚠️ <span>Warning: Organization MX record not verified. <Link to="/recruiter/settings" style={{ color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Verify DNS records</Link> to secure applicant notifications.</span>
-              </div>
-            )}
-          </div>
+        {/* Action Center Block (Urgent Tasks & Domain verification status - Warm Apricot Wash) */}
+        <section style={{ marginBottom: 'var(--spacing-24)' }}>
+          <SteepCard variant="warm">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-12)' }}>
+              <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-rust)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                Action Center
+              </span>
+              <SteepBadge variant="warning">Pending Tasks & Alerts</SteepBadge>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {applications.filter(a => a.status === 'screening').length > 0 && (
+                <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
+                  ⚠️ Urgent: <strong>{applications.filter(a => a.status === 'screening').length}</strong> Candidates waiting for screening on '{jobs[0]?.title || 'Software Engineering'}'.
+                </div>
+              )}
+              {company?.domain_verified ? (
+                <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
+                  ✓ Organization MX records verified and secure.
+                </div>
+              ) : (
+                <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
+                  ⚠️ Warning: Organization MX record not verified.{' '}
+                  <Link to="/recruiter/settings" style={{ color: 'var(--color-rust)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    Verify DNS records
+                  </Link>{' '}
+                  to secure applicant notifications.
+                </div>
+              )}
+            </div>
+          </SteepCard>
         </section>
 
         {/* MAIN SPLIT GRID: Left (Queue, Jobs, Interviews) & Right (AI Command Center Hub) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--space-6)', alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--spacing-24)', alignItems: 'flex-start' }}>
           
           {/* Left Column Workspace widgets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
             {/* Widget: AI Resume Processing Queue */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>AI Resume Processing Queue</h3>
-                <span className={`badge ${isScreenerProcessing ? 'badge--interview' : 'badge--neutral'}`}>
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>AI Resume Processing Queue</h3>
+                <SteepBadge variant={isScreenerProcessing ? 'success' : 'neutral'}>
                   {isScreenerProcessing ? 'Processing Active' : 'Idle'}
-                </span>
+                </SteepBadge>
               </div>
               
               {isScreenerProcessing ? (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-fog)' }}>
                   <div className="spinner" />
                   <div>
-                    <strong style={{ fontSize: '14px', color: 'var(--text)' }}>Parsing & Scoring Resumes...</strong>
-                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    <strong style={{ fontSize: '14px', color: 'var(--color-ink)' }}>Parsing & Scoring Resumes...</strong>
+                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-ash)', marginTop: '4px' }}>
                       {PIPELINE_STEPS[screenerStep]}
                     </span>
                   </div>
                 </div>
               ) : (
-                <div style={{ padding: '16px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)', textAlign: 'center' }}>
+                <div style={{ padding: 'var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', textAlign: 'center', background: 'var(--color-fog)' }}>
                   <div style={{ fontSize: '24px', marginBottom: '8px' }}>🟢</div>
-                  <strong style={{ fontSize: '14px', color: 'var(--text)', display: 'block' }}>Queue Idle</strong>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                  <strong style={{ fontSize: '14px', color: 'var(--color-ink)', display: 'block' }}>Queue Idle</strong>
+                  <span style={{ fontSize: '12px', color: 'var(--color-ash)', display: 'block', marginTop: '4px' }}>
                     Drag resumes to the "Upload Candidate" Quick Action to trigger the analysis queue.
                   </span>
                 </div>
               )}
 
               {screenerOutcomes.length > 0 && (
-                <div style={{ marginTop: '16px', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
-                  <strong style={{ fontSize: '12px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Recent Queue Outputs:</strong>
+                <div style={{ marginTop: '16px', padding: '12px', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                  <strong style={{ fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', color: 'var(--color-ash)' }}>Recent Queue Outputs:</strong>
                   {screenerOutcomes.map((out, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0' }}>
                       <span>👤 {out.candidate?.name}</span>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <span className={`score-ring ${scoreClass(out.scoring?.total_score || 0)}`} style={{ width: '20px', height: '20px', fontSize: '9px' }}>{out.scoring?.total_score}</span>
-                        <span style={{ fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>{out.decision?.decision}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--color-rust)' }}>{out.decision?.decision}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </SteepCard>
 
             {/* Widget: Active Jobs */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Active Jobs & Candidates</h3>
-                <Link to="/recruiter/jobs" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Manage Jobs</Link>
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Active Jobs & Candidates</h3>
+                <Link to="/recruiter/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Manage Jobs</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {loading ? (
@@ -658,12 +642,12 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   jobs.filter(j => j.status === 'open').map((job) => {
                     const activeAppsCount = applications.filter(a => a.job_id === job.id && a.status !== 'rejected').length
                     return (
-                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
+                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{job.title}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{job.department}</div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{job.department}</div>
                         </div>
-                        <span className="badge badge--neutral" style={{ fontSize: '10px' }}>{activeAppsCount} Candidates</span>
+                        <SteepBadge variant="neutral">{activeAppsCount} Candidates</SteepBadge>
                       </div>
                     )
                   })
@@ -677,11 +661,11 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   />
                 )}
               </div>
-            </div>
+            </SteepCard>
 
             {/* Widget: Screening Queue / Active Applicants List */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Screening Queue & Applicants</h3>
+            <SteepCard>
+              <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Screening Queue & Applicants</h3>
               {loading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <ListRowSkeleton />
@@ -697,14 +681,14 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   onAction={() => setIsCandidateModalOpen(true)}
                 />
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                   <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Candidate</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Role</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Match</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', textAlign: 'right' }}>Status</th>
+                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Candidate</th>
+                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Role</th>
+                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Match</th>
+                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600, textAlign: 'right' }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -715,14 +699,14 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                           style={{
                             borderBottom: '1px solid var(--border)',
                             cursor: 'pointer',
-                            background: selectedAppForAi?.id === app.id ? 'var(--accent-subtle)' : 'transparent',
+                            background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'transparent',
                             transition: 'background var(--duration-fast)'
                           }}
                         >
-                          <td style={{ padding: '10px 12px', fontSize: '13.5px', fontWeight: 500 }}>
+                          <td style={{ padding: '10px 12px', fontSize: '13.5px', fontWeight: 500, color: 'var(--color-ink)' }}>
                             {app.candidate?.full_name || 'Unknown Candidate'}
                           </td>
-                          <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--color-ash)' }}>
                             {app.job?.title || 'Open Position'}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
@@ -731,13 +715,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                                 {app.match_score}
                               </span>
                             ) : (
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Pending</span>
+                              <span style={{ fontSize: '11px', color: 'var(--color-ash)' }}>Pending</span>
                             )}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                            <span className="badge" style={{ fontSize: '9px', border: '1px solid var(--color-cork-shadow)' }}>
+                            <SteepBadge variant={app.status === 'hired' ? 'success' : app.status === 'interview' ? 'interview' : app.status === 'rejected' ? 'danger' : 'neutral'}>
                               {app.status}
-                            </span>
+                            </SteepBadge>
                           </td>
                         </tr>
                       ))}
@@ -745,13 +729,13 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </table>
                 </div>
               )}
-            </div>
+            </SteepCard>
 
             {/* Widget: Upcoming Interviews */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Upcoming Interviews</h3>
-                <Link to="/recruiter/interviews" style={{ fontSize: '11px', color: 'var(--text-secondary)', textDecoration: 'underline' }}>Scheduler</Link>
+            <SteepCard>
+              <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Upcoming Interviews</h3>
+                <Link to="/recruiter/interviews" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Scheduler</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {loading ? (
@@ -761,12 +745,12 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </>
                 ) : applications.filter(a => a.status === 'interview').length > 0 ? (
                   applications.filter(a => a.status === 'interview').map((app) => (
-                    <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
+                    <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{app.candidate?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{app.job?.title}</div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{app.job?.title}</div>
                       </div>
-                      <span style={{ fontSize: '11px', color: 'var(--color-burnt-sienna)', fontWeight: 500 }}>Scheduled</span>
+                      <SteepBadge variant="interview">Scheduled</SteepBadge>
                     </div>
                   ))
                 ) : (
@@ -779,11 +763,11 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   />
                 )}
               </div>
-            </div>
+            </SteepCard>
 
             {/* Widget: Hiring Metrics */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Hiring Metrics</h3>
+            <SteepCard>
+              <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Hiring Metrics</h3>
               {loading ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
@@ -800,105 +784,105 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-burnt-sienna)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-24)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-rust)' }}>
                       <AnimatedCounter value={averageMatchScore === 'N/A' ? 'N/A' : `${averageMatchScore}%`} />
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
+                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
                   </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-ink)' }}>
                       <AnimatedCounter value={averageDaysToClose} />
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
+                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
                   </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text)' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-ink)' }}>
                       <AnimatedCounter value={averageTrustLevel} />
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
+                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
                   </div>
                 </div>
               )}
-            </div>
+            </SteepCard>
 
           </div>
 
           {/* Right Column: AI Command Center Hub & Quick Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
             {/* Widget: Quick Actions */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', background: 'transparent' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Quick Actions</h3>
+            <SteepCard>
+              <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Quick Actions</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button className="btn btn--secondary btn--block" onClick={() => setIsJobModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
+                <SteepButton variant="secondary" block onClick={() => setIsJobModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
                   💼 Create Job Opening
-                </button>
-                <button className="btn btn--secondary btn--block" onClick={() => setIsCandidateModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
+                </SteepButton>
+                <SteepButton variant="secondary" block onClick={() => setIsCandidateModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
                   ⚡ Upload Candidate Resume
-                </button>
-                <button className="btn btn--secondary btn--block" onClick={() => navigate('/recruiter/pipeline')} style={{ justifyContent: 'flex-start' }}>
+                </SteepButton>
+                <SteepButton variant="secondary" block onClick={() => navigate('/recruiter/pipeline')} style={{ justifyContent: 'flex-start' }}>
                   📋 Review Applications Pipeline
-                </button>
-                <button className="btn btn--secondary btn--block" onClick={() => setIsInterviewModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
+                </SteepButton>
+                <SteepButton variant="secondary" block onClick={() => setIsInterviewModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
                   🗓️ Schedule Interview Panel
-                </button>
-                <button className="btn btn--secondary btn--block" onClick={() => {
+                </SteepButton>
+                <SteepButton variant="secondary" block onClick={() => {
                   if (jobs.length > 0) {
                     setBriefJobId(jobs[0].id)
                   }
                   setIsBriefModalOpen(true)
                 }} style={{ justifyContent: 'flex-start' }}>
                   🖋️ Generate AI Hiring Brief
-                </button>
+                </SteepButton>
               </div>
-            </div>
+            </SteepCard>
 
-            {/* Widget: first-class AI Command Center Hub (Match Insights, Risk Indicators, Recommendations) */}
-            <div className="card" style={{ borderRadius: 'var(--radius-cards)', padding: '24px', border: '1px solid var(--color-burnt-sienna)', background: 'var(--surface)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+            {/* Widget: first-class AI Command Center Hub (Match Insights, Risk Indicators, Recommendations - Cool Sky Wash) */}
+            <SteepCard variant="cool">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)', borderBottom: '1px solid rgba(23, 25, 28, 0.08)', paddingBottom: '12px' }}>
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>🤖 AI Copilot Command Hub</h3>
-                  <span style={{ fontSize: '10px', color: 'var(--color-burnt-sienna)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Intelligence</span>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>🤖 AI Copilot Command Hub</h3>
+                  <span style={{ fontSize: '10px', color: 'var(--color-rust)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Verified Intelligence</span>
                 </div>
-                <span className="badge badge--neutral">Candidate Analyst</span>
+                <SteepBadge variant="neutral">Candidate Analyst</SteepBadge>
               </div>
 
               {aiDetails ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {/* Summary & Meta */}
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{aiDetails.name}</h4>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Target Role: {aiDetails.title}</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: 0 }}>{aiDetails.name}</h4>
+                    <span style={{ fontSize: '11px', color: 'var(--color-ash)' }}>Target Role: {aiDetails.title}</span>
                     
-                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: 'var(--radius-cards)', background: 'var(--color-sky-wash)', fontSize: '13px', lineHeight: 1.35 }}>
+                    <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', marginTop: '12px', fontSize: '13px', lineHeight: 1.35 }}>
                       <strong>AI Candidate Summary:</strong><br />
                       {aiDetails.summary}
-                    </div>
+                    </SteepCard>
                   </div>
 
                   {/* AI Match Insights */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>AI Match Insights</span>
-                      <span className={`badge ${aiDetails.hasScore ? 'badge--hire' : 'badge--neutral'}`}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)' }}>AI Match Insights</span>
+                      <SteepBadge variant="success">
                         {aiDetails.hasScore ? `${aiDetails.score}% Match` : 'Pending Match'}
-                      </span>
+                      </SteepBadge>
                     </div>
                     {aiDetails.hasScore && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                         {aiDetails.skills.map((s, i) => (
-                          <span key={i} className="chip" style={{ borderColor: 'var(--color-forest-grid)', color: 'var(--text)' }}>✓ {s}</span>
+                          <SteepBadge key={i} variant="success">✓ {s}</SteepBadge>
                         ))}
                       </div>
                     )}
                     {aiDetails.hasScore && aiDetails.gaps.length > 0 && (
                       <div>
-                        <div style={{ fontSize: '10px', color: 'var(--color-burnt-sienna)', fontWeight: 600, marginBottom: '4px' }}>Missing Stack / Knowledge Gaps:</div>
+                        <div style={{ fontSize: '10px', color: 'var(--color-rust)', fontWeight: 600, marginBottom: '4px' }}>Missing Stack / Knowledge Gaps:</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                           {aiDetails.gaps.map((g, i) => (
-                            <span key={i} className="chip" style={{ borderColor: 'var(--color-burnt-sienna)', color: 'var(--color-burnt-sienna)' }}>✕ {g}</span>
+                            <SteepBadge key={i} variant="danger">✕ {g}</SteepBadge>
                           ))}
                         </div>
                       </div>
@@ -906,31 +890,31 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
 
                   {/* AI Risk Indicators */}
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '12px' }}>AI Risk & Trust Indicators</span>
+                  <div style={{ borderTop: '1px solid rgba(23, 25, 28, 0.08)', paddingTop: '16px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)', display: 'block', marginBottom: '12px' }}>AI Risk & Trust Indicators</span>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px', textAlign: 'center' }}>
-                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-burnt-sienna)' }}>
+                      <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', padding: '8px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-rust)' }}>
                           {aiDetails.hasScore ? aiDetails.riskScore : '—'}
                         </div>
-                        <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Risk Score</div>
-                      </div>
-                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+                        <div style={{ fontSize: '9px', color: 'var(--color-ash)', marginTop: '2px' }}>Risk Score</div>
+                      </SteepCard>
+                      <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', padding: '8px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-ink)' }}>
                           {aiDetails.hasScore ? `${aiDetails.authenticityScore}%` : '—'}
                         </div>
-                        <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Authenticity</div>
-                      </div>
-                      <div style={{ padding: '8px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+                        <div style={{ fontSize: '9px', color: 'var(--color-ash)', marginTop: '2px' }}>Authenticity</div>
+                      </SteepCard>
+                      <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', padding: '8px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-ink)' }}>
                           {aiDetails.hasScore ? `${aiDetails.evidenceScore}%` : '—'}
                         </div>
-                        <div style={{ fontSize: '9px', color: 'var(--text-secondary)', marginTop: '2px' }}>Evidence</div>
-                      </div>
+                        <div style={{ fontSize: '9px', color: 'var(--color-ash)', marginTop: '2px' }}>Evidence</div>
+                      </SteepCard>
                     </div>
 
-                    <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--color-ash)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <li>✓ Email OTP: verified ({aiDetails.email})</li>
                       {selectedAppForAi?.candidate?.phone ? (
                         <li>✓ Phone SMS OTP: verified ({selectedAppForAi.candidate.phone})</li>
@@ -938,7 +922,7 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                         <li>⚠ Phone SMS OTP: unverified (no phone number provided)</li>
                       )}
                       {aiDetails.hasScore && aiDetails.riskScore > 20 ? (
-                        <li style={{ color: 'var(--color-burnt-sienna)' }}>⚠ Gaps identified: short tenure at secondary employer</li>
+                        <li style={{ color: 'var(--color-rust)' }}>⚠ Gaps identified: short tenure at secondary employer</li>
                       ) : aiDetails.hasScore ? (
                         <li>✓ Perfect background consistency check</li>
                       ) : (
@@ -948,31 +932,31 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                   </div>
 
                   {/* AI Hiring Recommendations */}
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <div style={{ borderTop: '1px solid rgba(23, 25, 28, 0.08)', paddingTop: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Hiring Recommendations</span>
-                      <span className="badge badge--neutral" style={{ color: 'var(--color-burnt-sienna)', borderColor: 'var(--color-burnt-sienna)' }}>Confidence: {aiDetails.confidence}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)' }}>Hiring Recommendations</span>
+                      <SteepBadge variant="warning">Confidence: {aiDetails.confidence}</SteepBadge>
                     </div>
                     
-                    <div style={{ padding: '12px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--color-cork-shadow)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px' }}>Suggested Action:</span>
-                        <strong style={{ fontSize: '14px', color: 'var(--color-burnt-sienna)' }}>{aiDetails.decision}</strong>
+                        <span style={{ fontSize: '13px', color: 'var(--color-ink)' }}>Suggested Action:</span>
+                        <strong style={{ fontSize: '14px', color: 'var(--color-rust)' }}>{aiDetails.decision}</strong>
                       </div>
                       
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-ash)' }}>
                         <strong>Reasoning:</strong> {aiDetails.reasoning}
                       </div>
 
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-ash)', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
                         <strong>Compensation Guidance:</strong> {aiDetails.salary}
                       </div>
-                    </div>
+                    </SteepCard>
 
                     {aiDetails.hasScore && (
                       <div style={{ marginTop: '12px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '6px' }}>Suggested Interview Questions:</div>
-                        <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)', marginBottom: '6px' }}>Suggested Interview Questions:</div>
+                        <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--color-ash)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {aiDetails.questions.map((q, idx) => (
                             <li key={idx}>{q}</li>
                           ))}
@@ -983,11 +967,11 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
 
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-ash)', fontSize: '13px' }}>
                   Select an applicant from the screening queue to reveal full AI match intelligence, risk analysis, and decision parameters.
                 </div>
               )}
-            </div>
+            </SteepCard>
 
           </div>
 
@@ -997,280 +981,281 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
 
         {/* 1. Create Job Opening Modal */}
         {isJobModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsJobModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Create New Job Opening</h3>
-                <button type="button" className="icon-btn" onClick={() => setIsJobModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleCreateJob} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="new-job-title">Job Title</label>
-                  <input
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsJobModalOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '500px' }}>
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Create New Job Opening</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsJobModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                </div>
+                <form onSubmit={handleCreateJob}>
+                  <SteepInput
                     id="new-job-title"
                     required
                     type="text"
-                    className="form-input"
                     placeholder="Senior Software Engineer"
+                    label="Job Title"
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
-                    style={{ borderRadius: '0px' }}
                   />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="new-job-dept">Department</label>
-                  <select
+
+                  <SteepInput
                     id="new-job-dept"
-                    className="form-select"
+                    label="Department"
+                    select
+                    options={['Engineering', 'Product', 'Design', 'Sales', 'Marketing', 'HR'].map(d => ({ value: d, label: d }))}
                     value={jobDept}
                     onChange={(e) => setJobDept(e.target.value)}
-                    style={{ borderRadius: '0px' }}
-                  >
-                    {['Engineering', 'Product', 'Design', 'Sales', 'Marketing', 'HR'].map((dept) => (
-                      <option key={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="new-job-date">Start Date</label>
-                  <input
+                  />
+
+                  <SteepInput
                     id="new-job-date"
                     type="date"
-                    className="form-input"
+                    label="Start Date"
                     value={jobStart}
                     onChange={(e) => setJobStart(e.target.value)}
-                    style={{ borderRadius: '0px' }}
                   />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="new-job-desc">Job Description & Requirements</label>
-                  <textarea
+
+                  <SteepInput
+                    textarea
                     id="new-job-desc"
                     required
-                    className="form-textarea"
                     placeholder="Paste job details, stack, responsibilities, and qualifications..."
+                    label="Job Description & Requirements"
                     value={jobDesc}
                     onChange={(e) => setJobDesc(e.target.value)}
-                    style={{ minHeight: '120px', borderRadius: '0px' }}
+                    style={{ minHeight: '120px' }}
                   />
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                  <button type="button" className="btn btn--secondary" onClick={() => setIsJobModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn btn--accent" disabled={submittingJob}>
-                    {submittingJob ? 'Creating...' : 'Create Opening'}
-                  </button>
-                </div>
-              </form>
+
+                  <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-20)' }}>
+                    <SteepButton type="button" variant="secondary" onClick={() => setIsJobModalOpen(false)}>Cancel</SteepButton>
+                    <SteepButton type="submit" variant="primary" disabled={submittingJob}>
+                      {submittingJob ? 'Creating...' : 'Create Opening'}
+                    </SteepButton>
+                  </div>
+                </form>
+              </SteepCard>
             </div>
           </div>
         )}
 
         {/* 2. Upload Candidate Modal */}
         {isCandidateModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsCandidateModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(580px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Resume Screening Pipeline</h3>
-                <button type="button" className="icon-btn" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleAddCandidate} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxHeight: '80vh', overflowY: 'auto' }}>
-                
-                {/* PDF Dropzone */}
-                <div
-                  className="dropzone"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-6)', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
-                >
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,application/pdf"
-                    ref={fileInputRef}
-                    className="sr-only"
-                    onChange={(e) => {
-                      if (e.target.files?.length) {
-                        const pdfs = Array.from(e.target.files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
-                        setPdfFiles((prev) => [...prev, ...pdfs])
-                      }
-                    }}
-                  />
-                  <span style={{ fontSize: '28px', display: 'block', marginBottom: '8px' }}>📁</span>
-                  <strong>Drop candidate PDF resumes here</strong>
-                  <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>or click to browse local files</span>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsCandidateModalOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '580px' }}>
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>AI Resume Screening Pipeline</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsCandidateModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
                 </div>
+                <form onSubmit={handleAddCandidate} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)', maxHeight: '75vh', overflowY: 'auto' }}>
+                  
+                  {/* PDF Dropzone */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ border: '1px dashed var(--border)', borderRadius: 'var(--radius-inputs)', padding: 'var(--spacing-24)', textAlign: 'center', cursor: 'pointer', background: 'var(--color-fog)' }}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,application/pdf"
+                      ref={fileInputRef}
+                      className="sr-only"
+                      onChange={(e) => {
+                        if (e.target.files?.length) {
+                          const pdfs = Array.from(e.target.files).filter((f) => f.name.toLowerCase().endsWith('.pdf'))
+                          setPdfFiles((prev) => [...prev, ...pdfs])
+                        }
+                      }}
+                    />
+                    <span style={{ fontSize: '28px', display: 'block', marginBottom: '8px' }}>📁</span>
+                    <strong style={{ color: 'var(--color-ink)' }}>Drop candidate PDF resumes here</strong>
+                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-ash)', marginTop: '4px' }}>or click to browse local files</span>
+                  </div>
 
-                {pdfFiles.length > 0 && (
-                  <ul className="file-list" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
-                    {pdfFiles.map((file, idx) => (
-                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'transparent', borderRadius: 'var(--radius-cards)', fontSize: 'var(--text-xs)', marginBottom: '4px', border: '1px solid var(--border)' }}>
-                        <span>{file.name}</span>
-                        <button type="button" onClick={() => setPdfFiles(prev => prev.filter((_, i) => i !== idx))} style={{ color: 'var(--color-burnt-sienna)' }}>Remove</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  {pdfFiles.length > 0 && (
+                    <ul className="file-list" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
+                      {pdfFiles.map((file, idx) => (
+                        <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)', fontSize: 'var(--text-caption)', marginBottom: '4px', border: '1px solid var(--border)', color: 'var(--color-ink)' }}>
+                          <span>{file.name}</span>
+                          <button type="button" onClick={() => setPdfFiles(prev => prev.filter((_, i) => i !== idx))} style={{ color: 'var(--color-rust)', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 500 }}>Remove</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
-                <div className="form-group">
-                  <label className="form-label">Associate with Active Job</label>
-                  <select
-                    className="form-select"
+                  <SteepInput
+                    id="associate-job"
+                    label="Associate with Active Job"
+                    select
+                    options={[{ value: '', label: 'Create new opening from parameters below' }, ...jobs.map((j) => ({ value: j.id, label: `${j.title} · ${j.department}` }))]}
                     value={selectedJobId}
                     onChange={(e) => setSelectedJobId(e.target.value)}
-                    style={{ borderRadius: '0px' }}
-                  >
-                    <option value="">Create new opening from parameters below</option>
-                    {jobs.map((j) => (
-                      <option key={j.id} value={j.id}>{j.title} · {j.department}</option>
-                    ))}
-                  </select>
-                </div>
+                  />
 
-                {!selectedJobId && (
-                  <fieldset style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    <legend style={{ fontSize: '11px', fontWeight: 700, padding: '0 8px', color: 'var(--text-tertiary)' }}>New Opening Parameters</legend>
-                    <div className="form-group">
-                      <label className="form-label">Job Role Title</label>
-                      <input type="text" className="form-input" placeholder="e.g. Lead Dev" value={screenerRole} onChange={(e) => setScreenerRole(e.target.value)} style={{ borderRadius: '0px' }} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Department</label>
-                      <select className="form-select" value={screenerDept} onChange={(e) => setScreenerDept(e.target.value)} style={{ borderRadius: '0px' }}>
-                        {['Engineering', 'Product', 'Design', 'Sales', 'Marketing'].map(d => <option key={d}>{d}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Job Requirements Description</label>
-                      <textarea className="form-textarea" placeholder="Paste requirements here..." value={screenerDesc} onChange={(e) => setScreenerDesc(e.target.value)} style={{ minHeight: '80px', borderRadius: '0px' }} />
-                    </div>
-                  </fieldset>
-                )}
+                  {!selectedJobId && (
+                    <fieldset style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-inputs)', padding: 'var(--spacing-16)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
+                      <legend style={{ fontSize: '10px', fontWeight: 600, padding: '0 8px', color: 'var(--color-ash)', textTransform: 'uppercase' }}>New Opening Parameters</legend>
+                      
+                      <SteepInput
+                        id="screener-role"
+                        label="Job Role Title"
+                        placeholder="e.g. Lead Developer"
+                        value={screenerRole}
+                        onChange={(e) => setScreenerRole(e.target.value)}
+                      />
 
-                {isScreenerProcessing && (
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--space-3)', background: 'transparent', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
-                    <div className="spinner" />
-                    <div>
-                      <strong style={{ fontSize: 'var(--text-sm)' }}>AI Analysis Running...</strong>
-                      <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{PIPELINE_STEPS[screenerStep]}</span>
+                      <SteepInput
+                        id="screener-dept"
+                        label="Department"
+                        select
+                        options={['Engineering', 'Product', 'Design', 'Sales', 'Marketing'].map(d => ({ value: d, label: d }))}
+                        value={screenerDept}
+                        onChange={(e) => setScreenerDept(e.target.value)}
+                      />
+
+                      <SteepInput
+                        textarea
+                        id="screener-desc"
+                        label="Job Requirements Description"
+                        placeholder="Paste requirements here..."
+                        value={screenerDesc}
+                        onChange={(e) => setScreenerDesc(e.target.value)}
+                        style={{ minHeight: '80px' }}
+                      />
+                    </fieldset>
+                  )}
+
+                  {isScreenerProcessing && (
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--spacing-12)', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)' }}>
+                      <div className="spinner" />
+                      <div>
+                        <strong style={{ fontSize: 'var(--text-body)', color: 'var(--color-ink)' }}>AI Analysis Running...</strong>
+                        <span style={{ display: 'block', fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>{PIPELINE_STEPS[screenerStep]}</span>
+                      </div>
                     </div>
+                  )}
+
+                  {screenerError && <div className="banner banner--error" style={{ fontSize: 'var(--text-caption)' }}>{screenerError}</div>}
+
+                  <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-8)' }}>
+                    <SteepButton type="button" variant="secondary" onClick={() => setIsCandidateModalOpen(false)}>Cancel</SteepButton>
+                    <SteepButton type="submit" variant="primary" disabled={isScreenerProcessing || pdfFiles.length === 0}>
+                      {isScreenerProcessing ? 'Screening...' : 'Screen Resumes'}
+                    </SteepButton>
                   </div>
-                )}
-
-                {screenerError && <div className="banner banner--warning" style={{ fontSize: 'var(--text-xs)' }}>{screenerError}</div>}
-
-                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                  <button type="button" className="btn btn--secondary" onClick={() => setIsCandidateModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn btn--accent" disabled={isScreenerProcessing || pdfFiles.length === 0}>
-                    {isScreenerProcessing ? 'Screening...' : 'Screen Resumes'}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </SteepCard>
             </div>
           </div>
         )}
 
         {/* 3. Schedule Interview Modal */}
         {isInterviewModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsInterviewModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(500px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Quick Schedule Interview</h3>
-                <button type="button" className="icon-btn" onClick={() => setIsInterviewModalOpen(false)}>✕</button>
-              </div>
-              <form onSubmit={handleScheduleInterview} className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="sched-app">Select Candidate / Application</label>
-                  <select
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsInterviewModalOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '500px' }}>
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Quick Schedule Interview</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsInterviewModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                </div>
+                <form onSubmit={handleScheduleInterview}>
+                  <SteepInput
                     id="sched-app"
-                    required
-                    className="form-select"
+                    label="Select Candidate / Application"
+                    select
+                    options={[{ value: '', label: 'Choose active application...' }, ...applications.filter(a => a.status !== 'hired' && a.status !== 'rejected').map((app) => ({ value: app.id, label: `${app.candidate?.full_name} · ${app.job?.title} (${app.status})` }))]}
                     value={selectedAppId}
                     onChange={(e) => setSelectedAppId(e.target.value)}
-                    style={{ borderRadius: '0px' }}
-                  >
-                    <option value="">Choose active application...</option>
-                    {applications.filter(a => a.status !== 'hired' && a.status !== 'rejected').map((app) => (
-                      <option key={app.id} value={app.id}>{app.candidate?.full_name} · {app.job?.title} ({app.status})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="sched-title">Interview Panel Title</label>
-                  <input id="sched-title" required type="text" className="form-input" value={interviewTitle} onChange={(e) => setInterviewTitle(e.target.value)} style={{ borderRadius: '0px' }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="sched-time">Date & Time</label>
-                  <input id="sched-time" required type="datetime-local" className="form-input" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} style={{ borderRadius: '0px' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
-                  <button type="button" className="btn btn--secondary" onClick={() => setIsInterviewModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn btn--accent" disabled={submittingInterview || !selectedAppId}>
-                    {submittingInterview ? 'Scheduling...' : 'Schedule Panel'}
-                  </button>
-                </div>
-              </form>
+                    required
+                  />
+
+                  <SteepInput
+                    id="sched-title"
+                    label="Interview Panel Title"
+                    type="text"
+                    value={interviewTitle}
+                    onChange={(e) => setInterviewTitle(e.target.value)}
+                    required
+                  />
+
+                  <SteepInput
+                    id="sched-time"
+                    label="Date & Time"
+                    type="datetime-local"
+                    value={interviewTime}
+                    onChange={(e) => setInterviewTime(e.target.value)}
+                    required
+                  />
+
+                  <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-20)' }}>
+                    <SteepButton type="button" variant="secondary" onClick={() => setIsInterviewModalOpen(false)}>Cancel</SteepButton>
+                    <SteepButton type="submit" variant="primary" disabled={submittingInterview || !selectedAppId}>
+                      {submittingInterview ? 'Scheduling...' : 'Schedule Panel'}
+                    </SteepButton>
+                  </div>
+                </form>
+              </SteepCard>
             </div>
           </div>
         )}
 
         {/* 4. Generate AI Hiring Brief Modal */}
         {isBriefModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(16, 9, 4, 0.85)' }} onClick={() => setIsBriefModalOpen(false)} />
-            <div className="card" style={{ zIndex: 260, width: 'min(650px, 92vw)', borderRadius: 'var(--radius-cards)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Generate AI Hiring Brief</h3>
-                <button type="button" className="icon-btn" onClick={() => setIsBriefModalOpen(false)}>✕</button>
-              </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxHeight: '75vh', overflowY: 'auto' }}>
-                <form onSubmit={handleGenerateBrief} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Select Job Position</label>
-                    <select
-                      className="form-select"
-                      required
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsBriefModalOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '650px' }}>
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Generate AI Hiring Brief</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsBriefModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)', maxHeight: '75vh', overflowY: 'auto' }}>
+                  <form onSubmit={handleGenerateBrief} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <SteepInput
+                      id="brief-job"
+                      label="Select Job Position"
+                      select
+                      options={[{ value: '', label: 'Select active opening...' }, ...jobs.map((j) => ({ value: j.id, label: `${j.title} · ${j.department}` }))]}
                       value={briefJobId}
                       onChange={(e) => setBriefJobId(e.target.value)}
-                      style={{ borderRadius: '0px' }}
-                    >
-                      <option value="">Select active opening...</option>
-                      {jobs.map((j) => (
-                        <option key={j.id} value={j.id}>{j.title} · {j.department}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button type="submit" className="btn btn--primary" disabled={generatingBrief || !briefJobId}>
-                    {generatingBrief ? 'Composing Brief with AI...' : 'Generate Brief'}
-                  </button>
-                </form>
+                      required
+                    />
 
-                {generatedBrief && (
-                  <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>AI Co-pilot Hiring Brief</strong>
-                      <button className="btn btn--secondary btn--sm" onClick={() => {
-                        navigator.clipboard.writeText(generatedBrief.briefText)
-                        alert('Brief copied to clipboard!')
-                      }}>Copy Brief</button>
+                    <SteepButton type="submit" variant="primary" block disabled={generatingBrief || !briefJobId}>
+                      {generatingBrief ? 'Composing Brief with AI...' : 'Generate Brief'}
+                    </SteepButton>
+                  </form>
+
+                  {generatedBrief && (
+                    <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <strong style={{ fontSize: '14px', color: 'var(--color-ink)' }}>AI Co-pilot Hiring Brief</strong>
+                        <SteepButton variant="secondary" size="sm" onClick={() => {
+                          navigator.clipboard.writeText(generatedBrief.briefText)
+                          alert('Brief copied to clipboard!')
+                        }}>Copy Brief</SteepButton>
+                      </div>
+                      <pre style={{
+                        background: 'var(--color-fog)',
+                        border: '1px solid var(--border)',
+                        padding: '16px',
+                        borderRadius: 'var(--radius-inputs)',
+                        whiteSpace: 'pre-wrap',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        color: 'var(--color-ink)',
+                        lineHeight: 1.4
+                      }}>
+                        {generatedBrief.briefText}
+                      </pre>
                     </div>
-                    <pre style={{
-                      background: 'var(--surface)',
-                      border: '1px solid var(--color-cork-shadow)',
-                      padding: '16px',
-                      borderRadius: 'var(--radius-cards)',
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      color: 'var(--text)',
-                      lineHeight: 1.4
-                    }}>
-                      {generatedBrief.briefText}
-                    </pre>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </SteepCard>
             </div>
           </div>
         )}

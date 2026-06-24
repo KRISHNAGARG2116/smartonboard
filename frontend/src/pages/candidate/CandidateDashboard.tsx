@@ -8,6 +8,12 @@ import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
 import EmptyState from '../../components/EmptyState'
 import { motion, type Variants } from 'framer-motion'
 
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepButton from '../../components/design-system/SteepButton'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepBadge from '../../components/design-system/SteepBadge'
+import SteepStatCard from '../../components/design-system/SteepStatCard'
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -29,6 +35,7 @@ const itemVariants: Variants = {
     }
   }
 }
+
 import {
   fetchCandidateResumes,
   fetchCandidateProfile,
@@ -88,8 +95,6 @@ export default function CandidateDashboard() {
           setProfile(res.profile)
           if (res.profile.summary) {
             setBioText(res.profile.summary)
-          } else if (cachedBio) {
-            // Keep the cached bio
           }
         }
       }).catch(() => null)
@@ -212,30 +217,22 @@ export default function CandidateDashboard() {
 
   return (
     <CandidateLayout>
-      <div className="container" style={{ padding: 'var(--space-6) 0 var(--space-12)' }}>
+      <div style={{ padding: 'var(--spacing-24) 0 var(--spacing-48)' }}>
         {/* Welcome Section */}
-        <div 
-          className="card" 
-          style={{ 
-            background: 'transparent', 
-            padding: 'var(--space-6)', 
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-cards)',
-            marginBottom: 'var(--space-6)',
-            boxShadow: 'none'
-          }}
-        >
-          <h1 style={{ fontSize: 'var(--text-heading)', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)', lineHeight: 'var(--leading-heading)' }}>
-            Welcome to your Career Hub, {profile?.full_name || user?.full_name || 'Candidate'}!
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)', lineHeight: 'var(--leading-normal)' }}>
-            Monitor your match strengths, track applications, upload credentials, and stay synced with recruiters.
-          </p>
+        <div style={{ marginBottom: 'var(--spacing-24)' }}>
+          <SteepCard variant="default">
+            <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', lineHeight: 'var(--leading-heading)', margin: 0 }}>
+              Welcome to your Career Hub, {profile?.full_name || user?.full_name || 'Candidate'}!
+            </h1>
+            <p style={{ color: 'var(--color-ash)', fontSize: 'var(--text-caption)', marginTop: 'var(--spacing-8)', lineHeight: 'var(--leading-normal)', margin: 0 }}>
+              Monitor your match strengths, track applications, upload credentials, and stay synced with recruiters.
+            </p>
+          </SteepCard>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 'var(--spacing-24)' }}>
           {/* Main Content Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)', minWidth: 0 }}>
             
             {/* Overview Stats Cards */}
             <motion.div 
@@ -245,7 +242,7 @@ export default function CandidateDashboard() {
               style={{ 
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: 'var(--space-4)' 
+                gap: 'var(--spacing-16)' 
               }}
             >
               {loading ? (
@@ -257,62 +254,41 @@ export default function CandidateDashboard() {
               ) : (
                 <>
                   {/* Resume Library Card */}
-                  <motion.div
-                    variants={itemVariants}
-                    whileHover={{ y: -2, scale: 1.015 }}
-                    style={{ display: 'flex', flexDirection: 'column' }}
-                  >
-                    <Link to="/candidate/resumes" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resume Status</span>
-                        <span style={{ fontSize: '18px' }}>📄</span>
-                      </div>
-                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                        <AnimatedCounter value={resumes.length} /> <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontWeight: 400 }}>/ 3 Uploaded</span>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                        {resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
-                      </div>
+                  <motion.div variants={itemVariants} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Link to="/candidate/resumes" style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                      <SteepStatCard
+                        title="Resume Status"
+                        value={`${resumes.length} / 3`}
+                        delta={resumes.find(r => r.is_active)?.filename ? `Active: ${resumes.find(r => r.is_active)?.filename}` : 'No active resume set'}
+                        icon="📄"
+                        style={{ height: '100%', cursor: 'pointer' }}
+                      />
                     </Link>
                   </motion.div>
 
                   {/* Applications Card */}
-                  <motion.div
-                    variants={itemVariants}
-                    whileHover={{ y: -2, scale: 1.015 }}
-                    style={{ display: 'flex', flexDirection: 'column' }}
-                  >
-                    <Link to="/candidate/applications" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Applications</span>
-                        <span style={{ fontSize: '18px' }}>📨</span>
-                      </div>
-                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                        <AnimatedCounter value={applications.length} />
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                        Submitted applications tracking
-                      </div>
+                  <motion.div variants={itemVariants} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Link to="/candidate/applications" style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                      <SteepStatCard
+                        title="Active Applications"
+                        value={applications.length}
+                        delta="Submitted applications tracking"
+                        icon="📨"
+                        style={{ height: '100%', cursor: 'pointer' }}
+                      />
                     </Link>
                   </motion.div>
 
                   {/* Interviews Card */}
-                  <motion.div
-                    variants={itemVariants}
-                    whileHover={{ y: -2, scale: 1.015 }}
-                    style={{ display: 'flex', flexDirection: 'column' }}
-                  >
-                    <Link to="/candidate/interviews" className="card card__body" style={{ textDecoration: 'none', background: 'transparent', flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Interviews</span>
-                        <span style={{ fontSize: '18px' }}>📅</span>
-                      </div>
-                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 600, marginTop: 'var(--space-3)', color: 'var(--text)' }}>
-                        <AnimatedCounter value={activeInterviews.length} />
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
-                        Scheduled recruiter synchronization
-                      </div>
+                  <motion.div variants={itemVariants} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Link to="/candidate/interviews" style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                      <SteepStatCard
+                        title="Upcoming Interviews"
+                        value={activeInterviews.length}
+                        delta="Scheduled recruiter synchronization"
+                        icon="📅"
+                        style={{ height: '100%', cursor: 'pointer' }}
+                      />
                     </Link>
                   </motion.div>
                 </>
@@ -320,19 +296,19 @@ export default function CandidateDashboard() {
             </motion.div>
 
             {/* Setup Checklist */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
                 <div>
-                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Setup Checklist</h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>Complete these steps to verify your identity and start applying.</p>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Setup Checklist</h3>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: '2px', margin: 0 }}>Complete these steps to verify your identity and start applying.</p>
                 </div>
                 {pendingChecklist.some(t => !t.completed) ? (
-                  <span className="badge badge--reject">Action Required</span>
+                  <SteepBadge variant="danger">Action Required</SteepBadge>
                 ) : (
-                  <span className="badge badge--hire">100% Complete</span>
+                  <SteepBadge variant="success">100% Complete</SteepBadge>
                 )}
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
                 {loading ? (
                   <>
                     <ListRowSkeleton />
@@ -346,151 +322,123 @@ export default function CandidateDashboard() {
                       style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 'var(--space-3)', 
-                        padding: 'var(--space-3)', 
-                        background: 'transparent', 
-                        borderRadius: 'var(--radius-xl)',
+                        gap: 'var(--spacing-12)', 
+                        padding: 'var(--spacing-12) var(--spacing-16)', 
+                        borderRadius: 'var(--radius-inputs)',
                         border: '1px solid var(--border)',
+                        background: 'var(--color-pure-white)',
                         opacity: task.completed ? 0.7 : 1
                       }}
                     >
                       <span style={{ fontSize: '16px' }}>{task.completed ? '✅' : '⚠️'}</span>
                       <span style={{ 
                         flex: 1, 
-                        fontSize: 'var(--text-sm)', 
+                        fontSize: 'var(--text-body)', 
                         fontWeight: 400, 
-                        color: task.completed ? 'var(--text-secondary)' : 'var(--text)',
+                        color: task.completed ? 'var(--color-ash)' : 'var(--color-ink)',
                         textDecoration: task.completed ? 'line-through' : 'none'
                       }}>
                         {task.title}
                       </span>
                       {!task.completed && (
                         task.route.startsWith('#') ? (
-                          <a 
-                            href={task.route} 
-                            className="btn btn--accent btn--sm" 
-                            style={{ 
-                              borderRadius: 'var(--radius-buttons-rounded)',
-                              padding: '6px 14px',
-                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
-                              border: 'none'
-                            }}
-                          >
+                          <SteepButton href={task.route} variant="secondary" size="sm">
                             Resolve
-                          </a>
+                          </SteepButton>
                         ) : (
-                          <Link 
-                            to={task.route} 
-                            className="btn btn--accent btn--sm" 
-                            style={{ 
-                              borderRadius: 'var(--radius-buttons-rounded)',
-                              padding: '6px 14px',
-                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
-                              border: 'none'
-                            }}
-                          >
+                          <SteepButton to={task.route} variant="secondary" size="sm">
                             Resolve
-                          </Link>
+                          </SteepButton>
                         )
                       )}
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            </SteepCard>
 
             {/* Match Strength Analysis Section */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header">
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Match Strength Analysis</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+            <SteepCard>
+              <div style={{ marginBottom: 'var(--spacing-20)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Match Strength Analysis</h3>
+                <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: '2px', margin: 0 }}>
                   Suitability evaluation across common tech pathways based on verified profile qualifications.
                 </p>
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
                 
                 {/* Horizontal Progress Bars */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>Frontend Roles</span>
-                      <span style={{ color: 'var(--color-burnt-sienna)', fontWeight: 650 }}><AnimatedCounter value={`${frontendScore}%`} /></span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-body)', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Frontend Roles</span>
+                      <span style={{ color: 'var(--color-rust)', fontWeight: 600 }}><AnimatedCounter value={`${frontendScore}%`} /></span>
                     </div>
-                    <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${frontendScore}%`, borderRadius: '4px' }} />
+                    <div style={{ background: 'var(--color-fog)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
+                      <div style={{ background: 'var(--color-rust)', height: '100%', width: `${frontendScore}%`, borderRadius: '4px' }} />
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>Backend Roles</span>
-                      <span style={{ color: 'var(--text)', fontWeight: 600 }}><AnimatedCounter value={`${backendScore}%`} /></span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-body)', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Backend Roles</span>
+                      <span style={{ color: 'var(--color-rust)', fontWeight: 600 }}><AnimatedCounter value={`${backendScore}%`} /></span>
                     </div>
-                    <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${backendScore}%`, opacity: 0.8, borderRadius: '4px' }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>DevOps Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}><AnimatedCounter value={`${devopsScore}%`} /></span>
-                    </div>
-                    <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${devopsScore}%`, opacity: 0.6, borderRadius: '4px' }} />
+                    <div style={{ background: 'var(--color-fog)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
+                      <div style={{ background: 'var(--color-rust)', height: '100%', width: `${backendScore}%`, opacity: 0.8, borderRadius: '4px' }} />
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>Data Roles</span>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}><AnimatedCounter value={`${dataScore}%`} /></span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-body)', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>DevOps Roles</span>
+                      <span style={{ color: 'var(--color-ash)', fontWeight: 500 }}><AnimatedCounter value={`${devopsScore}%`} /></span>
                     </div>
-                    <div style={{ background: 'var(--color-cork-shadow)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ background: 'var(--color-burnt-sienna)', height: '100%', width: `${dataScore}%`, opacity: 0.4, borderRadius: '4px' }} />
+                    <div style={{ background: 'var(--color-fog)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
+                      <div style={{ background: 'var(--color-rust)', height: '100%', width: `${devopsScore}%`, opacity: 0.6, borderRadius: '4px' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-body)', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>Data Roles</span>
+                      <span style={{ color: 'var(--color-ash)', fontWeight: 500 }}><AnimatedCounter value={`${dataScore}%`} /></span>
+                    </div>
+                    <div style={{ background: 'var(--color-fog)', height: '8px', borderRadius: '4px', overflow: 'hidden', width: '100%' }}>
+                      <div style={{ background: 'var(--color-rust)', height: '100%', width: `${dataScore}%`, opacity: 0.4, borderRadius: '4px' }} />
                     </div>
                   </div>
                 </div>
 
                 {/* Top Missing Skills */}
                 {missingSkillsToShow.length > 0 && (
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
-                    <h4 style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)', marginTop: 'var(--spacing-8)' }}>
+                    <h4 style={{ fontSize: 'var(--text-caption)', fontWeight: 650, color: 'var(--color-ash)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                       Top Missing Skills
                     </h4>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       {missingSkillsToShow.map((skill: string) => (
-                        <span 
-                          key={skill} 
-                          className="badge" 
-                          style={{ 
-                            borderColor: 'var(--color-burnt-sienna)', 
-                            color: 'var(--color-burnt-sienna)',
-                            fontSize: '10px',
-                            padding: '3px 10px',
-                            borderRadius: 'var(--radius-cards)'
-                          }}
-                        >
+                        <SteepBadge key={skill} variant="neutral">
                           {skill}
-                        </span>
+                        </SteepBadge>
                       ))}
                     </div>
                   </div>
                 )}
 
               </div>
-            </div>
+            </SteepCard>
 
             {/* Recommended Matching Jobs */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
                 <div>
-                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Recommended Matching Jobs</h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>Matching positions aligned with your skillset from active jobs.</p>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Recommended Matching Jobs</h3>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: '2px', margin: 0 }}>Matching positions aligned with your skillset from active jobs.</p>
                 </div>
-                <Link to="/candidate/jobs" style={{ fontSize: '12px', color: 'var(--color-burnt-sienna)', textDecoration: 'underline' }}>Explore Feed &rarr;</Link>
+                <Link to="/candidate/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-rust)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Explore Feed &rarr;</Link>
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
                 {loading ? (
                   <>
                     <ListRowSkeleton />
@@ -499,99 +447,99 @@ export default function CandidateDashboard() {
                 ) : recommendedJobs.length > 0 ? (
                   recommendedJobs.slice(0, 3).map((job) => (
                     <div key={job.id} style={{
-                      border: '1px solid var(--color-cork-shadow)',
-                      borderRadius: 'var(--radius-xl)',
-                      padding: '16px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-inputs)',
+                      padding: 'var(--spacing-16)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: 'transparent'
+                      background: 'var(--color-pure-white)'
                     }}>
                       <div>
-                        <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{job.title}</h4>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{job.company_name} &bull; {job.department}</span>
+                        <h4 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>{job.title}</h4>
+                        <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>{job.company_name} &bull; {job.department}</span>
                         <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                           {(job.matching_skills || []).slice(0, 3).map((skill: string) => (
-                            <span key={skill} className="chip">{skill}</span>
+                            <SteepBadge key={skill} variant="neutral">{skill}</SteepBadge>
                           ))}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-burnt-sienna)' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-rust)', marginBottom: 'var(--spacing-8)' }}>
                           {job.applicability_score}% Match
                         </div>
-                        <Link to="/candidate/jobs" className="btn btn--secondary btn--sm" style={{ marginTop: '8px', padding: '4px 10px', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)' }}>
+                        <SteepButton to="/candidate/jobs" variant="secondary" size="sm">
                           View &amp; Apply
-                        </Link>
+                        </SteepButton>
                       </div>
                     </div>
                   ))
                 ) : (
                   <EmptyState
-                    type="jobs"
-                    title="No Job Matches Found"
-                    description="No job recommendations currently fit your profile. Set your active resume or check the full job feed."
-                    actionLabel="View All Jobs"
-                    onAction={() => navigate('/candidate/jobs')}
+                     type="jobs"
+                     title="No Job Matches Found"
+                     description="No job recommendations currently fit your profile. Set your active resume or check the full job feed."
+                     actionLabel="View All Jobs"
+                     onAction={() => navigate('/candidate/jobs')}
                   />
                 )}
               </div>
-            </div>
+            </SteepCard>
 
             {/* Upcoming Interviews Calendar Booking Widget */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header">
-                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Upcoming Interviews &amp; Scheduling</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+            <SteepCard>
+              <div style={{ marginBottom: 'var(--spacing-20)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Upcoming Interviews &amp; Scheduling</h3>
+                <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: '2px', margin: 0 }}>
                   Coordinate your live video screening calls and technical reviews.
                 </p>
               </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
                 {loading ? (
                   <>
                     <ListRowSkeleton />
                     <ListRowSkeleton />
                   </>
                 ) : activeInterviews.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
                     {activeInterviews.map((iv) => (
                       <div 
                         key={iv.id}
                         style={{
-                          border: '1px solid var(--color-cork-shadow)',
-                          borderRadius: 'var(--radius-xl)',
-                          padding: '16px',
-                          background: 'transparent'
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-inputs)',
+                          padding: 'var(--spacing-16)',
+                          background: 'var(--color-pure-white)'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
-                            <span className="badge" style={{ marginBottom: '8px', fontSize: '9px' }}>{iv.stage}</span>
-                            <h4 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{iv.title}</h4>
-                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
+                            <SteepBadge variant="interview" style={{ marginBottom: 'var(--spacing-8)' }}>{iv.stage}</SteepBadge>
+                            <h4 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>{iv.title}</h4>
+                            <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: '4px', margin: 0 }}>
                               🏢 {iv.company_name} &bull; 👤 {iv.interviewer_name}
                             </p>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontSize: '13px', fontWeight: 550, color: 'var(--color-burnt-sienna)' }}>
+                            <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-rust)' }}>
                               {new Date(iv.scheduled_at).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(iv.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
                         {iv.video_link && (
                           <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                            <a 
+                            <SteepButton 
                               href={iv.video_link} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="btn btn--primary btn--sm"
-                              style={{ borderRadius: 'var(--radius-cards)' }}
+                              variant="primary" 
+                              size="sm"
                             >
                               Join Call
-                            </a>
-                            <Link to="/candidate/interviews" className="btn btn--secondary btn--sm" style={{ borderRadius: 'var(--radius-cards)' }}>
+                            </SteepButton>
+                            <SteepButton to="/candidate/interviews" variant="secondary" size="sm">
                               Reschedule
-                            </Link>
+                            </SteepButton>
                           </div>
                         )}
                       </div>
@@ -607,20 +555,20 @@ export default function CandidateDashboard() {
                   />
                 )}
               </div>
-            </div>
+            </SteepCard>
 
           </div>
 
           {/* Right Sidebar Column */}
-          <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+          <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
-            {/* Profile Completion Circular Conic Card */}
-            <div className="card card__body" style={{ background: 'transparent' }}>
-              <h3 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {/* Profile Completion Circular Conic Card (Warm Apricot Wash) */}
+            <SteepCard variant="warm">
+              <h3 style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-rust)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
                 Profile Completion
               </h3>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-16)', marginTop: 'var(--spacing-16)' }}>
                 {/* Conic circular progress indicator */}
                 <div 
                   style={{ 
@@ -628,7 +576,7 @@ export default function CandidateDashboard() {
                     width: '64px', 
                     height: '64px', 
                     borderRadius: '50%', 
-                    background: `conic-gradient(var(--color-burnt-sienna) ${profileCompletion}%, var(--color-cork-shadow) 0)`,
+                    background: `conic-gradient(var(--color-rust) ${profileCompletion}%, rgba(93, 42, 26, 0.1) 0)`,
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0
@@ -639,12 +587,12 @@ export default function CandidateDashboard() {
                       position: 'absolute', 
                       inset: '6px', 
                       borderRadius: '50%', 
-                      background: 'var(--bg)', 
+                      background: 'var(--surface-warm-tint)', 
                       display: 'grid', 
                       placeItems: 'center',
                       fontSize: '13px',
                       fontWeight: 600,
-                      color: 'var(--text)'
+                      color: 'var(--color-rust)'
                     }}
                   >
                     <AnimatedCounter value={`${profileCompletion}%`} />
@@ -652,148 +600,111 @@ export default function CandidateDashboard() {
                 </div>
 
                 <div>
-                  <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>
-                    {profileCompletion === 100 ? 'Profile Verified!' : 'Complete your setup'}
+                  <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-rust)', margin: 0 }}>
+                    {profileCompletion === 100 ? 'Profile Verified!' : 'Complete Setup'}
                   </h4>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px', margin: 0, lineHeight: 1.3 }}>
+                  <p style={{ fontSize: '11px', color: 'var(--color-rust)', marginTop: '4px', margin: 0, lineHeight: 1.3, opacity: 0.8 }}>
                     {profileCompletion === 100 
                       ? 'Congratulations, you have unlocked 100% of your Career Hub capabilities!'
-                      : 'Verify your phone number and load biography statement to hit 100% suitability matches.'
+                      : 'Verify phone OTP and add biography statement to hit 100% matches.'
                     }
                   </p>
                 </div>
               </div>
-            </div>
+            </SteepCard>
 
-            {/* Trust Badges */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                <h3 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                  Verification Center
-                </h3>
-              </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', padding: 'var(--space-4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Email Verification</span>
-                  {emailVerified ? (
-                    <span className="badge badge--hire">Verified</span>
-                  ) : (
-                    <span className="badge badge--reject">Unverified</span>
-                  )}
+            {/* Verification Center (Cool Sky Wash) */}
+            <SteepCard variant="cool">
+              <h3 style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-ink)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, marginBottom: 'var(--spacing-16)' }}>
+                Verification Center
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-body)' }}>
+                  <span style={{ color: 'var(--color-ink)' }}>Email Status</span>
+                  <SteepBadge variant={emailVerified ? 'success' : 'danger'}>
+                    {emailVerified ? 'Verified' : 'Unverified'}
+                  </SteepBadge>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-                  <span>Phone Verification</span>
-                  {phoneVerified ? (
-                    <span className="badge badge--hire">Verified</span>
-                  ) : (
-                    <span className="badge badge--interview">Unverified</span>
-                  )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--text-body)' }}>
+                  <span style={{ color: 'var(--color-ink)' }}>Phone Status</span>
+                  <SteepBadge variant={phoneVerified ? 'success' : 'warning'}>
+                    {phoneVerified ? 'Verified' : 'Unverified'}
+                  </SteepBadge>
                 </div>
               </div>
-            </div>
+            </SteepCard>
 
             {/* Quick Actions Panel */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                <h3 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                  Quick Actions
-                </h3>
-              </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: 'var(--space-4)' }}>
-                <Link to="/candidate/resumes" className="btn btn--primary btn--sm btn--block" style={{ background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', borderRadius: 'var(--radius-cards)' }}>
+            <SteepCard>
+              <h3 style={{ fontSize: 'var(--text-caption)', fontWeight: 650, color: 'var(--color-ash)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, marginBottom: 'var(--spacing-16)' }}>
+                Quick Actions
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <SteepButton to="/candidate/resumes" variant="primary" size="sm" block>
                   Upload New Resume (Max 3)
-                </Link>
-                <Link to="/candidate/profile" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: 'var(--radius-cards)' }}>
+                </SteepButton>
+                <SteepButton to="/candidate/profile" variant="secondary" size="sm" block>
                   Verify Phone &amp; Email OTP
-                </Link>
-                <Link to="/candidate/jobs" className="btn btn--secondary btn--sm btn--block" style={{ borderRadius: 'var(--radius-cards)' }}>
+                </SteepButton>
+                <SteepButton to="/candidate/jobs" variant="secondary" size="sm" block>
                   Search Open Roles
-                </Link>
+                </SteepButton>
               </div>
-            </div>
+            </SteepCard>
 
             {/* Profile Statement Updates Form */}
-            <form 
-              id="bio-form"
-              onSubmit={handleSaveBio}
-              className="card" 
-              style={{ background: 'transparent' }}
-            >
-              <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                <h3 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                  Professional Biography
+            <form id="bio-form" onSubmit={handleSaveBio}>
+              <SteepCard>
+                <h3 style={{ fontSize: 'var(--text-caption)', fontWeight: 650, color: 'var(--color-ash)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, marginBottom: 'var(--spacing-16)' }}>
+                  Biography Statement
                 </h3>
-              </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', padding: 'var(--space-4)' }}>
                 {bioSuccess && (
-                  <div style={{ fontSize: '11px', color: 'var(--text)', border: '1px solid var(--border)', padding: '6px', borderRadius: '4px' }}>
+                  <div style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ink)', border: '1px solid var(--border)', padding: '6px 10px', borderRadius: 'var(--radius-tags)', marginBottom: 'var(--spacing-12)' }}>
                     ✅ Statement saved successfully!
                   </div>
                 )}
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label htmlFor="bio-textarea" style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                    Career Bio Statement
-                  </label>
-                  <textarea
-                    id="bio-textarea"
-                    value={bioText}
-                    onChange={(e) => setBioText(e.target.value)}
-                    placeholder="Describe your technical background, specialties, and goals (e.g. Frontend Engineer specializing in single-page React apps)"
-                    className="form-textarea"
-                    style={{ 
-                      minHeight: '80px', 
-                      fontSize: '12.5px', 
-                      marginTop: '4px',
-                      background: 'transparent',
-                      color: 'var(--text)',
-                      border: 'none',
-                      borderBottom: '1px solid var(--color-cork-shadow)'
-                    }}
-                    required
-                  />
+                <SteepInput
+                  textarea
+                  id="bio-textarea"
+                  label="Career Bio Statement"
+                  value={bioText}
+                  onChange={(e) => setBioText(e.target.value)}
+                  placeholder="Describe your technical background..."
+                  required
+                  style={{ minHeight: '80px', fontSize: '12.5px' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-12)' }}>
+                  <SteepButton type="submit" variant="primary" size="sm" disabled={submittingBio}>
+                    {submittingBio ? 'Saving...' : 'Save Statement'}
+                  </SteepButton>
                 </div>
-                <button 
-                  type="submit" 
-                  className="btn btn--accent btn--sm"
-                  style={{ alignSelf: 'flex-end', borderRadius: 'var(--radius-cards)', background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)', border: 'none', padding: '6px 14px' }}
-                  disabled={submittingBio}
-                >
-                  {submittingBio ? 'Saving...' : 'Save Statement'}
-                </button>
-              </div>
+              </SteepCard>
             </form>
 
             {/* Resume Improvement Suggestions */}
-            <div className="card" style={{ background: 'transparent' }}>
-              <div className="card__header" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                <h3 style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                  Resume Diagnostics
-                </h3>
-              </div>
-              <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: 'var(--space-4)', fontSize: '12px', lineHeight: 1.35 }}>
-                <div style={{ color: 'var(--text)' }}>
-                  💡 <strong style={{ color: 'var(--color-burnt-sienna)' }}>Boost DevOps Match:</strong> Mentioning <strong>Docker</strong> or <strong>Kubernetes</strong> on your resume could increase your DevOps alignment by 25%.
+            <SteepCard>
+              <h3 style={{ fontSize: 'var(--text-caption)', fontWeight: 650, color: 'var(--color-ash)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, marginBottom: 'var(--spacing-16)' }}>
+                Resume Diagnostics
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px', lineHeight: 1.35 }}>
+                <div style={{ color: 'var(--color-ink)' }}>
+                  💡 <strong style={{ color: 'var(--color-rust)' }}>Boost DevOps Match:</strong> Mentioning <strong>Docker</strong> or <strong>Kubernetes</strong> on your resume could increase your DevOps alignment by 25%.
                 </div>
-                <div style={{ color: 'var(--text)' }}>
-                  💡 <strong style={{ color: 'var(--color-burnt-sienna)' }}>Specify Frameworks:</strong> Ensure <strong>React</strong> and <strong>TypeScript</strong> are explicitly written in your core technical experience sections.
+                <div style={{ color: 'var(--color-ink)' }}>
+                  💡 <strong style={{ color: 'var(--color-rust)' }}>Specify Frameworks:</strong> Ensure <strong>React</strong> and <strong>TypeScript</strong> are explicitly written in your core technical experience sections section.
                 </div>
-                <div style={{ color: 'var(--text)' }}>
+                <div style={{ color: 'var(--color-ink)' }}>
                   💡 <strong>Verification Boost:</strong> Fully verified candidates (Email + Phone SMS OTP) are highlighted to recruiters and experience 3x faster reviews.
                 </div>
-                <div style={{ color: 'var(--text)' }}>
+                <div style={{ color: 'var(--color-ink)' }}>
                   💡 <strong>Target Roles:</strong> You can upload up to 3 separate CV documents to optimize matching for different pathways.
                 </div>
               </div>
-            </div>
+            </SteepCard>
 
           </div>
         </div>
       </div>
-      <style>{`
-        .booking-slot-btn:hover {
-          border-color: var(--color-burnt-sienna) !important;
-        }
-      `}</style>
     </CandidateLayout>
   )
 }

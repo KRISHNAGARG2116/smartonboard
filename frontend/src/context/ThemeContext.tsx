@@ -1,109 +1,40 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { useAuth } from './AuthContext'
-
-export type Theme = 'light' | 'dark' | 'system'
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 
 interface ThemeContextValue {
-  theme: Theme
-  resolvedTheme: 'light' | 'dark'
+  theme: 'light'
+  resolvedTheme: 'light'
   toggleTheme: () => void
-  setTheme: (theme: Theme) => void
+  setTheme: (theme: 'light') => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('smartonboard-theme')
-    if (saved === 'light' || saved === 'dark' || saved === 'system') {
-      return saved
-    }
-    return 'system' // Default is System to respect OS theme on first visit
-  })
-
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('smartonboard-theme')
-    if (saved === 'light' || saved === 'dark') {
-      return saved
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
-
-  // Sync theme when user state changes (e.g. login)
   useEffect(() => {
-    if (user) {
-      const userSaved = localStorage.getItem(`smartonboard-theme-${user.id}`)
-      if (userSaved === 'light' || userSaved === 'dark' || userSaved === 'system') {
-        setThemeState(userSaved)
-      }
-    }
-  }, [user])
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    // Force data-theme to light globally
+    document.documentElement.setAttribute('data-theme', 'light')
+    document.documentElement.style.colorScheme = 'light'
     
-    const applyTheme = () => {
-      let currentResolved: 'light' | 'dark'
-      if (theme === 'system') {
-        currentResolved = mediaQuery.matches ? 'dark' : 'light'
-      } else {
-        currentResolved = theme
-      }
-
-      setResolvedTheme(currentResolved)
-
-      // Sync attribute on document.documentElement
-      document.documentElement.setAttribute('data-theme', currentResolved)
-
-      // Sync class on body
-      const body = document.body
-      if (currentResolved === 'dark') {
-        body.classList.add('theme-purple-dream')
-      } else {
-        body.classList.remove('theme-purple-dream')
-      }
-    }
-
-    applyTheme()
-
-    // Listen to changes in OS preferences
-    const handleOSThemeChange = () => {
-      if (theme === 'system') {
-        applyTheme()
-      }
-    }
-
-    mediaQuery.addEventListener('change', handleOSThemeChange)
-
-    // Persist globally
-    localStorage.setItem('smartonboard-theme', theme)
+    // Remove any dark mode classes from body
+    document.body.classList.remove('theme-purple-dream')
     
-    // Persist in user profile preferences
-    if (user) {
-      localStorage.setItem(`smartonboard-theme-${user.id}`, theme)
+    // Clear legacy theme selections to avoid local storage confusion
+    localStorage.removeItem('smartonboard-theme')
+  }, [])
+
+  const value = useMemo<ThemeContextValue>(() => ({
+    theme: 'light',
+    resolvedTheme: 'light',
+    toggleTheme: () => {
+      // Steep is daylight-only. Toggling is a no-op.
+    },
+    setTheme: () => {
+      // Steep is daylight-only. Setting is a no-op.
     }
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleOSThemeChange)
-    }
-  }, [theme, user])
-
-  const toggleTheme = () => {
-    setThemeState((prev) => {
-      if (prev === 'light') return 'dark'
-      if (prev === 'dark') return 'system'
-      return 'light'
-    })
-  }
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
-  }
+  }), [])
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

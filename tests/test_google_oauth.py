@@ -24,19 +24,18 @@ def api_client(db_session):
 
 def test_candidate_google_login_frictionless(api_client, db_session):
     """Verify first-time Google candidate login successfully creates a candidate account/profile."""
-    # 1. First login
+    # 1. First login (should return 403 as phone is not verified yet)
     payload = {
         "credential": "mock-google-token-candidate@public.com:sub-cand-1:None",
         "role": "candidate"
     }
     resp = api_client.post("/api/v1/auth/google", json=payload)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["access_token"] is not None
-    assert data["user"]["email"] == "candidate@public.com"
-    assert data["user"]["role"] == "candidate"
-    assert data["user"]["company_id"] is None
-    assert data["user"]["auth_provider"] == "google"
+    assert resp.status_code == 403
+    data = resp.json()["detail"]
+    assert data["verification_required"] is True
+    assert data["email"] == "candidate@public.com"
+    assert data["email_verified"] is True
+    assert data["phone_verified"] is False
 
     # Verify user exists in database with candidate profile
     with tenant_context(auth_mode="true"):
@@ -51,11 +50,9 @@ def test_candidate_google_login_frictionless(api_client, db_session):
         assert profile.email_verified is True
         assert profile.phone_verified is False
 
-    # 2. Subsequent login with same credential
+    # 2. Subsequent login with same credential before verification should still return 403
     resp2 = api_client.post("/api/v1/auth/google", json=payload)
-    assert resp2.status_code == 200
-    data2 = resp2.json()
-    assert data2["user"]["id"] == data["user"]["id"]
+    assert resp2.status_code == 403
 
 
 def test_recruiter_google_login_wizard_flow(api_client, db_session):

@@ -153,7 +153,7 @@ export default function CandidateDirectory() {
           <button
             type="button"
             className="btn btn--secondary btn--sm"
-            style={{ borderRadius: '22.5px', padding: '4px 10px' }}
+            style={{ padding: '4px 10px' }}
             onClick={(e) => {
               e.stopPropagation()
               setSelectedApp(app)

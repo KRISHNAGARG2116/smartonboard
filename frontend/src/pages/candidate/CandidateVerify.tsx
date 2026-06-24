@@ -7,6 +7,10 @@ import {
   verifyPhoneOTP,
   verifyEmailOTP
 } from '../../api'
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepButton from '../../components/design-system/SteepButton'
+import SteepBadge from '../../components/design-system/SteepBadge'
 
 export default function CandidateVerify() {
   const navigate = useNavigate()
@@ -40,21 +44,17 @@ export default function CandidateVerify() {
 
   // Initialize Email
   useEffect(() => {
-    // 1. Check React Router state
     let targetEmail = (location.state as any)?.email || ''
 
-    // 2. Check query parameter
     if (!targetEmail) {
       const params = new URLSearchParams(location.search)
       targetEmail = params.get('email') || ''
     }
 
-    // 3. Check localStorage
     if (!targetEmail) {
       targetEmail = localStorage.getItem('smartonboard_verify_email') || ''
     }
 
-    // 4. Fallback to logged-in user context
     if (!targetEmail && user) {
       targetEmail = user.email
     }
@@ -85,7 +85,6 @@ export default function CandidateVerify() {
       setPhoneNumber(data.phone_number || '')
       setNewPhone(data.phone_number || '')
 
-      // If both already verified, trigger redirect immediately
       if (data.email_verified && data.phone_verified) {
         handleRedirect()
       }
@@ -96,15 +95,12 @@ export default function CandidateVerify() {
     }
   }
 
-  // Handle post-verification redirection
   const handleRedirect = () => {
-    // 1. Check stored redirect target
     const target = localStorage.getItem('smartonboard_redirect_target')
     if (target) {
       localStorage.removeItem('smartonboard_redirect_target')
       window.location.href = target
     } else {
-      // 2. Redirect based on role or context
       window.location.href = '/candidate/dashboard'
     }
   }
@@ -121,15 +117,10 @@ export default function CandidateVerify() {
       setSuccessEmail('Email verified successfully!')
       setEmailVerified(true)
 
-      // If this was the final verification step, the backend returns JWT, log in
       if (res && res.access_token) {
-        // AuthContext interceptor will handle token if we just reload page or let it sync.
-        // We set the token manually here so they are logged in immediately.
         localStorage.setItem('smartonboard_token', res.access_token)
-        // If fully verified, redirect
         handleRedirect()
       } else {
-        // Double check overall status
         loadStatus(email)
       }
     } catch (err: any) {
@@ -158,7 +149,7 @@ export default function CandidateVerify() {
       setSuccessPhone(`Verification code sent to ${phoneToUse}`)
       setPhoneNumber(phoneToUse)
       setIsEditingPhone(false)
-      setPhoneCooldown(60) // 1-minute resend cooldown
+      setPhoneCooldown(60)
     } catch (err: any) {
       setErrorPhone(err.response?.data?.detail || 'Failed to send phone verification code.')
     } finally {
@@ -191,7 +182,6 @@ export default function CandidateVerify() {
     }
   }
 
-  // Safe email submission if they landed without email state
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (email.trim()) {
@@ -200,93 +190,55 @@ export default function CandidateVerify() {
     }
   }
 
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 10,
-    fontWeight: 500,
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    lineHeight: 1.2,
-    marginBottom: 8,
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '1px solid var(--border)',
-    borderRadius: 0,
-    padding: '8px 0',
-    fontSize: 15,
-    color: 'var(--text)',
-    fontFamily: "var(--font-sans)",
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
-
-  const cardStyle: React.CSSProperties = {
-    flex: 1,
-    border: '1px solid var(--border)',
-    borderRadius: 12,
-    padding: 24,
-    background: 'transparent',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    minHeight: 280,
-  }
-
-  const buttonStyle = (disabled: boolean): React.CSSProperties => ({
-    width: '100%',
-    padding: '12px 24px',
-    background: 'var(--color-ink)',
-    color: 'var(--color-pure-white)',
-    border: 'none',
-    borderRadius: 'var(--radius-buttons)',
-    fontSize: 13,
-    fontWeight: 500,
-    fontFamily: "var(--font-sans)",
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
-    transition: 'opacity 0.15s ease',
-  })
-
   // 1. Loading State
   if (!statusLoaded) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-fog)' }}>
         <div className="spinner spinner--lg" />
       </div>
     )
   }
 
-  // 2. Missing Email State (No state preserved yet)
+  // 2. Missing Email State
   if (!email) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-sans)' }}>
-        <nav style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 24px', borderBottom: '1px solid var(--border)' }}>
-          <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: 'var(--text)', textDecoration: 'none' }}>SmartOnboard</Link>
+      <div className="app-shell" style={{ background: 'var(--color-fog)' }}>
+        <nav
+          style={{
+            height: 'var(--header-h)',
+            display: 'flex',
+            alignItems: 'center',
+            paddingInline: 'var(--spacing-24)',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--color-pure-white)'
+          }}
+        >
+          <Link to="/" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)' }}>
+            SmartOnboard
+          </Link>
         </nav>
-        <div style={{ maxWidth: 400, margin: '0 auto', padding: '120px 24px' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 500, margin: 0 }}>Restore Verification</h1>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '8px 0 24px' }}>
+        <div style={{ maxWidth: '400px', margin: '0 auto', padding: 'var(--spacing-80) var(--spacing-24)' }}>
+          <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', color: 'var(--color-ink)', margin: 0, textAlign: 'left' }}>
+            Restore Verification
+          </h1>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', margin: 'var(--spacing-8) 0 var(--spacing-24)', textAlign: 'left' }}>
             Please enter your registered email address to check your verification status and continue onboarding.
           </p>
-          <form onSubmit={handleEmailSubmit} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor="email" style={labelStyle}>Email Address</label>
-              <input
+          <form onSubmit={handleEmailSubmit}>
+            <SteepCard>
+              <SteepInput
                 id="email"
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                style={inputStyle}
+                label="Email Address"
               />
-            </div>
-            <button type="submit" style={buttonStyle(!email.trim())}>Check Status</button>
+              <SteepButton type="submit" disabled={!email.trim()} variant="primary" block>
+                Check Status
+              </SteepButton>
+            </SteepCard>
           </form>
         </div>
       </div>
@@ -294,253 +246,242 @@ export default function CandidateVerify() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-sans)' }}>
+    <div className="app-shell" style={{ background: 'var(--color-fog)' }}>
       {/* Top Nav */}
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: 56,
-        padding: '0 24px',
-        borderBottom: '1px solid var(--border)',
-      }}>
-        <Link to="/" style={{ fontSize: 18, fontWeight: 500, color: 'var(--text)', textDecoration: 'none', letterSpacing: '0.04em' }}>
+      <nav
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 'var(--header-h)',
+          paddingInline: 'var(--spacing-24)',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--color-pure-white)'
+        }}
+      >
+        <Link to="/" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)' }}>
           SmartOnboard
         </Link>
-        <button
+        <SteepButton
+          variant="ghost"
+          size="sm"
           onClick={() => {
             localStorage.removeItem('smartonboard_token')
             localStorage.removeItem('smartonboard_verify_email')
             navigate('/candidate/login')
           }}
-          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
         >
           Cancel & Exit
-        </button>
+        </SteepButton>
       </nav>
 
       {/* Main Panel Container */}
-      <div style={{ maxWidth: emailVerified ? 450 : 900, margin: '0 auto', padding: '80px 24px 48px' }}>
-        <h1 style={{ fontSize: 29, fontWeight: 500, lineHeight: 1.1, color: 'var(--text)', margin: 0 }}>
+      <div style={{ maxWidth: emailVerified ? '450px' : '900px', margin: '0 auto', padding: 'var(--spacing-80) var(--spacing-24) var(--spacing-48)' }}>
+        <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', color: 'var(--color-ink)', margin: 0, textAlign: 'left' }}>
           Verify Your Profile
         </h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '8px 0 32px' }}>
+        <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', margin: 'var(--spacing-8) 0 var(--spacing-32)', textAlign: 'left' }}>
           Onboarding verification is required before you can access the career dashboard. Email: <strong>{email}</strong>
         </p>
 
         {/* Dynamic Multi-Panel Layout */}
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--spacing-24)', flexDirection: 'row', flexWrap: 'wrap' }}>
           
-          {/* Panel 1: Email Verification (Only shown if email is not yet verified) */}
+          {/* Panel 1: Email Verification */}
           {!emailVerified && (
-            <div style={cardStyle}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>1. Email Verification</h2>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: '#fee2e2', color: '#ef4444', fontWeight: 500 }}>Unverified</span>
-                </div>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 20 }}>
-                  Enter the 6-digit verification code sent to your email by Resend.
-                </p>
-
-                {errorEmail && (
-                  <div style={{ border: '1px solid var(--danger)', borderRadius: 8, padding: '8px 12px', marginBottom: 16, color: 'var(--danger)', fontSize: 12 }}>
-                    {errorEmail}
+            <div style={{ flex: '1 1 340px' }}>
+              <SteepCard style={{ minHeight: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                    <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                      1. Email Verification
+                    </h2>
+                    <SteepBadge variant="danger">Unverified</SteepBadge>
                   </div>
-                )}
-                {successEmail && (
-                  <div style={{ border: '1px solid #22c55e', borderRadius: 8, padding: '8px 12px', marginBottom: 16, color: '#22c55e', fontSize: 12, background: 'transparent' }}>
-                    {successEmail}
-                  </div>
-                )}
-              </div>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', lineHeight: 1.4, marginBottom: 'var(--spacing-20)' }}>
+                    Enter the 6-digit verification code sent to your email by Resend.
+                  </p>
 
-              <form onSubmit={handleVerifyEmail}>
-                <div style={{ marginBottom: 20 }}>
-                  <label htmlFor="emailCode" style={labelStyle}>Email Verification Code</label>
-                  <input
-                    id="emailCode"
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={emailCode}
-                    onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
-                    style={{ ...inputStyle, letterSpacing: '0.3em', textAlign: 'center', fontSize: 20 }}
-                  />
+                  {errorEmail && (
+                    <div className="banner banner--error" role="alert" style={{ marginBottom: 'var(--spacing-16)', fontSize: 'var(--text-caption)' }}>
+                      {errorEmail}
+                    </div>
+                  )}
+                  {successEmail && (
+                    <div className="banner banner--success" role="alert" style={{ marginBottom: 'var(--spacing-16)', fontSize: 'var(--text-caption)' }}>
+                      {successEmail}
+                    </div>
+                  )}
                 </div>
-                <button type="submit" disabled={submittingEmail || emailCode.length !== 6} style={buttonStyle(submittingEmail || emailCode.length !== 6)}>
-                  {submittingEmail ? 'Verifying Email…' : 'Verify Email'}
-                </button>
-              </form>
+
+                <form onSubmit={handleVerifyEmail}>
+                  <div className="form-group" style={{ marginBottom: 'var(--spacing-16)' }}>
+                    <label htmlFor="emailCode" className="form-label">Email Verification Code</label>
+                    <input
+                      id="emailCode"
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={emailCode}
+                      onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className="otp-input"
+                    />
+                  </div>
+                  <SteepButton type="submit" disabled={submittingEmail || emailCode.length !== 6} variant="primary" block>
+                    {submittingEmail ? 'Verifying Email…' : 'Verify Email'}
+                  </SteepButton>
+                </form>
+              </SteepCard>
             </div>
           )}
 
-          {/* Panel 2: Phone Verification (Always shown. Prompts for number if missing) */}
-          <div style={cardStyle}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 500, margin: 0 }}>
-                  {emailVerified ? 'Verify Your Phone Number' : '2. Phone Verification'}
-                </h2>
-                <span style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 12,
-                  background: phoneVerified ? '#dcfce7' : '#fee2e2',
-                  color: phoneVerified ? '#22c55e' : '#ef4444',
-                  fontWeight: 500
-                }}>
-                  {phoneVerified ? 'Verified' : 'Unverified'}
-                </span>
-              </div>
-
-              {errorPhone && (
-                <div style={{ border: '1px solid var(--danger)', borderRadius: 8, padding: '8px 12px', marginBottom: 16, color: 'var(--danger)', fontSize: 12 }}>
-                  {errorPhone}
-                </div>
-              )}
-              {successPhone && (
-                <div style={{ border: '1px solid #22c55e', borderRadius: 8, padding: '8px 12px', marginBottom: 16, color: '#22c55e', fontSize: 12, background: 'transparent' }}>
-                  {successPhone}
-                </div>
-              )}
-
-              {/* A. If phone number is not registered yet */}
-              {!phoneNumber && !isEditingPhone && (
+          {/* Panel 2: Phone Verification */}
+          <div style={{ flex: '1 1 340px' }}>
+            <SteepCard style={{ minHeight: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 20 }}>
-                    Provide a valid mobile phone number to receive a Twilio SMS verification code.
-                  </p>
-                  <form onSubmit={handleSendPhoneOTP}>
-                    <div style={{ marginBottom: 20 }}>
-                      <label htmlFor="phoneInput" style={labelStyle}>Phone Number</label>
-                      <input
-                        id="phoneInput"
-                        type="tel"
-                        required
-                        value={newPhone}
-                        onChange={e => setNewPhone(e.target.value)}
-                        placeholder="+15551234567"
-                        style={inputStyle}
-                      />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                    <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                      {emailVerified ? 'Verify Your Phone Number' : '2. Phone Verification'}
+                    </h2>
+                    <SteepBadge variant={phoneVerified ? 'success' : 'danger'}>
+                      {phoneVerified ? 'Verified' : 'Unverified'}
+                    </SteepBadge>
+                  </div>
+
+                  {errorPhone && (
+                    <div className="banner banner--error" role="alert" style={{ marginBottom: 'var(--spacing-16)', fontSize: 'var(--text-caption)' }}>
+                      {errorPhone}
                     </div>
-                    <button type="submit" disabled={sendingPhoneOTP || !newPhone} style={buttonStyle(sendingPhoneOTP || !newPhone)}>
-                      {sendingPhoneOTP ? 'Sending OTP…' : 'Send Verification Code'}
-                    </button>
-                  </form>
-                </div>
-              )}
+                  )}
+                  {successPhone && (
+                    <div className="banner banner--success" role="alert" style={{ marginBottom: 'var(--spacing-16)', fontSize: 'var(--text-caption)' }}>
+                      {successPhone}
+                    </div>
+                  )}
 
-              {/* B. If phone number is registered but needs verification (allows editing/changing phone number) */}
-              {phoneNumber && !phoneVerified && (
-                <div>
-                  {isEditingPhone ? (
-                    <form onSubmit={handleSendPhoneOTP}>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 20 }}>
-                        Enter your new phone number to receive a fresh verification code.
+                  {/* A. If phone number is not registered yet */}
+                  {!phoneNumber && !isEditingPhone && (
+                    <div>
+                      <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', lineHeight: 1.4, marginBottom: 'var(--spacing-20)' }}>
+                        Provide a valid mobile phone number to receive a Twilio SMS verification code.
                       </p>
-                      <div style={{ marginBottom: 20 }}>
-                        <label htmlFor="newPhoneInput" style={labelStyle}>New Phone Number</label>
-                        <input
-                          id="newPhoneInput"
+                      <form onSubmit={handleSendPhoneOTP}>
+                        <SteepInput
+                          id="phoneInput"
                           type="tel"
                           required
                           value={newPhone}
                           onChange={e => setNewPhone(e.target.value)}
                           placeholder="+15551234567"
-                          style={inputStyle}
+                          label="Phone Number"
                         />
-                      </div>
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <button type="submit" disabled={sendingPhoneOTP || !newPhone} style={buttonStyle(sendingPhoneOTP || !newPhone)}>
-                          {sendingPhoneOTP ? 'Updating…' : 'Send Fresh OTP'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewPhone(phoneNumber)
-                            setIsEditingPhone(false)
-                          }}
-                          style={{
-                            background: 'none',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-buttons)',
-                            padding: '12px 16px',
-                            color: 'var(--text)',
-                            fontSize: 13,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                          Code sent to: <strong>{phoneNumber}</strong>
-                        </span>
-                        <button
-                          onClick={() => setIsEditingPhone(true)}
-                          style={{ background: 'none', border: 'none', color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}
-                        >
-                          Change Number
-                        </button>
-                      </div>
-
-                      <form onSubmit={handleVerifyPhone}>
-                        <div style={{ marginBottom: 20 }}>
-                          <label htmlFor="phoneCode" style={labelStyle}>SMS Verification Code</label>
-                          <input
-                            id="phoneCode"
-                            type="text"
-                            required
-                            maxLength={6}
-                            value={phoneCode}
-                            onChange={e => setPhoneCode(e.target.value.replace(/\D/g, ''))}
-                            placeholder="000000"
-                            style={{ ...inputStyle, letterSpacing: '0.3em', textAlign: 'center', fontSize: 20 }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          <button type="submit" disabled={submittingPhone || phoneCode.length !== 6} style={buttonStyle(submittingPhone || phoneCode.length !== 6)}>
-                            {submittingPhone ? 'Verifying Code…' : 'Verify & Activate Profile'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={phoneCooldown > 0 || sendingPhoneOTP}
-                            onClick={() => handleSendPhoneOTP()}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: phoneCooldown > 0 ? 'var(--text-secondary)' : 'var(--accent)',
-                              textDecoration: 'underline',
-                              cursor: phoneCooldown > 0 ? 'not-allowed' : 'pointer',
-                              fontSize: 12,
-                              textAlign: 'center'
-                            }}
-                          >
-                            {phoneCooldown > 0 ? `Resend OTP in ${phoneCooldown}s` : 'Resend SMS OTP'}
-                          </button>
-                        </div>
+                        <SteepButton type="submit" disabled={sendingPhoneOTP || !newPhone} variant="primary" block style={{ marginTop: 'var(--spacing-12)' }}>
+                          {sendingPhoneOTP ? 'Sending OTP…' : 'Send Verification Code'}
+                        </SteepButton>
                       </form>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* C. If phone is verified */}
-              {phoneVerified && (
-                <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, color: '#22c55e', marginBottom: 12 }}>✓</div>
-                  <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                    Your phone number has been verified.
-                  </p>
+                  {/* B. If phone number is registered but needs verification */}
+                  {phoneNumber && !phoneVerified && (
+                    <div>
+                      {isEditingPhone ? (
+                        <form onSubmit={handleSendPhoneOTP}>
+                          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', lineHeight: 1.4, marginBottom: 'var(--spacing-20)' }}>
+                            Enter your new phone number to receive a fresh verification code.
+                          </p>
+                          <SteepInput
+                            id="newPhoneInput"
+                            type="tel"
+                            required
+                            value={newPhone}
+                            onChange={e => setNewPhone(e.target.value)}
+                            placeholder="+15551234567"
+                            label="New Phone Number"
+                          />
+                          <div style={{ display: 'flex', gap: 'var(--spacing-12)', marginTop: 'var(--spacing-16)' }}>
+                            <SteepButton type="submit" disabled={sendingPhoneOTP || !newPhone} variant="primary" style={{ flex: 1 }}>
+                              {sendingPhoneOTP ? 'Updating…' : 'Send Fresh OTP'}
+                            </SteepButton>
+                            <SteepButton
+                              type="button"
+                              onClick={() => {
+                                setNewPhone(phoneNumber)
+                                setIsEditingPhone(false)
+                              }}
+                              variant="secondary"
+                            >
+                              Cancel
+                            </SteepButton>
+                          </div>
+                        </form>
+                      ) : (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                            <span style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>
+                              Code sent to: <strong>{phoneNumber}</strong>
+                            </span>
+                            <SteepButton
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setIsEditingPhone(true)}
+                              style={{ padding: 0, textDecoration: 'underline' }}
+                            >
+                              Change Number
+                            </SteepButton>
+                          </div>
+
+                          <form onSubmit={handleVerifyPhone}>
+                            <div className="form-group" style={{ marginBottom: 'var(--spacing-16)' }}>
+                              <label htmlFor="phoneCode" className="form-label">SMS Verification Code</label>
+                              <input
+                                id="phoneCode"
+                                type="text"
+                                required
+                                maxLength={6}
+                                value={phoneCode}
+                                onChange={e => setPhoneCode(e.target.value.replace(/\D/g, ''))}
+                                placeholder="000000"
+                                className="otp-input"
+                              />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-12)' }}>
+                              <SteepButton type="submit" disabled={submittingPhone || phoneCode.length !== 6} variant="primary" block>
+                                {submittingPhone ? 'Verifying Code…' : 'Verify & Activate Profile'}
+                              </SteepButton>
+                              <SteepButton
+                                type="button"
+                                disabled={phoneCooldown > 0 || sendingPhoneOTP}
+                                onClick={() => handleSendPhoneOTP()}
+                                variant="ghost"
+                                style={{
+                                  width: '100%',
+                                  color: phoneCooldown > 0 ? 'var(--color-graphite)' : 'var(--color-rust)',
+                                }}
+                              >
+                                {phoneCooldown > 0 ? `Resend OTP in ${phoneCooldown}s` : 'Resend SMS OTP'}
+                              </SteepButton>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* C. If phone is verified */}
+                  {phoneVerified && (
+                    <div style={{ padding: 'var(--spacing-20) 0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '36px', color: 'var(--success)', marginBottom: 'var(--spacing-12)' }}>✓</div>
+                      <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>
+                        Your phone number has been verified.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            </SteepCard>
           </div>
 
         </div>

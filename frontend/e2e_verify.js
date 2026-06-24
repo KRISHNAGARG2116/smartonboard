@@ -6,25 +6,6 @@ import path from 'path';
 const BASE_URL = 'http://localhost:5002';
 const BACKEND_URL = 'http://localhost:8000';
 
-async function getBrowserWs() {
-  return new Promise((resolve, reject) => {
-    http.get('http://localhost:9222/json/version', (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          resolve(json.webSocketDebuggerUrl);
-        } catch (e) {
-          reject(new Error(`Failed to parse debugging JSON: ${e.message}`));
-        }
-      });
-    }).on('error', (e) => {
-      reject(new Error(`Failed to contact debugging port: ${e.message}`));
-    });
-  });
-}
-
 // Helper to fetch JSON from a URL
 async function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -48,19 +29,19 @@ async function run() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  let wsUrl;
+  let browser;
   try {
-    wsUrl = await getBrowserWs();
-    console.log(`Connected to WS: ${wsUrl}`);
+    browser = await puppeteer.launch({
+      executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+      defaultViewport: { width: 1280, height: 800 }
+    });
+    console.log('Browser launched successfully');
   } catch (e) {
-    console.error(e.message);
+    console.error('Failed to launch browser:', e.message);
     process.exit(1);
   }
-
-  const browser = await puppeteer.connect({
-    browserWSEndpoint: wsUrl,
-    defaultViewport: { width: 1280, height: 800 }
-  });
 
   const page = await browser.newPage();
 
@@ -90,9 +71,10 @@ async function run() {
   await page.screenshot({ path: path.join(outputDir, '1_email_register_page.png') });
 
   const uniqueEmail = `e2e_email_${Date.now()}@example.com`;
+  const uniquePhone = `+1555019${String(Math.floor(1000 + Math.random() * 9000))}`;
   await page.type('#fullName', 'E2E Email Candidate');
   await page.type('#email', uniqueEmail);
-  await page.type('#phoneNumber', '+15550199301');
+  await page.type('#phoneNumber', uniquePhone);
   await page.type('#password', 'Password123!');
   
   await page.screenshot({ path: path.join(outputDir, '2_email_register_filled.png') });
@@ -189,7 +171,8 @@ async function run() {
   // 3. Since email is already verified via Google, it should show the phone-only layout.
   // Let's enter a phone number and request OTP.
   console.log('Entering phone number for Google candidate...');
-  await page.type('#phoneInput', '+15550199302');
+  const uniquePhoneGoogle = `+1555019${String(Math.floor(1000 + Math.random() * 9000))}`;
+  await page.type('#phoneInput', uniquePhoneGoogle);
   await page.screenshot({ path: path.join(outputDir, '10_google_phone_entered.png') });
 
   console.log('Sending phone verification code...');

@@ -88,13 +88,7 @@ export default function RecruiterJobs() {
             Loading active job postings...
           </div>
         ) : jobs.length === 0 ? (
-          <div style={{
-            padding: 'var(--space-12)',
-            textAlign: 'center',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            color: 'var(--text-secondary)'
-          }}>
+          <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
             No active job postings. Click "Create Job" to post your first opening.
           </div>
         ) : (
@@ -102,10 +96,8 @@ export default function RecruiterJobs() {
             {jobs.map((job) => (
               <div 
                 key={job.id}
+                className="card card__body"
                 style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 12,
-                  padding: 'var(--space-4)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
@@ -140,15 +132,15 @@ export default function RecruiterJobs() {
             zIndex: 100,
             padding: 24
           }}>
-            <div style={{
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              padding: 32,
-              maxWidth: 480,
-              width: '100%',
-              boxSizing: 'border-box'
-            }}>
+            <div 
+              className="card"
+              style={{
+                padding: 32,
+                maxWidth: 480,
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
               <h2 style={{ fontSize: 24, fontWeight: 500, margin: '0 0 24px', color: 'var(--text)' }}>
                 New Job Posting
               </h2>
@@ -164,16 +156,9 @@ export default function RecruiterJobs() {
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="e.g. Lead Frontend Engineer"
+                    className="form-input"
                     style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--border)',
-                      borderRadius: 0,
-                      padding: '8px 0',
-                      fontSize: 15,
-                      color: 'var(--text)',
-                      outline: 'none'
+                      width: '100%'
                     }}
                   />
                 </div>
@@ -186,23 +171,15 @@ export default function RecruiterJobs() {
                     id="job-dept"
                     value={dept}
                     onChange={e => setDept(e.target.value)}
+                    className="form-select"
                     style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--border)',
-                      borderRadius: 0,
-                      padding: '8px 0',
-                      fontSize: 15,
-                      color: 'var(--text)',
-                      outline: 'none',
-                      cursor: 'pointer'
+                      width: '100%'
                     }}
                   >
-                    <option value="Engineering" style={{ background: 'var(--bg)' }}>Engineering</option>
-                    <option value="Product" style={{ background: 'var(--bg)' }}>Product</option>
-                    <option value="Design" style={{ background: 'var(--bg)' }}>Design</option>
-                    <option value="Operations" style={{ background: 'var(--bg)' }}>Operations</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Product">Product</option>
+                    <option value="Design">Design</option>
+                    <option value="Operations">Operations</option>
                   </select>
                 </div>
 
@@ -217,16 +194,9 @@ export default function RecruiterJobs() {
                     onChange={e => setDesc(e.target.value)}
                     placeholder="Provide role description and key skills requirements..."
                     rows={4}
+                    className="form-input"
                     style={{
                       width: '100%',
-                      background: 'transparent',
-                      border: '1px solid var(--border)',
-                      borderRadius: 12,
-                      padding: '12px',
-                      fontSize: 14,
-                      color: 'var(--text)',
-                      outline: 'none',
-                      boxSizing: 'border-box',
                       resize: 'vertical'
                     }}
                   />
@@ -241,16 +211,9 @@ export default function RecruiterJobs() {
                     type="date"
                     value={startDate}
                     onChange={e => setStartDate(e.target.value)}
+                    className="form-input"
                     style={{
-                      width: '100%',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid var(--border)',
-                      borderRadius: 0,
-                      padding: '8px 0',
-                      fontSize: 15,
-                      color: 'var(--text)',
-                      outline: 'none'
+                      width: '100%'
                     }}
                   />
                 </div>
@@ -260,7 +223,6 @@ export default function RecruiterJobs() {
                     type="button" 
                     onClick={() => setIsModalOpen(false)}
                     className="btn btn--secondary" 
-                    style={{ borderRadius: 'var(--radius-buttons)' }}
                   >
                     Cancel
                   </button>
@@ -268,7 +230,6 @@ export default function RecruiterJobs() {
                     type="submit" 
                     disabled={submitting}
                     className="btn btn--primary" 
-                    style={{ borderRadius: 'var(--radius-buttons)', opacity: submitting ? 0.6 : 1 }}
                   >
                     {submitting ? 'Creating...' : 'Create Job'}
                   </button>

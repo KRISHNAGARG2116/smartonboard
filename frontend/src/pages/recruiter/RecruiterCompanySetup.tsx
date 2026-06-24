@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import '../../App.css'
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepButton from '../../components/design-system/SteepButton'
 
 export default function RecruiterCompanySetup() {
   const { user, setupCompany } = useAuth()
@@ -67,27 +69,27 @@ export default function RecruiterCompanySetup() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: '480px', padding: 'var(--space-32) var(--space-16)' }}>
-      <div className="card" style={{ padding: 'var(--space-32)' }}>
-        <h1 className="h2" style={{ marginBottom: 'var(--space-8)', textAlign: 'center' }}>
+    <div className="app-shell" style={{ background: 'var(--color-fog)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '480px', padding: 'var(--spacing-32) var(--spacing-24)' }}>
+        <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', color: 'var(--color-ink)', textAlign: 'center', marginBottom: 'var(--spacing-8)', marginTop: 0 }}>
           Company Setup Wizard
         </h1>
-        <p className="text-secondary" style={{ marginBottom: 'var(--space-24)', textAlign: 'center' }}>
+        <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginBottom: 'var(--spacing-28)', textAlign: 'center' }}>
           Please complete your corporate profile to start publishing jobs and reviewing candidates.
         </p>
 
+        {/* Error banner */}
         {error && (
-          <div className="alert alert--error" style={{ marginBottom: 'var(--space-16)' }}>
+          <div className="banner banner--error" role="alert" style={{ marginBottom: 'var(--spacing-20)' }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-16)' }}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="company-name">Company Name</label>
-            <input
-              className="form-input"
+        <form onSubmit={handleSubmit}>
+          <SteepCard>
+            <SteepInput
               id="company-name"
+              label="Company Name"
               type="text"
               placeholder="e.g. Acme Corp"
               value={companyName}
@@ -95,13 +97,10 @@ export default function RecruiterCompanySetup() {
               required
               disabled={loading}
             />
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="company-website">Company Website</label>
-            <input
-              className="form-input"
+            <SteepInput
               id="company-website"
+              label="Company Website"
               type="url"
               placeholder="e.g. https://acme.com"
               value={website}
@@ -109,29 +108,20 @@ export default function RecruiterCompanySetup() {
               required
               disabled={loading}
             />
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="company-domain">Verified Corporate Domain</label>
-            <input
-              className="form-input"
+            <SteepInput
               id="company-domain"
+              label="Verified Corporate Domain"
               type="text"
               value={domain}
               readOnly
-              style={{ backgroundColor: 'var(--color-bg-tertiary)', cursor: 'not-allowed' }}
               disabled
+              hint="Prefilled and locked to match your authenticated email domain."
             />
-            <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-4)', display: 'block' }}>
-              Prefilled and locked to match your authenticated email domain.
-            </span>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="company-industry">Industry</label>
-            <input
-              className="form-input"
+            <SteepInput
               id="company-industry"
+              label="Industry"
               type="text"
               placeholder="e.g. Technology, Healthcare"
               value={industry}
@@ -139,36 +129,36 @@ export default function RecruiterCompanySetup() {
               required
               disabled={loading}
             />
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="company-size">Company Size</label>
-            <select
-              className="form-input"
+            <SteepInput
               id="company-size"
+              label="Company Size"
+              select
+              options={[
+                { value: '1-10', label: '1-10 employees' },
+                { value: '11-50', label: '11-50 employees' },
+                { value: '51-200', label: '51-200 employees' },
+                { value: '201-500', label: '201-500 employees' },
+                { value: '501+', label: '501+ employees' }
+              ]}
               value={companySize}
               onChange={(e) => setCompanySize(e.target.value)}
               disabled={loading}
-              style={{ width: '100%' }}
-            >
-              <option value="1-10">1-10 employees</option>
-              <option value="11-50">11-50 employees</option>
-              <option value="51-200">51-200 employees</option>
-              <option value="201-500">201-500 employees</option>
-              <option value="501+">501+ employees</option>
-            </select>
-          </div>
+            />
 
-          <button
-            className="btn btn--primary"
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', marginTop: 'var(--space-8)' }}
-          >
-            {loading ? 'Creating Profile...' : 'Complete Registration'}
-          </button>
+            <SteepButton
+              type="submit"
+              disabled={loading}
+              variant="primary"
+              block
+              style={{ padding: '12px 20px', marginTop: 'var(--spacing-16)' }}
+            >
+              {loading ? 'Creating Profile...' : 'Complete Registration'}
+            </SteepButton>
+          </SteepCard>
         </form>
       </div>
     </div>
   )
 }
+

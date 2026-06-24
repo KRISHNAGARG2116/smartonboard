@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext'
 import { fetchJobs, fetchApplications } from '../api'
 import AnimatedPage from './AnimatedPage'
 import { motion, AnimatePresence } from 'framer-motion'
+import SteepSidebarItem from './design-system/SteepSidebarItem'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -282,9 +283,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           isMobileMenuOpen ? 'sidebar--mobile-open' : ''
         }`}
         style={{
-          width: isSidebarCollapsed ? '68px' : '260px',
-          background: 'var(--bg)',
-          borderRight: '1px solid var(--color-cork-shadow)',
+          width: isSidebarCollapsed ? '68px' : '240px',
+          background: 'var(--color-fog)',
+          borderRight: 'none',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 240ms cubic-bezier(0.16, 1, 0.3, 1), background var(--duration-normal)',
@@ -434,258 +435,104 @@ export default function AppLayout({ children }: AppLayoutProps) {
           aria-label="Sidebar Workspace"
         >
           {/* Navigation Links */}
-          <Link
+          <SteepSidebarItem
             to="/recruiter/dashboard"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/dashboard' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/dashboard' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Dashboard"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="7" height="9" x="3" y="3" rx="1" />
                 <rect width="7" height="5" x="14" y="3" rx="1" />
                 <rect width="7" height="9" x="14" y="12" rx="1" />
                 <rect width="7" height="5" x="3" y="16" rx="1" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Dashboard</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/dashboard'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/jobs"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/jobs' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/jobs' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Jobs"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Jobs</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/jobs'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/candidates"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/candidates' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/candidates' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Candidates"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Candidates</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/candidates'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/pipeline"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/pipeline' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/pipeline' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Pipeline"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                 <line x1="9" x2="9" y1="3" y2="21" />
                 <line x1="15" x2="15" y1="3" y2="21" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Pipeline</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/pipeline'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/interviews"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/interviews' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/interviews' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Interviews"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
                 <line x1="16" x2="16" y1="2" y2="6" />
                 <line x1="8" x2="8" y1="2" y2="6" />
                 <line x1="3" x2="21" y1="10" y2="10" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Interviews</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/interviews'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/analytics"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/analytics' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/analytics' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Analytics"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Analytics</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/analytics'}
+            collapsed={isSidebarCollapsed}
+          />
 
-          <Link
+          <SteepSidebarItem
             to="/recruiter/settings"
-            className={`btn btn--ghost btn--block ${pathname === '/recruiter/settings' ? 'nav-link--active' : ''}`}
-            style={{
-              position: 'relative',
-              justifyContent: 'flex-start',
-              padding: '10px 14px',
-              borderRadius: '0px',
-              fontSize: '13.5px',
-              fontWeight: 550,
-            }}
-          >
-            {pathname === '/recruiter/settings' && (
-              <motion.div
-                layoutId="active-indicator-recruiter"
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: '2px',
-                  backgroundColor: 'var(--color-burnt-sienna)',
-                }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-              />
-            )}
-            <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
+            label="Settings"
+            icon={
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
-            </span>
-            {!isSidebarCollapsed && <span>Settings</span>}
-          </Link>
+            }
+            active={pathname === '/recruiter/settings'}
+            collapsed={isSidebarCollapsed}
+          />
 
           <div
             className="btn btn--ghost btn--block"
@@ -693,10 +540,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
             style={{
               justifyContent: 'flex-start',
               padding: '10px 14px',
-              borderRadius: '0px',
+              borderRadius: '12px',
               fontSize: '13.5px',
               fontWeight: 550,
               cursor: 'pointer',
+              color: 'var(--text-secondary)',
             }}
           >
             <span style={{ display: 'grid', placeItems: 'center', minWidth: '20px', marginRight: '6px' }}>
@@ -713,7 +561,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     fontSize: '10px',
                     fontWeight: 700,
                     padding: '2px 8px',
-                    borderRadius: '0px',
+                    borderRadius: '12px',
                     background: 'transparent',
                     color: 'var(--color-burnt-sienna)',
                     border: '1px solid var(--color-burnt-sienna)',
@@ -829,16 +677,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   alignItems: 'center',
                   gap: 'var(--space-3)',
                   padding: '9px 14px',
-                  borderRadius: '0px',
-                  border: '1px solid var(--color-cork-shadow)',
-                  background: 'transparent',
-                  color: 'var(--text-secondary)',
-                  fontSize: '13px',
+                  borderRadius: 'var(--radius-inputs)',
+                  border: '1px solid var(--color-dove)',
+                  background: 'var(--color-pure-white)',
+                  color: 'var(--color-graphite)',
+                  fontSize: '13.5px',
                   cursor: 'pointer',
                   width: 'min(380px, 100%)',
                   textAlign: 'left',
-                  
-                  fontWeight: 500,
+                  fontWeight: 400,
+                  transition: 'border-color var(--duration-fast)',
                 }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'var(--text-tertiary)' }}>
@@ -959,20 +807,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   >
                     <div
                       style={{
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        background: 'var(--accent)',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: 'var(--radius-avatars)',
+                        background: 'var(--color-sky-wash)',
                         display: 'grid',
                         placeItems: 'center',
-                        color: 'var(--text-inverse)',
-                        fontWeight: 'bold',
+                        color: 'var(--color-ink)',
+                        fontWeight: 500,
                         fontSize: '13px',
                       }}
                     >
-                      {user.full_name ? user.full_name[0] : 'U'}
+                      {user.full_name ? user.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'U'}
                     </div>
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--color-ink)' }}>
                       {user.full_name}
                     </span>
                     <span style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>▼</span>
@@ -987,8 +835,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         right: 0,
                         width: '220px',
                         zIndex: 180,
-                        
-                        background: 'var(--bg)',
+                        background: 'var(--color-pure-white)',
                         borderRadius: 'var(--radius-cards)',
                         padding: 'var(--space-2)',
                         border: '1px solid var(--border)',

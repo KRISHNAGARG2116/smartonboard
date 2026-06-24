@@ -181,6 +181,7 @@ class TestSchemaValidation:
             email="test@example.com",
             password="securepass123",
             full_name="Test User",
+            phone_number="+15550199333",
         )
         assert req.email == "test@example.com"
 
@@ -190,6 +191,7 @@ class TestSchemaValidation:
                 email="test@example.com",
                 password="short",
                 full_name="Test User",
+                phone_number="+15550199333",
             )
 
     def test_candidate_otp_verify_request(self):

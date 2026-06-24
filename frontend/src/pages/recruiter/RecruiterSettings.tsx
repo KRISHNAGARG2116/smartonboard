@@ -95,11 +95,7 @@ export default function RecruiterSettings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
                 
                 {/* Profile Config Card */}
-                <div style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 12,
-                  padding: 'var(--space-6)'
-                }}>
+                <div className="card card__body">
                   <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 16px', color: 'var(--text)' }}>
                     Workspace Profile
                   </h2>
@@ -124,11 +120,7 @@ export default function RecruiterSettings() {
                 </div>
 
                 {/* DNS Verification Center */}
-                <div style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 12,
-                  padding: 'var(--space-6)'
-                }}>
+                <div className="card card__body">
                   <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 16px', color: 'var(--text)' }}>
                     MX / DNS Domain Verification
                   </h2>
@@ -137,17 +129,18 @@ export default function RecruiterSettings() {
                   </p>
                   <div style={{
                     border: '1px solid var(--border)',
-                    borderRadius: 12,
+                    borderRadius: '16px',
                     padding: 16,
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    background: 'var(--bg-subtle)'
                   }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>MX Domain State: <span style={{ color: 'var(--color-burnt-sienna)' }}>Pending Verification</span></div>
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Expected MX domain record: mail.{company?.slug ? `${company.slug}.com` : 'smartonboard.io'}</div>
                     </div>
-                    <button className="btn btn--secondary btn--sm" style={{ borderRadius: 22.5 }} onClick={() => alert('Initiating background domain verification check...')}>
+                    <button className="btn btn--secondary btn--sm" onClick={() => alert('Initiating background domain verification check...')}>
                       Verify Records
                     </button>
                   </div>
@@ -158,12 +151,7 @@ export default function RecruiterSettings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
                 
                 {/* Billing Placeholder Card */}
-                <div style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  padding: 'var(--space-6)',
-                  background: 'transparent'
-                }}>
+                <div className="card card__body">
                   <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 12px', color: 'var(--text)' }}>
                     Subscription & Billing
                   </h2>
@@ -188,12 +176,7 @@ export default function RecruiterSettings() {
             </div>
 
             {/* DLQ Monitoring and Retry Section */}
-            <div style={{
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              padding: 'var(--space-6)',
-              marginTop: 'var(--space-4)'
-            }}>
+            <div className="card card__body" style={{ marginTop: 'var(--space-4)' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 8px', color: 'var(--text)' }}>
                 HRIS Outbox logs & Dead Letter Queue (DLQ)
               </h2>
@@ -202,18 +185,18 @@ export default function RecruiterSettings() {
               </p>
 
               {dlqError && (
-                <div className="banner banner--error" style={{ border: '1px solid var(--color-burnt-sienna)', background: 'transparent', color: 'var(--color-burnt-sienna)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
+                <div className="banner banner--error" style={{ border: '1px solid var(--danger)', background: 'var(--danger-bg)', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '16px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
                   ❌ {dlqError}
                 </div>
               )}
 
               {actionMessage && (
-                <div className="banner banner--success" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '0px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
+                <div className="banner banner--success" style={{ border: '1px solid var(--border)', background: 'var(--success-bg)', color: 'var(--success)', padding: 'var(--space-3) var(--space-4)', borderRadius: '16px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
                   ✅ {actionMessage}
                 </div>
               )}
 
-              <div className="card" style={{ background: 'transparent', border: '1px solid var(--color-cork-shadow)', borderRadius: 'var(--radius-cards)', overflow: 'hidden' }}>
+              <div className="card" style={{ overflow: 'hidden' }}>
                 <div className="tabs" role="tablist" aria-label="DLQ Navigation" style={{ display: 'flex', borderBottom: '1px solid var(--color-cork-shadow)' }}>
                   {dlqTabs.map((t) => (
                     <button
@@ -280,7 +263,7 @@ export default function RecruiterSettings() {
                                     {new Date(rec.created_at || Date.now()).toLocaleString()}
                                   </td>
                                   <td style={{ padding: 'var(--space-4)' }}>
-                                    <span className="badge" style={{ border: rec.status === 'resolved' || rec.resolved_at ? '1px solid var(--color-warm-cream)' : '1px solid var(--color-burnt-sienna)', color: rec.status === 'resolved' || rec.resolved_at ? 'var(--text)' : 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px', background: 'transparent' }}>
+                                    <span className="badge" style={{ border: rec.status === 'resolved' || rec.resolved_at ? '1px solid var(--border)' : '1px solid var(--color-burnt-sienna)', color: rec.status === 'resolved' || rec.resolved_at ? 'var(--text)' : 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: 'var(--radius-sm)' }}>
                                       {rec.resolved_at ? 'resolved' : (rec.status || 'failed')}
                                     </span>
                                   </td>
@@ -288,9 +271,9 @@ export default function RecruiterSettings() {
                                     {!rec.resolved_at && rec.status !== 'resolved' && (
                                       <button
                                         type="button"
-                                        className="btn btn--primary btn--sm"
+                                        className="btn btn--secondary btn--sm"
                                         onClick={() => handleRetry(rec.id)}
-                                        style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 10px', fontSize: '11px' }}
+                                        style={{ padding: '4px 10px', fontSize: '11px' }}
                                       >
                                         Retry Sync
                                       </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '../../components/AppLayout'
 import { fetchApplications, type Application } from '../../api'
+import EmptyState from '../../components/EmptyState'
 
 export default function RecruiterInterviews() {
   const [applications, setApplications] = useState<Application[]>([])
@@ -41,24 +42,19 @@ export default function RecruiterInterviews() {
             Loading interview calendar...
           </div>
         ) : interviewApps.length === 0 ? (
-          <div style={{
-            padding: 'var(--space-12)',
-            textAlign: 'center',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            color: 'var(--text-secondary)'
-          }}>
-            No interviews scheduled for this workspace. Use the Dashboard or Pipeline Board to schedule candidates.
-          </div>
+          <EmptyState
+            type="interviews"
+            title="No interviews scheduled"
+            description="No interviews scheduled for this workspace. Use the Dashboard or Pipeline Board to schedule candidates."
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             {interviewApps.map((app) => (
               <div 
                 key={app.id}
+                className="card"
                 style={{
-                  border: '1px solid var(--color-cork-shadow)',
-                  borderRadius: 12,
-                  padding: 'var(--space-4)',
+                  padding: 'var(--space-4) var(--space-6)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'

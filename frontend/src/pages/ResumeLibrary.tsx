@@ -195,11 +195,9 @@ export default function ResumeLibrary() {
               className="card card__body" 
               style={{ 
                 border: '1px dashed var(--color-cork-shadow)', 
-                background: 'transparent', 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 'var(--space-4)',
-                borderRadius: '12px'
               }}
             >
               <span style={{ fontSize: 'var(--text-2xl)' }}>⚠️</span>
@@ -217,8 +215,6 @@ export default function ResumeLibrary() {
               className="card card__body" 
               style={{ 
                 border: '1px dashed var(--color-cork-shadow)', 
-                background: 'transparent', 
-                borderRadius: '12px',
                 padding: 'var(--space-8) var(--space-6)',
                 textAlign: 'center',
               }}
@@ -253,9 +249,7 @@ export default function ResumeLibrary() {
             <div 
               className={`card ${dragActive ? 'drag-active' : ''}`}
               style={{
-                border: dragActive ? '1px dashed var(--color-warm-cream)' : '1px dashed var(--color-cork-shadow)',
-                background: 'transparent',
-                borderRadius: '12px',
+                border: dragActive ? '1px dashed var(--color-rust)' : '1px dashed var(--color-cork-shadow)',
                 padding: 'var(--space-8) var(--space-6)',
                 textAlign: 'center',
                 cursor: 'pointer',
@@ -487,15 +481,15 @@ function ResumeItem({ resume, onSetActive, onDelete, isLast }: ResumeItemProps) 
       {expanded && (
         <div 
           style={{ 
-            background: 'transparent', 
+            background: 'var(--bg-subtle)', 
             padding: 'var(--space-4) var(--space-5)', 
-            borderRadius: '12px',
+            borderRadius: '16px',
             fontSize: 'var(--text-xs)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--space-3)',
             marginTop: '4px',
-            border: '1px dashed var(--color-cork-shadow)'
+            border: '1px solid var(--border)'
           }}
         >
           {/* Summary Section */}

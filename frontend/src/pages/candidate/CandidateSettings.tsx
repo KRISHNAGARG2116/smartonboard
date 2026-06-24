@@ -20,11 +20,7 @@ export default function CandidateSettings() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--space-6)', alignItems: 'flex-start' }}>
           {/* Main settings card */}
-          <div style={{
-            border: '1px solid var(--color-cork-shadow)',
-            borderRadius: 12,
-            padding: 'var(--space-6)'
-          }}>
+          <div className="card card__body">
             <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 16px', color: 'var(--text)' }}>
               Account Configurations
             </h2>
@@ -49,12 +45,7 @@ export default function CandidateSettings() {
           </div>
 
           {/* Right sidebar info */}
-          <div style={{
-            border: '1px dashed var(--color-cork-shadow)',
-            borderRadius: 12,
-            padding: 'var(--space-6)',
-            color: 'var(--text-secondary)'
-          }}>
+          <div className="card card__body" style={{ borderStyle: 'dashed', color: 'var(--text-secondary)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: '0 0 8px' }}>
               Verification Rules
             </h3>

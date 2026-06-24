@@ -4,6 +4,9 @@ import AppLayout from '../components/AppLayout'
 import CandidateDrawer from '../components/CandidateDrawer'
 import { fetchApplications, updateApplicationStatus, type Application } from '../api'
 import { scoreClass } from '../utils/score'
+import SteepCard from '../components/design-system/SteepCard'
+import SteepButton from '../components/design-system/SteepButton'
+import SteepBadge from '../components/design-system/SteepBadge'
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
@@ -126,7 +129,7 @@ export default function PipelineBoard() {
       await updateApplicationStatus(appId, targetStatus)
       alert(`Successfully advanced ${app.candidate?.full_name || 'candidate'} to stage: ${targetColumnId}`)
       loadData()
-    } catch {
+    } catch (err) {
       alert('Error updating candidate pipeline stage. Verify RLS bounds.')
       loadData()
     }
@@ -134,14 +137,14 @@ export default function PipelineBoard() {
 
   return (
     <AppLayout>
-      <div className="dashboard-page container container--wide" style={{ paddingBottom: 'var(--space-12)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ paddingBottom: 'var(--spacing-12)', height: '100%', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header Title */}
-        <header style={{ marginBottom: 'var(--space-6)' }}>
-          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '4px', lineHeight: 1.09, color: 'var(--text)' }}>
+        <header style={{ marginBottom: 'var(--spacing-24)' }}>
+          <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
             Hiring Pipeline Board
           </h1>
-          <p className="text-secondary" style={{ fontSize: '14px', lineHeight: 1.33 }}>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: 'var(--spacing-8)', marginBottom: 0 }}>
             Expose applicant flow, drag and drop cards to trigger transitions, and manage panelists scorecards live.
           </p>
         </header>
@@ -151,11 +154,11 @@ export default function PipelineBoard() {
           style={{
             flex: 1,
             display: 'flex',
-            gap: 'var(--space-4)',
+            gap: 'var(--spacing-16)',
             overflowX: 'auto',
             alignItems: 'stretch',
             minHeight: '620px',
-            paddingBottom: 'var(--space-4)'
+            paddingBottom: 'var(--spacing-16)'
           }}
           aria-label="Hiring columns board"
         >
@@ -178,42 +181,32 @@ export default function PipelineBoard() {
                 style={{
                   width: '280px',
                   minWidth: '280px',
-                  background: 'transparent',
+                  background: isHovered ? 'var(--color-fog)' : 'transparent',
                   borderRadius: 'var(--radius-cards)',
-                  border: isHovered ? '1.5px dashed var(--color-burnt-sienna)' : '1px dashed var(--color-cork-shadow)',
-                  padding: 'var(--space-4)',
+                  border: isHovered ? '1.5px dashed var(--color-rust)' : '1px dashed var(--border)',
+                  padding: 'var(--spacing-12)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 'var(--space-4)',
+                  gap: 'var(--spacing-16)',
                   transition: 'background var(--duration-fast), border-color var(--duration-fast)',
                 }}
               >
                 {/* Column Header Metadata */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <h3 style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0, color: 'var(--color-grey-brown)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0, color: 'var(--color-ash)' }}>
                       {col.title}
                     </h3>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 500,
-                        padding: '2px 8px',
-                        borderRadius: '0px',
-                        border: '1px solid var(--color-cork-shadow)',
-                        background: 'transparent',
-                        color: 'var(--text)'
-                      }}
-                    >
+                    <SteepBadge variant="neutral">
                       {metrics.count}
-                    </span>
+                    </SteepBadge>
                   </div>
 
                   {/* Aggregated Column Metrics */}
-                  <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: 'var(--color-grey-brown)', marginTop: '6px', fontWeight: 400 }}>
-                    <span>Avg AI: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{metrics.avgScore}%</strong></span>
+                  <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: 'var(--color-ash)', marginTop: '6px', fontWeight: 500 }}>
+                    <span>Avg AI: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgScore}%</strong></span>
                     <span>·</span>
-                    <span>Avg Time: <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{metrics.avgDays}d</strong></span>
+                    <span>Avg Time: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgDays}d</strong></span>
                   </div>
                 </div>
 
@@ -223,7 +216,7 @@ export default function PipelineBoard() {
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 'var(--space-3)',
+                    gap: 'var(--spacing-12)',
                     overflowY: 'auto'
                   }}
                   aria-label={`Candidates in ${col.title}`}
@@ -240,95 +233,95 @@ export default function PipelineBoard() {
                         onDragStart={(e: any) => handleDragStart(e, app.id)}
                         style={{ cursor: 'grab' }}
                       >
-                        <motion.article
+                        <motion.div
                           layout
                           custom={index}
                           initial="hidden"
                           animate="visible"
                           variants={cardVariants}
-                          whileHover={{ y: -2, borderColor: 'var(--color-warm-cream)' }}
                           transition={{ duration: 0.2, ease: 'easeOut' as any }}
-                          style={{
-                            padding: 'var(--space-4)',
-                            background: 'transparent',
-                            border: '1px solid var(--color-cork-shadow)',
-                            borderRadius: 'var(--radius-cards)',
-                            
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 'var(--space-2)',
-                            position: 'relative'
-                          }}
+                          style={{ height: '100%' }}
                         >
-                        {/* Card Header: Avatar & AI score */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
-                              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
-                              display: 'grid',
-                              placeItems: 'center',
-                              fontWeight: 500,
-                              fontSize: '10px'
-                            }}>
-                              {app.candidate?.full_name ? app.candidate.full_name[0] : 'C'}
-                            </div>
-                            <strong style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
-                              {app.candidate?.full_name}
-                            </strong>
-                          </div>
-                          
-                          <span className={`score-ring ${scoreClass(score)}`} style={{ width: '22px', height: '22px', fontSize: '9px' }}>
-                            {score}
-                          </span>
-                        </div>
-
-                        {/* Job connection & Days Badge */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '11px', marginTop: '4px' }}>
-                          <span style={{ color: 'var(--color-grey-brown)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
-                            {app.job?.title || 'General Opening'}
-                          </span>
-                          <span style={{ color: 'var(--color-grey-brown)', fontWeight: 400 }}>
-                            {days}d here
-                          </span>
-                        </div>
-
-                        {/* Card hover operational triggers */}
-                        <div style={{ display: 'flex', gap: '6px', marginTop: 'var(--space-2)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-2)' }}>
-                          <button
-                            type="button"
-                            className="btn btn--secondary btn--sm btn--block"
-                            style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
-                            onClick={() => {
-                              setSelectedApp(app)
-                              setDrawerTab('overview')
+                          <SteepCard
+                            padding="compact"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 'var(--spacing-12)',
+                              position: 'relative'
                             }}
                           >
-                            Open
-                          </button>
-                          {app.status.toLowerCase() !== 'hired' && (
-                            <button
-                              type="button"
-                              className="btn btn--secondary btn--sm btn--block"
-                              style={{ borderRadius: 'var(--radius-buttons)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', padding: '4px 6px', fontSize: '10px', flex: 1 }}
-                              onClick={() => {
-                                setSelectedApp(app)
-                                setDrawerTab('interviews')
-                              }}
-                            >
-                              Schedule
-                            </button>
-                          )}
-                        </div>
-                        </motion.article>
+                            {/* Card Header: Avatar & AI score */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '50%',
+                                  background: 'var(--surface-cool-tint)', 
+                                  color: 'var(--color-ink)',
+                                  display: 'grid',
+                                  placeItems: 'center',
+                                  fontWeight: 500,
+                                  fontSize: '10px'
+                                }}>
+                                  {app.candidate?.full_name ? app.candidate.full_name[0] : 'C'}
+                                </div>
+                                <strong style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--color-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+                                  {app.candidate?.full_name}
+                                </strong>
+                              </div>
+                              
+                              <span className={`score-ring ${scoreClass(score)}`} style={{ width: '22px', height: '22px', fontSize: '9px' }}>
+                                {score}
+                              </span>
+                            </div>
+
+                            {/* Job connection & Days Badge */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '11px' }}>
+                              <span style={{ color: 'var(--color-ash)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                                {app.job?.title || 'General Opening'}
+                              </span>
+                              <span style={{ color: 'var(--color-ash)', fontWeight: 400 }}>
+                                {days}d here
+                              </span>
+                            </div>
+
+                            {/* Card hover operational triggers */}
+                            <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-8)' }}>
+                              <SteepButton
+                                variant="secondary"
+                                size="sm"
+                                style={{ flex: 1, padding: '4px 6px', fontSize: '10px' }}
+                                onClick={() => {
+                                  setSelectedApp(app)
+                                  setDrawerTab('overview')
+                                }}
+                              >
+                                Open
+                              </SteepButton>
+                              {app.status.toLowerCase() !== 'hired' && (
+                                <SteepButton
+                                  variant="secondary"
+                                  size="sm"
+                                  style={{ flex: 1, padding: '4px 6px', fontSize: '10px' }}
+                                  onClick={() => {
+                                    setSelectedApp(app)
+                                    setDrawerTab('interviews')
+                                  }}
+                                >
+                                  Schedule
+                                </SteepButton>
+                              )}
+                            </div>
+                          </SteepCard>
+                        </motion.div>
                       </div>
                     )
                   })}
                   
                   {colApps.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--color-grey-brown)', fontSize: '12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--spacing-16) 0', color: 'var(--color-ash)', fontSize: '12px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-cards)' }}>
                       Drag cards here
                     </div>
                   )}
@@ -354,3 +347,4 @@ export default function PipelineBoard() {
     </AppLayout>
   )
 }
+
