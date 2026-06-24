@@ -68,16 +68,18 @@ def test_job_feed_and_apply_flow(api_client, db_session):
         "email": "candidate_feed_test@example.com",
         "password": "securepassword123",
         "full_name": "Test Candidate",
+        "phone_number": "+15550199205",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
     assert resp.status_code == 201
     cand_data = resp.json()
-    cand_token = cand_data["access_token"]
-    cand_headers = {"Authorization": f"Bearer {cand_token}"}
     cand_user_id = uuid.UUID(cand_data["user"]["id"])
 
-    # Update candidate profile skills
+    # Update candidate profile skills and verify
     with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.id == cand_user_id))
+        user.email_verified = True
+        db_session.add(user)
         profile = db_session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
         )
@@ -117,6 +119,15 @@ def test_job_feed_and_apply_flow(api_client, db_session):
         db_session.commit()
         db_session.refresh(resume)
         db_session.refresh(job)
+
+    # Login to get valid JWT token
+    login_resp = api_client.post("/api/v1/auth/login/candidate", json={
+        "email": reg_payload["email"],
+        "password": reg_payload["password"]
+    })
+    assert login_resp.status_code == 200
+    cand_token = login_resp.json()["access_token"]
+    cand_headers = {"Authorization": f"Bearer {cand_token}"}
 
     # 2. Test GET /jobs/feed
     with tenant_context(auth_mode="true"):

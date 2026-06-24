@@ -40,6 +40,8 @@ def register_candidate(
 
     Candidates have no company_id, no tenant context, and role=CANDIDATE.
     A CandidateProfile row is created alongside the User row.
+    Verification tokens are sent, and verification_required=True is returned.
+    No JWT is issued at this stage.
     """
     email_lower = body.email.lower()
 
@@ -76,6 +78,7 @@ def register_candidate(
             profile = CandidateProfile(
                 user_id=user.id,
                 full_name=body.full_name,
+                phone_number=body.phone_number.strip(),
                 email_verified=False,
                 phone_verified=False,
             )
@@ -83,16 +86,24 @@ def register_candidate(
             db.commit()
             db.refresh(user)
 
-            # Generate and send email verification OTP immediately
-            otp_code = DBVerificationTokenProvider.create_token(
-                db=db,
-                user_id=user.id,
-                token_type="email_otp",
-                expires_in_minutes=10
-            )
-            EmailProvider.send_verification_email(user.email, otp_code)
+            # Send Email and Phone verifications using our new VerificationService
+            from core.verification_service import VerificationService
+            VerificationService.send_email_verification(db, user)
+            VerificationService.send_phone_verification(db, user, body.phone_number)
 
+            # Audit logs
             from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.candidate_registered",
+                actor_type="CANDIDATE",
+                actor_id=user.id,
+                resource_type="users",
+                resource_id=str(user.id),
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"email": user.email},
+            )
             log_audit_event(
                 db=db,
                 action="auth.email_verification_sent",
@@ -101,6 +112,15 @@ def register_candidate(
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
                 metadata={"email": user.email}
+            )
+            log_audit_event(
+                db=db,
+                action="auth.phone_verification_sent",
+                actor_type="CANDIDATE",
+                actor_id=user.id,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"phone_number": body.phone_number}
             )
     except IntegrityError as e:
         db.rollback()
@@ -115,36 +135,17 @@ def register_candidate(
             detail="Registration failed due to a constraint violation",
         )
 
-    access_token, refresh_token = create_user_session_and_tokens(
-        db=db,
-        user=user,
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-        response=response,
-    )
-
-    # Audit log
-    from core.audit import log_audit_event
-    log_audit_event(
-        db=db,
-        action="auth.candidate_registered",
-        actor_type="CANDIDATE",
-        actor_id=user.id,
-        resource_type="users",
-        resource_id=str(user.id),
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-        metadata={"email": user.email},
-    )
-
     return AuthResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        access_token=None,
+        refresh_token=None,
+        verification_required=True,
         user=UserResponse(
             id=user.id,
             email=user.email,
             full_name=user.full_name,
             role=user.role.value,
+            email_verified=False,
+            phone_verified=False,
             company_id=None,
             auth_provider=user.auth_provider,
         ),
@@ -159,7 +160,7 @@ def login_candidate(
     body: CandidateLoginRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Authenticate a candidate with email + password."""
+    """Authenticate a candidate with email + password. Enforces verification checks before JWT issuance."""
     dummy_hash = "$2b$12$L7p.yF7T24Q.8Wk7Qz9.4ux7R6j8q9b0n1o2p3q4r5s6t7u8v9w0x"
     ip = request.client.host if request.client else "127.0.0.1"
 
@@ -213,6 +214,25 @@ def login_candidate(
 
     clear_failed_logins(ip)
 
+    # Check verification status. Unverified candidates get blocked with a 403.
+    with tenant_context(auth_mode="true"):
+        profile = user.candidate_profile
+        phone_verified = profile.phone_verified if profile else False
+        phone_number = profile.phone_number if profile else None
+
+    if not user.email_verified or not phone_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "message": "Verification required",
+                "verification_required": True,
+                "email": user.email,
+                "email_verified": user.email_verified,
+                "phone_verified": phone_verified,
+                "phone_number": phone_number
+            }
+        )
+
     access_token, refresh_token = create_user_session_and_tokens(
         db=db,
         user=user,
@@ -240,6 +260,8 @@ def login_candidate(
             email=user.email,
             full_name=user.full_name,
             role=user.role.value,
+            email_verified=user.email_verified,
+            phone_verified=phone_verified,
             company_id=None,
             auth_provider=user.auth_provider,
         ),
@@ -438,6 +460,8 @@ def candidate_me(
             "full_name": current_candidate.full_name,
             "role": current_candidate.role.value,
             "auth_provider": current_candidate.auth_provider.value,
+            "email_verified": current_candidate.email_verified,
+            "phone_verified": current_candidate.phone_verified,
         },
         "profile": None,
     }
@@ -664,5 +688,344 @@ def candidate_update_profile(
             "profile_status": profile.profile_status,
             "summary": profile.summary,
         }
+    }
+
+
+from schemas.auth import PhoneVerifyOTPRequest, PhoneSendOTPRequest
+
+@router.get("/verification-status")
+def get_verification_status(
+    email: str,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Retrieve the current verification status for a candidate by email."""
+    email_lower = email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.email == email_lower,
+                User.role == UserRole.CANDIDATE,
+            )
+        )
+    if not user:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    with tenant_context(auth_mode="true"):
+        profile = user.candidate_profile
+        phone_verified = profile.phone_verified if profile else False
+        phone_number = profile.phone_number if profile else None
+
+    return {
+        "email_verified": user.email_verified,
+        "phone_verified": phone_verified,
+        "verification_required": not (user.email_verified and phone_verified),
+        "phone_number": phone_number
+    }
+
+
+@router.post("/email/verify-otp")
+def candidate_verify_email_otp_new(
+    request: Request,
+    response: Response,
+    body: CandidateOTPVerifyRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Verify email OTP. Automatically issues JWT if phone is also verified."""
+    email_lower = body.email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.email == email_lower,
+                User.role == UserRole.CANDIDATE,
+                User.is_active.is_(True),
+            )
+        )
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification request")
+
+    from core.verification_service import VerificationService
+    try:
+        VerificationService.verify_email_code(db, user, body.code)
+    except HTTPException:
+        # Log failed attempt
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.email_verification_failed",
+            actor_type="CANDIDATE",
+            actor_id=user.id,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"email": email_lower}
+        )
+        raise
+
+    # Mark as verified
+    with tenant_context(auth_mode="true"):
+        user.email_verified = True
+        db.add(user)
+        profile = user.candidate_profile
+        if profile:
+            profile.email_verified = True
+            db.add(profile)
+        db.commit()
+        db.refresh(user)
+
+    # Log success
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.email_verification_completed",
+        actor_type="CANDIDATE",
+        actor_id=user.id,
+        resource_type="candidate_profiles",
+        resource_id=str(profile.id) if profile else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"email": email_lower},
+    )
+
+    # Check if phone is also verified
+    phone_verified = profile.phone_verified if profile else False
+    if phone_verified:
+        # Issue JWT tokens!
+        access_token, refresh_token = create_user_session_and_tokens(
+            db=db,
+            user=user,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            response=response,
+        )
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            verification_required=False,
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                role=user.role.value,
+                email_verified=True,
+                phone_verified=True,
+                company_id=None,
+                auth_provider=user.auth_provider,
+            ),
+        )
+
+    return {
+        "success": True,
+        "message": "Email verified successfully. Phone verification is still required.",
+        "email_verified": True,
+        "phone_verified": False
+    }
+
+
+@router.post("/phone/send-otp")
+def candidate_send_phone_otp_new(
+    request: Request,
+    body: PhoneSendOTPRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Send phone verification OTP. Supports phone number change flow and logs auth.phone_number_changed."""
+    email_lower = body.email.lower().strip()
+    phone_new = body.phone_number.strip()
+
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.email == email_lower,
+                User.role == UserRole.CANDIDATE,
+                User.is_active.is_(True),
+            )
+        )
+    if not user:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    with tenant_context(auth_mode="true"):
+        profile = user.candidate_profile
+        if not profile:
+            profile = CandidateProfile(user_id=user.id, full_name=user.full_name)
+            db.add(profile)
+            db.flush()
+
+        old_phone = profile.phone_number
+        if old_phone != phone_new:
+            # Phone number changed flow!
+            profile.phone_number = phone_new
+            profile.phone_verified = False
+            db.add(profile)
+            db.commit()
+
+            # Invalidate previous verification attempt
+            if old_phone:
+                from core.verification_service import _mock_phone_otps
+                _mock_phone_otps.pop(old_phone.strip(), None)
+
+            # Log phone number changed event
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.phone_number_changed",
+                actor_type="CANDIDATE",
+                actor_id=user.id,
+                resource_type="candidate_profiles",
+                resource_id=str(profile.id),
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"old_phone": old_phone, "new_phone": phone_new}
+            )
+
+    # Send OTP via VerificationService
+    from core.verification_service import VerificationService
+    VerificationService.send_phone_verification(db, user, phone_new)
+
+    # Log phone verification sent event
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.phone_verification_sent",
+        actor_type="CANDIDATE",
+        actor_id=user.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": phone_new}
+    )
+
+    return {"success": True, "message": "Verification OTP sent successfully"}
+
+
+@router.post("/phone/verify-otp")
+def candidate_verify_phone_otp_new(
+    request: Request,
+    response: Response,
+    body: PhoneVerifyOTPRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Verify phone OTP. Automatically issues JWT if email is also verified."""
+    email_lower = body.email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.email == email_lower,
+                User.role == UserRole.CANDIDATE,
+                User.is_active.is_(True),
+            )
+        )
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification request")
+
+    from core.verification_service import VerificationService
+    try:
+        VerificationService.verify_phone_code(db, user, body.code)
+    except HTTPException:
+        # Log failed attempt
+        from core.audit import log_audit_event
+        log_audit_event(
+            db=db,
+            action="auth.phone_verification_failed",
+            actor_type="CANDIDATE",
+            actor_id=user.id,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            metadata={"email": email_lower}
+        )
+        raise
+
+    # Mark phone as verified in CandidateProfile
+    with tenant_context(auth_mode="true"):
+        profile = user.candidate_profile
+        if profile:
+            profile.phone_verified = True
+            db.add(profile)
+            db.commit()
+
+    # Log successful verification
+    from core.audit import log_audit_event
+    log_audit_event(
+        db=db,
+        action="auth.phone_verification_completed",
+        actor_type="CANDIDATE",
+        actor_id=user.id,
+        resource_type="candidate_profiles",
+        resource_id=str(profile.id) if profile else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={"phone_number": profile.phone_number if profile else None},
+    )
+
+    # Check if email is also verified
+    if user.email_verified:
+        # Issue JWT tokens!
+        access_token, refresh_token = create_user_session_and_tokens(
+            db=db,
+            user=user,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            response=response,
+        )
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            verification_required=False,
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                role=user.role.value,
+                email_verified=True,
+                phone_verified=True,
+                company_id=None,
+                auth_provider=user.auth_provider,
+            ),
+        )
+
+    return {
+        "success": True,
+        "message": "Phone verified successfully. Email verification is still required.",
+        "email_verified": False,
+        "phone_verified": True
+    }
+
+
+@router.get("/test/otps")
+def get_test_otps(
+    email: str,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Backdoor endpoint to retrieve mock OTPs for automated E2E testing. Only active in development/testing."""
+    email_lower = email.lower().strip()
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.email == email_lower,
+                User.role == UserRole.CANDIDATE,
+            )
+        )
+    if not user:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    # Generate a fresh email OTP and get its plaintext code
+    email_code = DBVerificationTokenProvider.create_token(
+        db=db,
+        user_id=user.id,
+        token_type="email_otp",
+        expires_in_minutes=10
+    )
+
+    # Get active phone OTP
+    from core.verification_service import _mock_phone_otps
+    phone_code = None
+    with tenant_context(auth_mode="true"):
+        profile = user.candidate_profile
+        phone = profile.phone_number if profile else None
+        if phone:
+            phone_stripped = phone.strip()
+            if phone_stripped in _mock_phone_otps:
+                phone_code = _mock_phone_otps[phone_stripped]["code"]
+
+    return {
+        "email_code": email_code,
+        "phone_code": phone_code,
+        "phone_number": phone
     }
 

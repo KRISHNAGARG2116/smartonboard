@@ -117,7 +117,7 @@ def candidate_upload_resume(
 
 @router.get("/candidate/resumes")
 def candidate_list_resumes(
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Retrieve all resumes uploaded by the authenticated candidate."""

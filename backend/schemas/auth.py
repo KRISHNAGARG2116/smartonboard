@@ -18,6 +18,7 @@ class CandidateRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=255)
+    phone_number: str = Field(min_length=5, max_length=50)
 
 
 class CandidateLoginRequest(BaseModel):
@@ -56,6 +57,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     email_verified: bool = False
+    phone_verified: bool = False
     company_id: Optional[uuid.UUID] = None
     auth_provider: AuthProvider = AuthProvider.LOCAL
 
@@ -63,10 +65,11 @@ class UserResponse(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    access_token: str
+    access_token: Optional[str] = None
     token_type: str = "bearer"
     refresh_token: Optional[str] = None
     user: UserResponse
+    verification_required: Optional[bool] = None
 
 
 class SessionResponse(BaseModel):
@@ -98,5 +101,15 @@ class CandidateProfileUpdateRequest(BaseModel):
     phone_number: Optional[str] = Field(default=None, max_length=50)
     location: Optional[str] = Field(default=None, max_length=255)
     summary: Optional[str] = Field(default=None)
+
+
+class PhoneVerifyOTPRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+
+
+class PhoneSendOTPRequest(BaseModel):
+    email: EmailStr
+    phone_number: str = Field(min_length=5, max_length=50)
 
 

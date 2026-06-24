@@ -144,7 +144,7 @@ def apply_to_job(
 
 @router.get("/me")
 def get_my_applications(
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)]
 ):
     """Retrieve all applications submitted by the currently logged-in candidate.

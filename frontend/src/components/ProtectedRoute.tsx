@@ -48,6 +48,14 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     }
   }
 
+  // Verification Guard Check
+  if (user.role === 'candidate') {
+    if (!user.email_verified || !user.phone_verified) {
+      localStorage.setItem('smartonboard_redirect_target', location.pathname)
+      return <Navigate to="/candidate/verify" replace />
+    }
+  }
+
   // Onboarding Guard Check
   if (user.role === 'candidate') {
     const onboarded = localStorage.getItem(`smartonboard_onboarded_candidate_${user.email}`) === 'true'

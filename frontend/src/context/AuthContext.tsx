@@ -34,9 +34,9 @@ interface AuthContextValue {
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (data: { company_name: string; email: string; password: string; full_name: string }) => Promise<void>
-  loginCandidate: (email: string, password: string) => Promise<void>
-  registerCandidate: (data: { email: string; password: string; full_name: string }) => Promise<void>
-  loginWithGoogle: (credential: string, role: string) => Promise<void>
+  loginCandidate: (email: string, password: string) => Promise<any>
+  registerCandidate: (data: { email: string; password: string; full_name: string; phone_number: string }) => Promise<any>
+  loginWithGoogle: (credential: string, role: string) => Promise<any>
   setupCompany: (data: { company_name: string; company_website: string; company_domain: string; industry: string; company_size: string }) => Promise<void>
   logout: () => void
 }
@@ -89,20 +89,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginCandidate = useCallback(async (email: string, password: string) => {
     const res = await apiLoginCandidate({ email, password })
-    setAuthToken(res.access_token)
-    setUser(res.user)
+    if (res.access_token) {
+      setAuthToken(res.access_token)
+      setUser(res.user)
+    }
+    return res
   }, [])
 
-  const registerCandidate = useCallback(async (data: { email: string; password: string; full_name: string }) => {
+  const registerCandidate = useCallback(async (data: { email: string; password: string; full_name: string; phone_number: string }) => {
     const res = await apiRegisterCandidate(data)
-    setAuthToken(res.access_token)
-    setUser(res.user)
+    if (res.access_token) {
+      setAuthToken(res.access_token)
+      setUser(res.user)
+    }
+    return res
   }, [])
 
   const loginWithGoogle = useCallback(async (credential: string, role: string) => {
     const res = await apiLoginWithGoogle({ credential, role })
-    setAuthToken(res.access_token)
-    setUser(res.user)
+    if (res.access_token) {
+      setAuthToken(res.access_token)
+      setUser(res.user)
+    }
+    return res
   }, [])
 
   const setupCompany = useCallback(async (data: {

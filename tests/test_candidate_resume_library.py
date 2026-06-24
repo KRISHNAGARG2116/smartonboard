@@ -59,16 +59,18 @@ def test_candidate_resume_library_lifecycle(api_client, db_session):
         "email": "cand_resume_test@example.com",
         "password": "securepassword123",
         "full_name": "John Candidate",
+        "phone_number": "+15550199203",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
     assert resp.status_code == 201
     cand_data = resp.json()
-    token = cand_data["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    cand_user_id = uuid.UUID(cand_data["user"]["id"])
 
     # Mark candidate verified
-    cand_user_id = uuid.UUID(cand_data["user"]["id"])
     with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.id == cand_user_id))
+        user.email_verified = True
+        db_session.add(user)
         profile = db_session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
         )
@@ -76,7 +78,16 @@ def test_candidate_resume_library_lifecycle(api_client, db_session):
             profile.email_verified = True
             profile.phone_verified = True
             db_session.add(profile)
-            db_session.commit()
+        db_session.commit()
+
+    # Login to get valid JWT token
+    login_resp = api_client.post("/api/v1/auth/login/candidate", json={
+        "email": reg_payload["email"],
+        "password": reg_payload["password"]
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
 
     # 2. Upload active resume (Text file - valid TXT signature)
     file_content = b"This is a professional resume for John Candidate.\nSkills: Python, SQLAlchemy, Docker.\nSummary: Experienced developer."
@@ -175,16 +186,18 @@ def test_candidate_resume_upload_validations(api_client, db_session):
         "email": "cand_val_test@example.com",
         "password": "securepassword123",
         "full_name": "Validation Candidate",
+        "phone_number": "+15550199204",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
     assert resp.status_code == 201
     cand_data = resp.json()
-    token = cand_data["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
+    cand_user_id = uuid.UUID(cand_data["user"]["id"])
 
     # Mark candidate verified
-    cand_user_id = uuid.UUID(cand_data["user"]["id"])
     with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.id == cand_user_id))
+        user.email_verified = True
+        db_session.add(user)
         profile = db_session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
         )
@@ -192,7 +205,16 @@ def test_candidate_resume_upload_validations(api_client, db_session):
             profile.email_verified = True
             profile.phone_verified = True
             db_session.add(profile)
-            db_session.commit()
+        db_session.commit()
+
+    # Login to get valid JWT token
+    login_resp = api_client.post("/api/v1/auth/login/candidate", json={
+        "email": reg_payload["email"],
+        "password": reg_payload["password"]
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
 
     # 1. Invalid signature (Empty text or binary with png extension/signature)
     invalid_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR..."

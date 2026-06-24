@@ -1018,7 +1018,12 @@ from api.candidate_auth import (
     candidate_me,
     candidate_send_phone_otp,
     candidate_verify_phone_otp,
-    candidate_update_profile
+    candidate_update_profile,
+    candidate_verify_email_otp_new,
+    candidate_verify_phone_otp_new,
+    candidate_send_phone_otp_new,
+    get_verification_status,
+    get_test_otps
 )
 
 router.post("/register/candidate", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)(register_candidate)
@@ -1029,6 +1034,13 @@ router.get("/candidate/me")(candidate_me)
 router.post("/candidate/phone/send-otp")(candidate_send_phone_otp)
 router.post("/candidate/phone/verify-otp")(candidate_verify_phone_otp)
 router.put("/candidate/profile")(candidate_update_profile)
+
+# New Phase 14D public candidate verification routes
+router.get("/verification-status")(get_verification_status)
+router.post("/email/verify-otp")(candidate_verify_email_otp_new)
+router.post("/phone/send-otp")(candidate_send_phone_otp_new)
+router.post("/phone/verify-otp")(candidate_verify_phone_otp_new)
+router.get("/test/otps")(get_test_otps)
 
 
 # --- Google OAuth and Hardening Extensions ---
@@ -1310,6 +1322,39 @@ def google_auth(
                 db.commit()
                 db.refresh(user)
 
+    # Check candidate phone verification status before issuing tokens
+    if user.role == UserRole.CANDIDATE:
+        with tenant_context(auth_mode="true"):
+            profile = user.candidate_profile
+            phone_verified = profile.phone_verified if profile else False
+            phone_number = profile.phone_number if profile else None
+
+            if not phone_verified:
+                # Google users automatically have email_verified = True
+                if not user.email_verified:
+                    user.email_verified = True
+                    db.add(user)
+                if profile and not profile.email_verified:
+                    profile.email_verified = True
+                    db.add(profile)
+                db.commit()
+
+                # Log failed attempt due to missing phone verification
+                log_google_auth_audit(db, user.id, email_or_token=email, action="auth.google_phone_verification_required", success=False, ip=ip, reason="Phone verification required")
+
+                # Raise 403 Forbidden to trigger phone verification flow in the frontend
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "message": "Verification required",
+                        "verification_required": True,
+                        "email": user.email,
+                        "email_verified": True,
+                        "phone_verified": False,
+                        "phone_number": phone_number
+                    }
+                )
+
     # Generate JWT tokens
     access_token, refresh_token = create_user_session_and_tokens(
         db=db,
@@ -1331,6 +1376,7 @@ def google_auth(
             full_name=user.full_name,
             role=user.role.value,
             email_verified=user.email_verified,
+            phone_verified=user.phone_verified,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
         ),

@@ -12,6 +12,66 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+let isRefreshing = false
+let failedQueue: any[] = []
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/register') &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            return api(originalRequest)
+          })
+          .catch((err) => Promise.reject(err))
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const res = await api.post<{ access_token: string }>('/v1/auth/refresh')
+        const { access_token } = res.data
+        setAuthToken(access_token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+        originalRequest.headers.Authorization = `Bearer ${access_token}`
+        processQueue(null, access_token)
+        return api(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        setAuthToken(null)
+        window.dispatchEvent(new Event('auth_session_expired'))
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export function setAuthToken(token: string | null) {
   if (token) {
     localStorage.setItem(TOKEN_KEY, token)
@@ -117,13 +177,15 @@ export interface User {
   full_name: string
   role: string
   email_verified: boolean
+  phone_verified: boolean
   company_id: string | null
 }
 
 export interface AuthResponse {
-  access_token: string
-  token_type: string
+  access_token?: string
+  token_type?: string
   user: User
+  verification_required?: boolean
 }
 
 export interface Company {
@@ -234,10 +296,25 @@ export const registerCandidate = (data: {
   email: string
   password: string
   full_name: string
+  phone_number: string
 }) => api.post<AuthResponse>('/v1/auth/register/candidate', data).then(r => r.data)
 
 export const loginCandidate = (data: { email: string; password: string }) =>
   api.post<AuthResponse>('/v1/auth/login/candidate', data).then(r => r.data)
+
+export const sendPhoneOTP = (email: string, phoneNumber: string) =>
+  api.post<{ success: boolean; message: string }>('/v1/auth/phone/send-otp', { email, phone_number: phoneNumber }).then(r => r.data)
+
+export const verifyPhoneOTP = (email: string, code: string) =>
+  api.post<AuthResponse>('/v1/auth/phone/verify-otp', { email, code }).then(r => r.data)
+
+export const verifyEmailOTP = (email: string, code: string) =>
+  api.post<AuthResponse>('/v1/auth/email/verify-otp', { email, code }).then(r => r.data)
+
+export const getVerificationStatus = (email: string) =>
+  api.get<{ email_verified: boolean; phone_verified: boolean; verification_required: boolean; phone_number: string | null }>(
+    `/v1/auth/verification-status?email=${encodeURIComponent(email)}`
+  ).then(r => r.data)
 
 export interface CandidateMeResponse {
   user: User

@@ -30,16 +30,18 @@ def test_candidate_applications_me_and_withdraw(api_client, db_session):
         "email": "phase_f_cand@example.com",
         "password": "securepassword123",
         "full_name": "Phase F Candidate",
+        "phone_number": "+15550199206",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
     assert resp.status_code == 201
     cand_data = resp.json()
-    cand_token = cand_data["access_token"]
-    cand_headers = {"Authorization": f"Bearer {cand_token}"}
     cand_user_id = uuid.UUID(cand_data["user"]["id"])
 
     # Update profile and create resume and job setup
     with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.id == cand_user_id))
+        user.email_verified = True
+        db_session.add(user)
         profile = db_session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
         )
@@ -74,6 +76,15 @@ def test_candidate_applications_me_and_withdraw(api_client, db_session):
         db_session.commit()
         db_session.refresh(resume)
         db_session.refresh(job)
+
+    # Login to get valid JWT token
+    login_resp = api_client.post("/api/v1/auth/login/candidate", json={
+        "email": reg_payload["email"],
+        "password": reg_payload["password"]
+    })
+    assert login_resp.status_code == 200
+    cand_token = login_resp.json()["access_token"]
+    cand_headers = {"Authorization": f"Bearer {cand_token}"}
 
     # 2. Apply to Job
     apply_payload = {
@@ -123,16 +134,18 @@ def test_candidate_interviews_and_authenticated_booking_lifecycle(api_client, db
         "email": "phase_f_iv_cand@example.com",
         "password": "securepassword123",
         "full_name": "Phase F Interview Candidate",
+        "phone_number": "+15550199207",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=reg_payload)
     assert resp.status_code == 201
     cand_data = resp.json()
-    cand_token = cand_data["access_token"]
-    cand_headers = {"Authorization": f"Bearer {cand_token}"}
     cand_user_id = uuid.UUID(cand_data["user"]["id"])
 
     # Setup database records
     with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.id == cand_user_id))
+        user.email_verified = True
+        db_session.add(user)
         profile = db_session.scalar(
             select(CandidateProfile).where(CandidateProfile.user_id == cand_user_id)
         )
@@ -209,6 +222,15 @@ def test_candidate_interviews_and_authenticated_booking_lifecycle(api_client, db
         db_session.commit()
         db_session.refresh(interview)
         db_session.refresh(slot)
+
+    # Login to get valid JWT token
+    login_resp = api_client.post("/api/v1/auth/login/candidate", json={
+        "email": reg_payload["email"],
+        "password": reg_payload["password"]
+    })
+    assert login_resp.status_code == 200
+    cand_token = login_resp.json()["access_token"]
+    cand_headers = {"Authorization": f"Bearer {cand_token}"}
 
     # 2. Get interviews via GET /candidate/interviews
     resp = api_client.get("/api/v1/candidate/interviews", headers=cand_headers)

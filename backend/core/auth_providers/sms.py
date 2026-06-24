@@ -37,7 +37,7 @@ class TwilioOTPProvider(OTPDeliveryProvider):
     def __init__(self):
         self.account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
         self.auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
-        self.from_phone = os.getenv("TWILIO_FROM_PHONE", "")
+        self.from_phone = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_FROM_PHONE", "")
 
     def send_otp(self, destination: str, code: str) -> bool:
         if not all([self.account_sid, self.auth_token, self.from_phone]):

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from api.deps import CurrentCandidate, get_db
+from api.deps import CurrentCandidate, get_db, VerifiedCandidate
 from db.session import tenant_context
 from models import Job, CandidateProfile
 from models.enums import JobStatus
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/jobs", tags=["Candidate Jobs"])
 
 @router.get("/feed")
 def get_jobs_feed(
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1, le=100)

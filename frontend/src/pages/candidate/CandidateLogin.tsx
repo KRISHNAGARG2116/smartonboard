@@ -16,10 +16,40 @@ export default function CandidateLogin() {
     setError(null)
     setSubmitting(true)
     try {
-      await loginCandidate(email, password)
-      navigate('/candidate/dashboard')
-    } catch {
-      setError('Invalid candidate email or password.')
+      const res = await loginCandidate(email, password)
+      if (res && res.verification_required) {
+        localStorage.setItem('smartonboard_verify_email', email)
+        navigate('/candidate/verify', {
+          state: {
+            email: email,
+            email_verified: res.user?.email_verified || false,
+            phone_verified: res.user?.phone_verified || false
+          }
+        })
+      } else {
+        const target = localStorage.getItem('smartonboard_redirect_target')
+        if (target) {
+          localStorage.removeItem('smartonboard_redirect_target')
+          navigate(target)
+        } else {
+          navigate('/candidate/dashboard')
+        }
+      }
+    } catch (err: any) {
+      if (err.response?.status === 403 && err.response?.data?.detail?.verification_required) {
+        const detail = err.response.data.detail
+        localStorage.setItem('smartonboard_verify_email', detail.email || email)
+        navigate('/candidate/verify', {
+          state: {
+            email: detail.email || email,
+            email_verified: detail.email_verified,
+            phone_verified: detail.phone_verified,
+            phone_number: detail.phone_number
+          }
+        })
+      } else {
+        setError(err.response?.data?.detail || 'Invalid candidate email or password.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -199,13 +229,43 @@ export default function CandidateLogin() {
                 setSubmitting(true)
                 try {
                   if (credentialResponse.credential) {
-                    await loginWithGoogle(credentialResponse.credential, 'candidate')
-                    navigate('/candidate/dashboard')
+                    const res = await loginWithGoogle(credentialResponse.credential, 'candidate')
+                    if (res && res.verification_required) {
+                      localStorage.setItem('smartonboard_verify_email', res.user?.email || '')
+                      navigate('/candidate/verify', {
+                        state: {
+                          email: res.user?.email || '',
+                          email_verified: true,
+                          phone_verified: false
+                        }
+                      })
+                    } else {
+                      const target = localStorage.getItem('smartonboard_redirect_target')
+                      if (target) {
+                        localStorage.removeItem('smartonboard_redirect_target')
+                        navigate(target)
+                      } else {
+                        navigate('/candidate/dashboard')
+                      }
+                    }
                   } else {
                     setError('No credential returned from Google.')
                   }
                 } catch (err: any) {
-                  setError(err.response?.data?.detail || 'Google authentication failed.')
+                  if (err.response?.status === 403 && err.response?.data?.detail?.verification_required) {
+                    const detail = err.response.data.detail
+                    localStorage.setItem('smartonboard_verify_email', detail.email)
+                    navigate('/candidate/verify', {
+                      state: {
+                        email: detail.email,
+                        email_verified: detail.email_verified,
+                        phone_verified: detail.phone_verified,
+                        phone_number: detail.phone_number
+                      }
+                    })
+                  } else {
+                    setError(err.response?.data?.detail || 'Google authentication failed.')
+                  }
                 } finally {
                   setSubmitting(false)
                 }

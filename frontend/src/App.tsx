@@ -12,6 +12,7 @@ import RecruiterRegister from './pages/recruiter/RecruiterRegister'
 import RecruiterVerifyEmail from './pages/recruiter/RecruiterVerifyEmail'
 import CandidateLogin from './pages/candidate/CandidateLogin'
 import CandidateRegister from './pages/candidate/CandidateRegister'
+import CandidateVerify from './pages/candidate/CandidateVerify'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/recruiter/register" element={<AnimatedPage><RecruiterRegister /></AnimatedPage>} />
         <Route path="/candidate/login" element={<AnimatedPage><CandidateLogin /></AnimatedPage>} />
         <Route path="/candidate/register" element={<AnimatedPage><CandidateRegister /></AnimatedPage>} />
+        <Route path="/candidate/verify" element={<AnimatedPage><CandidateVerify /></AnimatedPage>} />
         <Route path="/forgot-password" element={<AnimatedPage><ForgotPassword /></AnimatedPage>} />
         <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
 

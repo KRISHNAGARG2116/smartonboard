@@ -42,6 +42,7 @@ def test_disposable_email_blocked_candidate(api_client):
         "email": "badcandidate@yopmail.com",
         "password": "securepassword123",
         "full_name": "Bad Candidate",
+        "phone_number": "+15550199201",
     }
     response = api_client.post("/api/v1/auth/register/candidate", json=payload)
     assert response.status_code == 400
@@ -135,10 +136,41 @@ def test_candidate_unverified_block(api_client, db_session):
         "email": "candidate@legithub.com",
         "password": "securepassword123",
         "full_name": "Legit Candidate",
+        "phone_number": "+15550199202",
     }
     resp = api_client.post("/api/v1/auth/register/candidate", json=payload)
     assert resp.status_code == 201
-    token = resp.json()["access_token"]
+    
+    # Manually generate access token for unverified candidate
+    import uuid
+    from datetime import datetime, timezone, timedelta
+    from core.security import create_access_token
+    from models.session import UserSession
+    
+    with tenant_context(auth_mode="true"):
+        user = db_session.scalar(select(User).where(User.email == "candidate@legithub.com"))
+        session_id = uuid.uuid4()
+        session = UserSession(
+            id=session_id,
+            user_id=user.id,
+            refresh_token_hash="mock_hash",
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+            created_at=datetime.now(timezone.utc),
+            last_active=datetime.now(timezone.utc)
+        )
+        db_session.add(session)
+        db_session.commit()
+        
+        token = create_access_token(
+            str(user.id),
+            {
+                "company_id": None,
+                "role": UserRole.CANDIDATE.value,
+                "email": user.email,
+                "session_id": str(session_id)
+            }
+        )
+    
     headers = {"Authorization": f"Bearer {token}"}
 
     # Set up a mock resume, application, and booking slot in DB

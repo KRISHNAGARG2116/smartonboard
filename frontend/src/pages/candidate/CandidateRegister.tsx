@@ -8,6 +8,7 @@ export default function CandidateRegister() {
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -17,8 +18,20 @@ export default function CandidateRegister() {
     setError(null)
     setSubmitting(true)
     try {
-      await registerCandidate({ email, password, full_name: fullName })
-      navigate('/candidate/dashboard')
+      const res = await registerCandidate({ email, password, full_name: fullName, phone_number: phoneNumber })
+      if (res && res.verification_required) {
+        localStorage.setItem('smartonboard_verify_email', email)
+        navigate('/candidate/verify', {
+          state: {
+            email: email,
+            email_verified: false,
+            phone_verified: false,
+            phone_number: phoneNumber
+          }
+        })
+      } else {
+        navigate('/candidate/dashboard')
+      }
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err &&
@@ -140,6 +153,21 @@ export default function CandidateRegister() {
             />
           </div>
 
+          <div style={{ marginBottom: 20 }}>
+            <label htmlFor="phoneNumber" style={labelStyle}>
+              Phone Number
+            </label>
+            <input
+              id="phoneNumber"
+              type="tel"
+              required
+              value={phoneNumber}
+              onChange={e => setPhoneNumber(e.target.value)}
+              placeholder="+15551234567"
+              style={inputStyle}
+            />
+          </div>
+
           <div style={{ marginBottom: 24 }}>
             <label htmlFor="password" style={labelStyle}>
               Password
@@ -195,13 +223,37 @@ export default function CandidateRegister() {
                 setSubmitting(true)
                 try {
                   if (credentialResponse.credential) {
-                    await loginWithGoogle(credentialResponse.credential, 'candidate')
-                    navigate('/candidate/dashboard')
+                    const res = await loginWithGoogle(credentialResponse.credential, 'candidate')
+                    if (res && res.verification_required) {
+                      localStorage.setItem('smartonboard_verify_email', res.user?.email || '')
+                      navigate('/candidate/verify', {
+                        state: {
+                          email: res.user?.email || '',
+                          email_verified: true,
+                          phone_verified: false
+                        }
+                      })
+                    } else {
+                      navigate('/candidate/dashboard')
+                    }
                   } else {
                     setError('No credential returned from Google.')
                   }
                 } catch (err: any) {
-                  setError(err.response?.data?.detail || 'Google authentication failed.')
+                  if (err.response?.status === 403 && err.response?.data?.detail?.verification_required) {
+                    const detail = err.response.data.detail
+                    localStorage.setItem('smartonboard_verify_email', detail.email)
+                    navigate('/candidate/verify', {
+                      state: {
+                        email: detail.email,
+                        email_verified: detail.email_verified,
+                        phone_verified: detail.phone_verified,
+                        phone_number: detail.phone_number
+                      }
+                    })
+                  } else {
+                    setError(err.response?.data?.detail || 'Google authentication failed.')
+                  }
                 } finally {
                   setSubmitting(false)
                 }

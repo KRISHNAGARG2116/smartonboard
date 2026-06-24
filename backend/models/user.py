@@ -52,3 +52,9 @@ class User(Base):
     candidate_profile: Mapped["CandidateProfile | None"] = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     verification_tokens: Mapped[list["VerificationToken"]] = relationship("VerificationToken", back_populates="user", cascade="all, delete-orphan")
     candidate_resumes: Mapped[list["CandidateResume"]] = relationship("CandidateResume", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def phone_verified(self) -> bool:
+        if self.role == UserRole.CANDIDATE:
+            return self.candidate_profile.phone_verified if self.candidate_profile else False
+        return True

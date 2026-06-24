@@ -33,7 +33,7 @@ def get_provider_instance(provider_name: str):
 
 @router.get("/interviews")
 def get_candidate_interviews(
-    current_candidate: CurrentCandidate,
+    current_candidate: VerifiedCandidate,
     db: Annotated[Session, Depends(get_db)]
 ):
     """Retrieve all scheduled interviews and confirmed booking slots for the candidate.
