@@ -71,6 +71,7 @@ class VerificationService:
     @classmethod
     def send_phone_verification(cls, db: Session, user: User, phone_number: str) -> bool:
         """Send a phone verification OTP code. Enforces 5 OTP/hour rate limit and 15-minute lockout."""
+        phone_received = phone_number
         phone = phone_number.strip()
         if not phone:
             raise HTTPException(
@@ -78,9 +79,22 @@ class VerificationService:
                 detail="Phone number is required",
             )
 
+        # E.164 formatting
+        if not phone.startswith('+'):
+            digits = ''.join(c for c in phone if c.isdigit())
+            if len(digits) == 10:
+                phone = f"+1{digits}"
+            else:
+                phone = f"+{digits}"
+        else:
+            digits = ''.join(c for c in phone[1:] if c.isdigit())
+            phone = f"+{digits}"
+
         account_sid = os.getenv("TWILIO_ACCOUNT_SID")
         auth_token = os.getenv("TWILIO_AUTH_TOKEN")
         verify_sid = os.getenv("TWILIO_VERIFY_SERVICE_SID")
+
+        logger.info(f"Phone verification requested: Received='{phone_received}', Formatted E.164='{phone}', Verify Service SID='{verify_sid}'")
 
         now = datetime.now(timezone.utc)
 
@@ -113,22 +127,27 @@ class VerificationService:
 
         # 3. Deliver OTP
         if account_sid and auth_token and verify_sid:
+            logger.info("Twilio credentials found. Attempting to send OTP via Twilio Verify API...")
             try:
                 from twilio.rest import Client
                 client = Client(account_sid, auth_token)
                 # Call Twilio Verify API to initiate verification
-                client.verify.v2.services(verify_sid).verifications.create(
+                verification = client.verify.v2.services(verify_sid).verifications.create(
                     to=phone,
                     channel="sms"
                 )
-                logger.info(f"Twilio Verify OTP initiated for {phone}")
+                logger.info(f"Twilio Verify OTP initiated successfully. Verification SID: {verification.sid}, Status: {verification.status}")
                 return True
             except Exception as e:
-                logger.error(f"Twilio Verify API failed for {phone}: {e}. Falling back to mock delivery.")
-                # Fall back to Mock mode on API error
-                pass
+                logger.error(f"Twilio Verify API failed for {phone}: {e}")
+                # Do not suppress the exception; raise it directly to the client
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Twilio Verify API error: {str(e)}",
+                )
 
-        # Mock Mode Fallback
+        # Mock Mode Fallback (Only active when Twilio credentials are not configured)
+        logger.info("Twilio configuration missing. Entering Mock Verification Mode...")
         code = f"{secrets.randbelow(900000) + 100000}"
         expires_at = now + timedelta(minutes=10)
         _mock_phone_otps[phone] = {
@@ -152,6 +171,18 @@ class VerificationService:
             )
 
         phone = profile.phone_number.strip()
+        
+        # E.164 formatting for verification checks
+        if not phone.startswith('+'):
+            digits = ''.join(c for c in phone if c.isdigit())
+            if len(digits) == 10:
+                phone = f"+1{digits}"
+            else:
+                phone = f"+{digits}"
+        else:
+            digits = ''.join(c for c in phone[1:] if c.isdigit())
+            phone = f"+{digits}"
+
         code_str = code.strip()
         now = datetime.now(timezone.utc)
 
@@ -168,7 +199,10 @@ class VerificationService:
         auth_token = os.getenv("TWILIO_AUTH_TOKEN")
         verify_sid = os.getenv("TWILIO_VERIFY_SERVICE_SID")
 
+        logger.info(f"Phone verification check: Phone='{phone}', Verify Service SID='{verify_sid}'")
+
         if account_sid and auth_token and verify_sid:
+            logger.info("Twilio credentials found. Attempting to verify OTP via Twilio Verify API...")
             try:
                 from twilio.rest import Client
                 from twilio.base.exceptions import TwilioRestException
@@ -180,11 +214,12 @@ class VerificationService:
                     code=code_str
                 )
                 
+                logger.info(f"Twilio Verify check response. Verification SID: {check.sid}, Status: {check.status}")
+
                 if check.status == "approved":
                     logger.info(f"Twilio Verify OTP approved for {phone}")
                     return True
                 else:
-                    # Twilio check failed but did not raise an exception (e.g. just status='pending')
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Invalid verification code.",
@@ -193,7 +228,6 @@ class VerificationService:
                 # Handle Twilio-specific verification errors
                 # Error 60200: Max verification check attempts reached (lockout)
                 if e.code == 60200:
-                    # Lock out in mock lockout state as well for sync
                     _mock_phone_lockouts[phone] = now + timedelta(minutes=15)
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
@@ -213,11 +247,14 @@ class VerificationService:
             except HTTPException:
                 raise
             except Exception as e:
-                logger.error(f"Twilio Verify API exception for {phone}: {e}. Falling back to mock verification.")
-                # Fall back to Mock mode on API error
-                pass
+                logger.error(f"Twilio Verify API exception for {phone}: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Twilio Verify API check error: {str(e)}",
+                )
 
-        # Mock Mode Verification
+        # Mock Mode Verification (Only active when Twilio credentials are not configured)
+        logger.info("Twilio configuration missing. Entering Mock Verification Mode...")
         stored = _mock_phone_otps.get(phone)
         if not stored:
             raise HTTPException(

@@ -19,7 +19,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "motion/react": ["./node_modules/framer-motion"],
+      "@/components/*": ["./src/components/landing/*"],
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

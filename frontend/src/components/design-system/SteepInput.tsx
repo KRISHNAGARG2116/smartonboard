@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
 interface SteepInputProps {
   label?: string;
@@ -13,7 +13,7 @@ interface SteepInputProps {
 type CombinedProps = SteepInputProps & 
   InputHTMLAttributes<HTMLInputElement> & 
   SelectHTMLAttributes<HTMLSelectElement> & 
-  TextareaHTMLAttributes<HTMLTextareaElement>;
+  TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 export default function SteepInput({
   label,

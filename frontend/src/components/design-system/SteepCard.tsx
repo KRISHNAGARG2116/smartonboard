@@ -1,4 +1,4 @@
-import React, { ReactNode, HTMLAttributes } from 'react';
+import React, { type ReactNode, type HTMLAttributes } from 'react';
 
 interface SteepCardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;

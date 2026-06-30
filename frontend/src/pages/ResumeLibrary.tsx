@@ -87,6 +87,7 @@ export default function ResumeLibrary() {
     setUploadError(null)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      console.log('[FRONTEND] File selected via drag-and-drop:', e.dataTransfer.files[0].name, e.dataTransfer.files[0].size);
       await processFile(e.dataTransfer.files[0])
     }
   }
@@ -95,13 +96,16 @@ export default function ResumeLibrary() {
     e.preventDefault()
     setUploadError(null)
     if (e.target.files && e.target.files[0]) {
+      console.log('[FRONTEND] File selected via file input:', e.target.files[0].name, e.target.files[0].size);
       await processFile(e.target.files[0])
     }
   }
 
   const processFile = async (file: File) => {
+    console.log('[FRONTEND] Starting processFile for:', file.name);
     // Check verification status
     if (profile && (!profile.email_verified || !profile.phone_verified)) {
+      console.warn('[FRONTEND] Upload blocked: profile not verified', profile);
       setUploadError("Verification Required: You must verify your email and phone number to upload resumes. Go to Profile Settings to complete verification.")
       return
     }
@@ -109,6 +113,7 @@ export default function ResumeLibrary() {
     // 1. Client-side size validation (5MB)
     const MAX_SIZE = 5 * 1024 * 1024
     if (file.size > MAX_SIZE) {
+      console.warn('[FRONTEND] Upload blocked: file size exceeds 5MB limit');
       setUploadError("File is too large. Maximum size allowed is 5 MB.")
       return
     }
@@ -117,12 +122,14 @@ export default function ResumeLibrary() {
     const allowedExtensions = ['.pdf', '.docx', '.txt']
     const fileExt = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
     if (!allowedExtensions.includes(fileExt)) {
+      console.warn('[FRONTEND] Upload blocked: invalid file extension:', fileExt);
       setUploadError("Invalid file type. Only PDF, DOCX, and TXT files are supported.")
       return
     }
 
     // Check if limit is reached
     if (resumes.length >= 3) {
+      console.warn('[FRONTEND] Upload blocked: already have 3 resumes');
       setUploadError("Maximum limit of 3 resumes reached. Please delete an existing resume to upload a new one.")
       return
     }
@@ -132,12 +139,16 @@ export default function ResumeLibrary() {
 
     const formData = new FormData()
     formData.append('file', file)
+    console.log('[FRONTEND] FormData created with file:', file.name);
 
     try {
-      await uploadCandidateResume(formData)
+      console.log('[FRONTEND] Sending POST request to /v1/auth/candidate/resumes/upload');
+      const response = await uploadCandidateResume(formData)
+      console.log('[FRONTEND] POST request completed. Response received:', response);
       // Fetch resumes list, start polling
       await loadResumes()
     } catch (err: any) {
+      console.error('[FRONTEND] POST request failed:', err);
       setScanningFilename(null)
       setUploadError(err.response?.data?.detail || 'Failed to upload resume. Please check your internet connection and file content.')
     } finally {
@@ -172,6 +183,7 @@ export default function ResumeLibrary() {
   }
 
   const triggerFileInput = () => {
+    console.log('[FRONTEND] Upload button clicked - triggering file input');
     fileInputRef.current?.click()
   }
 

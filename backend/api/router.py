@@ -32,6 +32,7 @@ from api.candidate_interviews import router as candidate_interviews_router
 v1_router = APIRouter(prefix="/api/v1")
 
 # Mount candidate routers first to prevent path parameter shadowing (e.g. /jobs/feed matching /jobs/{job_id})
+v1_router.include_router(candidate_auth_router)
 v1_router.include_router(candidate_resumes_router)
 v1_router.include_router(candidate_jobs_router)
 v1_router.include_router(candidate_applications_router)

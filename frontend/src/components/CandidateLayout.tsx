@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { fetchCandidateProfile } from '../api'
 import AnimatedPage from './AnimatedPage'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import SteepSidebarItem from './design-system/SteepSidebarItem'
 
 interface CandidateLayoutProps {
@@ -133,10 +133,6 @@ export default function CandidateLayout({ children }: CandidateLayoutProps) {
       )
     }
   ]
-
-  const userInitials = user?.full_name
-    ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : 'C'
 
   return (
     <div

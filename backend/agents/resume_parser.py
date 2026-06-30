@@ -32,42 +32,69 @@ def resume_parser_agent(pdf_bytes: bytes) -> dict:
         resume_text = ""
 
 
-    result = llm.invoke(
-        f"""Extract information from this resume and return ONLY a JSON object with these exact keys:
-        {{
-            "name": "full name",
-            "email": "email address",
-            "phone": "phone number",
-            "skills": ["skill1", "skill2"],
-            "experience_years": 0,
-            "education": "highest degree and institution",
-            "previous_roles": ["role1", "role2"],
-            "summary": "2 sentence professional summary"
-        }}
+    try:
+        result = llm.invoke(
+            f"""Extract information from this resume and return ONLY a JSON object with these exact keys:
+            {{
+                "name": "full name",
+                "email": "email address",
+                "phone": "phone number",
+                "skills": ["skill1", "skill2"],
+                "experience_years": 0,
+                "education": "highest degree and institution",
+                "previous_roles": ["role1", "role2"],
+                "summary": "2 sentence professional summary"
+            }}
+    
+            Resume text:
+            {resume_text}
+    
+            Return ONLY the JSON, no other text."""
+        )
+    
+        content = result.content.strip()
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            try:
+                parsed = json.loads(json_match.group())
+                print(f" Resume Parser: Extracted data for {parsed.get('name', 'Unknown')}")
+                return parsed
+            except json.JSONDecodeError:
+                pass
+    except Exception as llm_exc:
+        print(f"Groq LLM call failed in resume parser: {llm_exc}. Using regex/heuristic fallback parser.")
 
-        Resume text:
-        {resume_text}
+    # Heuristic fallback parsing
+    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', resume_text)
+    email = email_match.group(0) if email_match else "unknown@example.com"
 
-        Return ONLY the JSON, no other text."""
-    )
+    # Simple phone match
+    phone_match = re.search(r'\+?\d[\d\-\(\)\s]{8,15}', resume_text)
+    phone = phone_match.group(0).strip() if phone_match else "Unknown"
 
-    content = result.content.strip()
-    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-    if json_match:
-        try:
-            parsed = json.loads(json_match.group())
-            print(f" Resume Parser: Extracted data for {parsed.get('name', 'Unknown')}")
-            return parsed
-        except json.JSONDecodeError:
-            pass
+    # Simple name extraction (first line or words before email)
+    name = "Unknown Candidate"
+    lines = [l.strip() for l in resume_text.split('\n') if l.strip()]
+    if lines:
+        for line in lines[:3]:
+            if len(line.split()) <= 4 and not any(x in line.lower() for x in ['resume', 'cv', 'curriculum', 'profile', 'page']):
+                name = line
+                break
+
+    # Simple skills extraction
+    common_skills = ['python', 'javascript', 'typescript', 'react', 'node', 'fastapi', 'sql', 'postgres', 'docker', 'aws', 'git', 'html', 'css', 'java', 'c++', 'go', 'rust']
+    skills = []
+    for skill in common_skills:
+        if re.search(r'\b' + re.escape(skill) + r'\b', resume_text.lower()):
+            skills.append(skill.capitalize() if skill != 'sql' else 'SQL')
 
     return {
-        "name": "Unknown",
-        "email": "unknown@example.com",
-        "phone": "Unknown",
-        "skills": [],
-        "experience_years": 0,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "skills": skills,
+        "experience_years": 1,
         "education": "Unknown",
         "previous_roles": [],
-        "summary": resume_text[:200]
+        "summary": lines[0] if lines else "No summary available."
     }

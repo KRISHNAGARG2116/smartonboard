@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes, ReactNode } from 'react';
+import { type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 interface SteepButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,6 +8,8 @@ interface SteepButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
   to?: string;
   href?: string;
+  target?: string;
+  rel?: string;
 }
 
 export default function SteepButton({
@@ -17,6 +19,8 @@ export default function SteepButton({
   block = false,
   to,
   href,
+  target,
+  rel,
   className = '',
   style,
   ...props
@@ -40,7 +44,7 @@ export default function SteepButton({
 
   if (to) {
     return (
-      <Link to={to} className={buttonClass} style={style} {...(props as any)}>
+      <Link to={to} className={buttonClass} style={style} target={target} rel={rel} {...(props as any)}>
         {children}
       </Link>
     );
@@ -48,7 +52,7 @@ export default function SteepButton({
 
   if (href) {
     return (
-      <a href={href} className={buttonClass} style={style} {...(props as any)}>
+      <a href={href} className={buttonClass} style={style} target={target} rel={rel} {...(props as any)}>
         {children}
       </a>
     );

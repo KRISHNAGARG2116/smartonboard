@@ -45,10 +45,25 @@ async function run() {
 
   const page = await browser.newPage();
 
+  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+  page.on('pageerror', err => console.error('BROWSER PAGE ERROR:', err.message));
+  page.on('requestfailed', request => {
+    console.log('REQUEST FAILED:', request.url(), request.failure()?.errorText);
+  });
+  page.on('response', async response => {
+    if (response.status() >= 400) {
+      console.log('HTTP ERROR:', response.url(), response.status());
+      try {
+        const text = await response.text();
+        console.log('HTTP ERROR BODY:', text.substring(0, 500));
+      } catch (e) {}
+    }
+  });
+
   // Helper to clear cookies and localStorage
   async function logout() {
     console.log('Logging out...');
-    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle2' });
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
@@ -66,7 +81,7 @@ async function run() {
 
   // 1. Navigate to candidate register page
   console.log('Navigating to candidate register page...');
-  await page.goto(`${BASE_URL}/candidate/register`, { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE_URL}/candidate/register`, { waitUntil: 'domcontentloaded' });
   await new Promise(r => setTimeout(r, 1000));
   await page.screenshot({ path: path.join(outputDir, '1_email_register_page.png') });
 
@@ -81,10 +96,8 @@ async function run() {
 
   // Click submit and wait for navigation to verification page
   console.log('Submitting registration...');
-  await Promise.all([
-    page.click('button[type="submit"]'),
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 })
-  ]);
+  await page.click('button[type="submit"]');
+  await page.waitForSelector('#emailCode', { timeout: 15000 });
   await new Promise(r => setTimeout(r, 1000));
   await page.screenshot({ path: path.join(outputDir, '3_email_verify_page_loaded.png') });
 

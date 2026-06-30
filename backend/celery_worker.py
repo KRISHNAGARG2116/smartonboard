@@ -729,6 +729,9 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
     Asynchronously scans a quarantined file via ClamAV, promotes it if safe,
     and executes the screening or full recruitment parsing pipeline.
     """
+    import time
+    import signal
+    from contextlib import contextmanager
     from db.session import SessionLocal, tenant_context
     from models.quarantine import QuarantinedFile
     from core.malware import scan_file_for_malware
@@ -737,125 +740,150 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
     from pathlib import Path
     import uuid
 
+    @contextmanager
+    def stage_timeout(stage_name: str, seconds: int = 30):
+        t0 = time.time()
+        logger.info(f"[TIMING] Starting stage: {stage_name}")
+        def timeout_handler(signum, frame):
+            raise TimeoutError(f"Stage '{stage_name}' hung and timed out after {seconds} seconds!")
+        
+        original_handler = signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(seconds)
+        try:
+            yield
+            elapsed = time.time() - t0
+            logger.info(f"[TIMING] Completed stage: {stage_name} in {elapsed:.3f}s")
+        except Exception as e:
+            elapsed = time.time() - t0
+            logger.error(f"[TIMING] Failed stage: {stage_name} after {elapsed:.3f}s with error: {e}")
+            raise
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, original_handler)
+
     db = SessionLocal()
     try:
-        q_file = db.get(QuarantinedFile, uuid.UUID(quarantine_file_id))
-        if not q_file:
-            logger.error(f"Quarantined file with ID {quarantine_file_id} not found.")
-            return {"success": False, "error": "Quarantined file not found"}
+        # 1. Fetch quarantine file
+        with stage_timeout("Fetch Quarantine File Record", 30):
+            q_file = db.get(QuarantinedFile, uuid.UUID(quarantine_file_id))
+            if not q_file:
+                logger.error(f"Quarantined file with ID {quarantine_file_id} not found.")
+                return {"success": False, "error": "Quarantined file not found"}
 
-        company_id = str(q_file.company_id)
+            company_id = str(q_file.company_id)
+            STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent / "storage"
+            storage_service = LocalStorageService(STORAGE_BASE_DIR)
 
-        STORAGE_BASE_DIR = Path(__file__).resolve().parent.parent / "storage"
-        storage_service = LocalStorageService(STORAGE_BASE_DIR)
+            q_path = Path(q_file.quarantine_path)
+            if not q_path.is_absolute():
+                q_path = STORAGE_BASE_DIR / q_path
 
-        q_path = Path(q_file.quarantine_path)
-        if not q_path.is_absolute():
-            q_path = STORAGE_BASE_DIR / q_path
+            if not q_path.exists():
+                q_file.is_safe = False
+                q_file.error_message = "File not found in quarantine storage"
+                db.commit()
+                return {"success": False, "error": "File not found"}
 
-        if not q_path.exists():
-            q_file.is_safe = False
-            q_file.error_message = "File not found in quarantine storage"
-            db.commit()
-            return {"success": False, "error": "File not found"}
+            file_bytes = q_path.read_bytes()
 
-        file_bytes = q_path.read_bytes()
+        # 2. Malware Scan
+        with stage_timeout("Malware Scan (ClamAV)", 30):
+            try:
+                scan_file_for_malware(file_bytes)
+                q_file.is_safe = True
+                db.flush()
+            except ValueError as val_err:
+                q_file.is_safe = False
+                q_file.error_message = str(val_err)
+                db.commit()
+                storage_service.delete_file(q_path)
+                
+                # Log audit event
+                from core.audit import log_audit_event
+                log_audit_event(
+                    db=db,
+                    action="file.scan_failure",
+                    actor_type="UNAUTHENTICATED",
+                    company_id=q_file.company_id,
+                    resource_type="quarantine",
+                    metadata={"filename": q_file.filename, "error": str(val_err), "event": "malware_detected"}
+                )
+                db.commit()
+                return {"success": False, "error": str(val_err)}
+            except Exception as exc:
+                db.rollback()
+                countdown = (2 ** self.request.retries) * 5
+                logger.warning(f"Transient scan failure (retry {self.request.retries}/5) for task. Retrying in {countdown}s. Error: {exc}")
+                raise self.retry(exc=exc, countdown=countdown)
 
-        # 1. Malware Scan
-        try:
-            scan_file_for_malware(file_bytes)
-            q_file.is_safe = True
-            db.flush()
-        except ValueError as val_err:
-            q_file.is_safe = False
-            q_file.error_message = str(val_err)
-            db.commit()
-            storage_service.delete_file(q_path)
-            
-            # Log audit event
-            from core.audit import log_audit_event
-            log_audit_event(
-                db=db,
-                action="file.scan_failure",
-                actor_type="UNAUTHENTICATED",
-                company_id=q_file.company_id,
-                resource_type="quarantine",
-                metadata={"filename": q_file.filename, "error": str(val_err), "event": "malware_detected"}
-            )
-            db.commit()
-            return {"success": False, "error": str(val_err)}
-        except Exception as exc:
-            db.rollback()
-            countdown = (2 ** self.request.retries) * 5
-            logger.warning(f"Transient scan failure (retry {self.request.retries}/5) for task. Retrying in {countdown}s. Error: {exc}")
-            raise self.retry(exc=exc, countdown=countdown)
-
-        # 2. Role-aware branching after scan
+        # 3. Role-aware branching after scan
         if q_file.user_id is not None:
             user_id = q_file.user_id
-            permanent_path = storage_service.promote_file(q_path, f"candidates/{user_id}")
             
-            # Log promotion audit event for candidate
-            from core.audit import log_audit_event
-            log_audit_event(
-                db=db,
-                action="file.promoted",
-                actor_type="CANDIDATE",
-                actor_id=user_id,
-                resource_type="uploads",
-                resource_id=permanent_path.name,
-                metadata={"filename": q_file.filename, "size": len(file_bytes)}
-            )
-            db.commit()
-
-            # 3. Parse resume facts
-            from agents.resume_parser import resume_parser_agent
-            parsed_data = resume_parser_agent(file_bytes)
-
-            with tenant_context(auth_mode="true"):
-                # 4. Deactivate all existing resumes of the candidate
-                from models.candidate_resume import CandidateResume
-                from sqlalchemy import update
-                db.execute(
-                    update(CandidateResume)
-                    .where(CandidateResume.user_id == user_id)
-                    .values(is_active=False)
-                )
-                db.flush()
-
-                # 5. Insert new CandidateResume record
-                relative_path = f"uploads/candidates/{user_id}/{permanent_path.name}"
-                new_resume = CandidateResume(
-                    user_id=user_id,
-                    filename=q_file.filename,
-                    file_path=relative_path,
-                    is_active=True,
-                    parsed_skills=parsed_data.get("skills", []),
-                    parsed_summary=parsed_data.get("summary", "")
-                )
-                db.add(new_resume)
-                db.flush()
-
-                # 6. Update candidate profile values (provenance sync)
-                from models.candidate_profile import CandidateProfile
-                profile = db.scalar(
-                    select(CandidateProfile).where(CandidateProfile.user_id == user_id)
-                )
-                if profile:
-                    profile.skills = parsed_data.get("skills", [])
-                    profile.summary = parsed_data.get("summary", "")
-                    
-                    parsed_name = parsed_data.get("name")
-                    if parsed_name and (not profile.full_name or profile.full_name == "Unknown"):
-                        profile.full_name = parsed_name
-                        
-                    parsed_phone = parsed_data.get("phone")
-                    if parsed_phone and not profile.phone_number:
-                        profile.phone_number = parsed_phone
-                        
-                    db.add(profile)
+            with stage_timeout("Promote File to Candidate Storage", 30):
+                permanent_path = storage_service.promote_file(q_path, f"candidates/{user_id}")
                 
+                # Log promotion audit event for candidate
+                from core.audit import log_audit_event
+                log_audit_event(
+                    db=db,
+                    action="file.promoted",
+                    actor_type="CANDIDATE",
+                    actor_id=user_id,
+                    resource_type="uploads",
+                    resource_id=permanent_path.name,
+                    metadata={"filename": q_file.filename, "size": len(file_bytes)}
+                )
                 db.commit()
+
+            # 4. Parse resume facts
+            with stage_timeout("Parse Resume Facts (LLM)", 30):
+                from agents.resume_parser import resume_parser_agent
+                parsed_data = resume_parser_agent(file_bytes)
+
+            # 5. Database Update (CandidateResume and CandidateProfile)
+            with stage_timeout("Update Database Records", 30):
+                with tenant_context(auth_mode="true"):
+                    from models.candidate_resume import CandidateResume
+                    from sqlalchemy import update
+                    db.execute(
+                        update(CandidateResume)
+                        .where(CandidateResume.user_id == user_id)
+                        .values(is_active=False)
+                    )
+                    db.flush()
+
+                    relative_path = f"uploads/candidates/{user_id}/{permanent_path.name}"
+                    new_resume = CandidateResume(
+                        user_id=user_id,
+                        filename=q_file.filename,
+                        file_path=relative_path,
+                        is_active=True,
+                        parsed_skills=parsed_data.get("skills", []),
+                        parsed_summary=parsed_data.get("summary", "")
+                    )
+                    db.add(new_resume)
+                    db.flush()
+
+                    from models.candidate_profile import CandidateProfile
+                    profile = db.scalar(
+                        select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+                    )
+                    if profile:
+                        profile.skills = parsed_data.get("skills", [])
+                        profile.summary = parsed_data.get("summary", "")
+                        
+                        parsed_name = parsed_data.get("name")
+                        if parsed_name and (not profile.full_name or profile.full_name == "Unknown"):
+                            profile.full_name = parsed_name
+                            
+                        parsed_phone = parsed_data.get("phone")
+                        if parsed_phone and not profile.phone_number:
+                            profile.phone_number = parsed_phone
+                            
+                        db.add(profile)
+                    
+                    db.commit()
 
             return {
                 "success": True,
@@ -864,41 +892,55 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
             }
 
         # Recruiter Flow
-        permanent_path = storage_service.promote_file(q_path, company_id)
-        
-        # Log promotion compliance audit
-        from core.audit import log_audit_event
-        log_audit_event(
-            db=db,
-            action="file.promoted",
-            actor_type="UNAUTHENTICATED",
-            company_id=q_file.company_id,
-            resource_type="uploads",
-            resource_id=permanent_path.name,
-            metadata={"filename": q_file.filename, "size": len(file_bytes)}
-        )
-        db.commit()
+        with stage_timeout("Promote File to Recruiter Storage", 30):
+            permanent_path = storage_service.promote_file(q_path, company_id)
+            
+            # Log promotion compliance audit
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="file.promoted",
+                actor_type="UNAUTHENTICATED",
+                company_id=q_file.company_id,
+                resource_type="uploads",
+                resource_id=permanent_path.name,
+                metadata={"filename": q_file.filename, "size": len(file_bytes)}
+            )
+            db.commit()
 
-        # 3. Choose pipeline depending on job_id presence
+        # Choose pipeline depending on job_id presence
         if job_id is None:
             # screening playground workflow
-            from agents.screening_agent import screen_resume_text as _screen_text
-            resume_text = extract_text_from_file_bytes(file_bytes, q_file.filename)
-            result = _screen_text(
-                resume_text=resume_text,
-                job_role=job_role or "Software Engineer",
-                job_description=job_description or "",
-            )
-            return {"success": True, "analysis": result, "filename": q_file.filename}
+            with stage_timeout("Screen Resume Text (LLM)", 30):
+                from agents.screening_agent import screen_resume_text as _screen_text
+                resume_text = extract_text_from_file_bytes(file_bytes, q_file.filename)
+                result = _screen_text(
+                    resume_text=resume_text,
+                    job_role=job_role or "Software Engineer",
+                    job_description=job_description or "",
+                )
+                return {"success": True, "analysis": result, "filename": q_file.filename}
         else:
             # recruitment workflow: reuse process_resume_async logic
-            relative_path = f"uploads/{company_id}/{permanent_path.name}"
-            db.close() # Close current session since process_resume_async opens its own
-            return process_resume_async.run(relative_path, company_id, str(job_id), str(evaluation_id))
+            with stage_timeout("Process Resume Async (Full Pipeline)", 30):
+                relative_path = f"uploads/{company_id}/{permanent_path.name}"
+                db.close() # Close current session since process_resume_async opens its own
+                return process_resume_async.run(relative_path, company_id, str(job_id), str(evaluation_id))
 
     except Exception as exc:
         db.rollback()
-        logger.error(f"Permanent failure in scan_and_promote_resume_task: {exc}")
+        logger.error(f"Permanent failure in scan_and_promote_resume_task: {exc}", exc_info=True)
+        try:
+            with SessionLocal() as err_db:
+                from models.quarantine import QuarantinedFile
+                q_rec = err_db.get(QuarantinedFile, uuid.UUID(quarantine_file_id))
+                if q_rec:
+                    q_rec.is_safe = False
+                    q_rec.error_message = f"Processing failed: {str(exc)}"
+                    err_db.commit()
+                    logger.info(f"Updated QuarantinedFile {quarantine_file_id} status to FAILED in the database.")
+        except Exception as log_err:
+            logger.error(f"Failed to update QuarantinedFile status to FAILED in the database: {log_err}", exc_info=True)
         raise exc
     finally:
         db.close()

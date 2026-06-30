@@ -15,6 +15,7 @@ import CandidateRegister from './pages/candidate/CandidateRegister'
 import CandidateVerify from './pages/candidate/CandidateVerify'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import DesignSystemPreview from './pages/DesignSystemPreview'
 
 // Recruiter Workspace Pages
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard'
@@ -46,6 +47,7 @@ function AppRoutes() {
       <Routes location={location} key={location.pathname}>
         {/* Guest Entry Routing */}
         <Route path="/" element={<AnimatedPage><Landing /></AnimatedPage>} />
+        <Route path="/design-system-preview" element={<AnimatedPage><DesignSystemPreview /></AnimatedPage>} />
         <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
         <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
         <Route path="/recruiter/login" element={<AnimatedPage><RecruiterLogin /></AnimatedPage>} />

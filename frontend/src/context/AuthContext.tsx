@@ -77,13 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiLogin({ email, password })
-    setAuthToken(res.access_token)
+    setAuthToken(res.access_token || null)
     setUser(res.user)
   }, [])
 
   const register = useCallback(async (data: { company_name: string; email: string; password: string; full_name: string }) => {
     const res = await apiRegister(data)
-    setAuthToken(res.access_token)
+    setAuthToken(res.access_token || null)
     setUser(res.user)
   }, [])
 
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     company_size: string
   }) => {
     const res = await apiSetupCompany(data)
-    setAuthToken(res.access_token)
+    setAuthToken(res.access_token || null)
     setUser(res.user)
   }, [])
 
