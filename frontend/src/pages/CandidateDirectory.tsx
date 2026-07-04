@@ -50,6 +50,16 @@ export default function CandidateDirectory() {
     return 'badge--neutral'
   }
 
+  const handleStageAction = async (appId: string, name: string, status: string) => {
+    try {
+      await updateApplicationStatus(appId, status)
+      alert(`Candidate ${name} stage updated to: ${status}`)
+      loadData()
+    } catch {
+      alert('Error updating candidate stage.')
+    }
+  }
+
   // DataTable Column Definitions
   const columns: DataTableColumn<Application>[] = useMemo(
     () => [
@@ -58,43 +68,41 @@ export default function CandidateDirectory() {
         header: 'Candidate Name',
         sortable: true,
         render: (app) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
-              background: 'var(--color-dark-cork)', color: 'var(--color-pure-white)',
+              background: 'var(--color-fog)',
+              color: 'var(--color-ink)',
               display: 'grid',
               placeItems: 'center',
-              fontWeight: 500,
-              fontSize: '12px'
+              fontWeight: 600,
+              fontSize: '11px',
+              border: '1px solid var(--border)'
             }}>
-              {app.candidate?.full_name ? app.candidate.full_name[0] : 'C'}
+              {app.candidate?.full_name ? app.candidate.full_name[0].toUpperCase() : 'C'}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 500, color: 'var(--text)' }}>
-                {app.candidate?.full_name || 'Unknown Candidate'}
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--color-grey-brown)' }}>
-                {app.candidate?.email || 'No Email'}
-              </span>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--color-ink)' }}>{app.candidate?.full_name || 'Anonymous'}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-grey-brown)', marginTop: '2px' }}>{app.candidate?.email}</div>
             </div>
           </div>
         )
       },
       {
         key: 'status',
-        header: 'Current Stage',
+        header: 'Stage Status',
         sortable: true,
         render: (app) => (
-          <span className={`badge ${stageBadgeClass(app.status)}`} style={{ fontSize: '9px', fontWeight: 500 }}>
+          <span className={`badge ${stageBadgeClass(app.status)}`} style={{ fontSize: 'var(--text-caption)' }}>
             {app.status}
           </span>
         )
       },
       {
         key: 'match_score',
-        header: 'AI Match Score',
+        header: 'AI Match',
         sortable: true,
         render: (app) => {
           const score = app.match_score
@@ -148,20 +156,52 @@ export default function CandidateDirectory() {
       },
       {
         key: 'actions',
-        header: '',
+        header: 'Actions',
         render: (app) => (
-          <button
-            type="button"
-            className="btn btn--secondary btn--sm"
-            style={{ padding: '4px 10px' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              setSelectedApp(app)
-              setDrawerTab('overview')
-            }}
-          >
-            Workspace
-          </button>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              style={{ padding: '4px 8px', fontSize: '11px' }}
+              onClick={() => {
+                setSelectedApp(app)
+                setDrawerTab('overview')
+              }}
+            >
+              View
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              style={{ padding: '4px 8px', fontSize: '11px' }}
+              onClick={() => {
+                setSelectedApp(app)
+                setDrawerTab('interviews')
+              }}
+            >
+              Schedule
+            </button>
+            {app.status !== 'offer' && app.status !== 'hired' && (
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+                onClick={() => handleStageAction(app.id, app.candidate?.full_name || 'Candidate', 'offer')}
+              >
+                Offer
+              </button>
+            )}
+            {app.status !== 'rejected' && (
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--color-rust)' }}
+                onClick={() => handleStageAction(app.id, app.candidate?.full_name || 'Candidate', 'rejected')}
+              >
+                Reject
+              </button>
+            )}
+          </div>
         )
       }
     ],

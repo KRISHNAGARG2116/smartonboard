@@ -1,34 +1,54 @@
 import { useState, useEffect, useCallback } from 'react'
 import AppLayout from '../../components/AppLayout'
-import { fetchJobs, createJob, type Job } from '../../api'
+import { fetchJobs, createJob, updateJob, fetchApplications, type Job, type Application } from '../../api'
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepButton from '../../components/design-system/SteepButton'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepBadge from '../../components/design-system/SteepBadge'
 
 export default function RecruiterJobs() {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   
-  // Form State
+  // Modals state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingJob, setEditingJob] = useState<Job | null>(null)
+
+  // Create Form State
   const [title, setTitle] = useState('')
   const [dept, setDept] = useState('Engineering')
   const [desc, setDesc] = useState('')
   const [startDate, setStartDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const loadJobs = useCallback(async () => {
+  // Edit Form State
+  const [editTitle, setEditTitle] = useState('')
+  const [editDept, setEditDept] = useState('Engineering')
+  const [editDesc, setEditDesc] = useState('')
+  const [editStartDate, setEditStartDate] = useState('')
+  const [editingSubmitting, setEditingSubmitting] = useState(false)
+
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const jobList = await fetchJobs()
+      const [jobList, appList] = await Promise.all([
+        fetchJobs(),
+        fetchApplications()
+      ])
       setJobs(jobList)
+      setApplications(appList)
     } catch (err) {
-      console.error('Error fetching jobs:', err)
+      console.error('Error fetching jobs and applications:', err)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadJobs()
-  }, [loadJobs])
+    loadData()
+  }, [loadData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +65,7 @@ export default function RecruiterJobs() {
       setTitle('')
       setDesc('')
       setStartDate('')
-      loadJobs()
+      loadData()
     } catch (err) {
       alert('Error creating Job Posting.')
     } finally {
@@ -53,71 +73,138 @@ export default function RecruiterJobs() {
     }
   }
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingJob) return
+    setEditingSubmitting(true)
+    try {
+      await updateJob(editingJob.id, {
+        title: editTitle,
+        department: editDept,
+        description: editDesc,
+        start_date: editStartDate || null
+      })
+      setIsEditModalOpen(false)
+      setEditingJob(null)
+      loadData()
+    } catch (err) {
+      alert('Error updating Job Posting.')
+    } finally {
+      setEditingSubmitting(false)
+    }
+  }
+
+  const handleToggleStatus = async (job: Job) => {
+    const newStatus = job.status === 'open' ? 'closed' : 'open'
+    try {
+      await updateJob(job.id, { status: newStatus })
+      alert(`Job status updated to ${newStatus}`)
+      loadData()
+    } catch (err) {
+      alert('Error updating job status.')
+    }
+  }
+
   return (
     <AppLayout>
-      <div className="container" style={{ padding: 'var(--space-6) 0 var(--space-12)' }}>
+      <div className="container" style={{ padding: 'var(--spacing-32) 0 var(--spacing-48)' }}>
         {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           borderBottom: '1px solid var(--border)',
-          paddingBottom: 'var(--space-6)',
-          marginBottom: 'var(--space-6)'
+          paddingBottom: 'var(--spacing-24)',
+          marginBottom: 'var(--spacing-24)'
         }}>
           <div>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 'var(--text-caption)', fontWeight: 550, color: 'var(--color-ash)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Workspace Openings
             </span>
-            <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)', margin: '4px 0 0', lineHeight: 1.09 }}>
+            <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', margin: '4px 0 0', lineHeight: 1.09 }}>
               Job Postings
             </h1>
           </div>
-          <button 
+          <SteepButton 
             onClick={() => setIsModalOpen(true)}
-            className="btn btn--primary" 
-            style={{ borderRadius: 'var(--radius-buttons)' }}
+            variant="primary"
           >
             Create Job
-          </button>
+          </SteepButton>
         </div>
 
         {/* List of jobs */}
         {loading ? (
-          <div style={{ padding: 'var(--space-12) 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <div style={{ padding: 'var(--spacing-48) 0', textAlign: 'center', color: 'var(--color-ash)' }}>
             Loading active job postings...
           </div>
         ) : jobs.length === 0 ? (
-          <div className="card card__body" style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
+          <SteepCard style={{ textAlign: 'center', padding: 'var(--spacing-48)' }}>
             No active job postings. Click "Create Job" to post your first opening.
-          </div>
+          </SteepCard>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            {jobs.map((job) => (
-              <div 
-                key={job.id}
-                className="card card__body"
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>
-                    {job.title}
-                  </h3>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    <span>{job.department}</span>
-                    <span>&bull;</span>
-                    <span>Status: {job.status}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
+            {jobs.map((job) => {
+              const count = applications.filter((app) => app.job_id === job.id).length
+              return (
+                <SteepCard 
+                  key={job.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 'var(--spacing-16) var(--spacing-24)'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                        {job.title}
+                      </h3>
+                      <SteepBadge variant={job.status === 'open' ? 'success' : 'neutral'}>
+                        {job.status}
+                      </SteepBadge>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 'var(--text-caption)', color: 'var(--color-ash)' }}>
+                      <span>{job.department}</span>
+                      <span>&bull;</span>
+                      {job.start_date && (
+                        <span>Starts: {new Date(job.start_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                  Active Applicants: <strong style={{ color: 'var(--text)' }}>Open</strong>
-                </div>
-              </div>
-            ))}
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                    <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-ash)', textAlign: 'right' }}>
+                      Active Applicants: <strong style={{ color: 'var(--color-ink)' }}>{count}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <SteepButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setEditingJob(job)
+                          setEditTitle(job.title)
+                          setEditDept(job.department)
+                          setEditDesc(job.description || '')
+                          setEditStartDate(job.start_date || '')
+                          setIsEditModalOpen(true)
+                        }}
+                      >
+                        Edit
+                      </SteepButton>
+                      <SteepButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleToggleStatus(job)}
+                      >
+                        {job.status === 'open' ? 'Close' : 'Re-open'}
+                      </SteepButton>
+                    </div>
+                  </div>
+                </SteepCard>
+              )
+            })}
           </div>
         )}
 
@@ -126,115 +213,159 @@ export default function RecruiterJobs() {
           <div style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
+            background: 'rgba(93, 42, 26, 0.4)',
+            backdropFilter: 'blur(4px)',
             display: 'grid',
             placeItems: 'center',
-            zIndex: 100,
+            zIndex: 250,
             padding: 24
           }}>
-            <div 
-              className="card"
-              style={{
-                padding: 32,
-                maxWidth: 480,
-                width: '100%',
-                boxSizing: 'border-box'
-              }}
-            >
-              <h2 style={{ fontSize: 24, fontWeight: 500, margin: '0 0 24px', color: 'var(--text)' }}>
-                New Job Posting
-              </h2>
+            <div style={{ maxWidth: 480, width: '100%' }}>
+              <SteepCard style={{ padding: 32 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                  <h2 className="font-signifier" style={{ fontSize: 24, fontWeight: 500, margin: 0, color: 'var(--color-ink)' }}>
+                    New Job Posting
+                  </h2>
+                  <SteepButton variant="ghost" onClick={() => setIsModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                </div>
 
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: 20 }}>
-                  <label htmlFor="job-title" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Job Title
-                  </label>
-                  <input 
+                <form onSubmit={handleSubmit}>
+                  <SteepInput 
                     id="job-title"
                     required
+                    label="Job Title"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="e.g. Lead Frontend Engineer"
-                    className="form-input"
-                    style={{
-                      width: '100%'
-                    }}
                   />
-                </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <label htmlFor="job-dept" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Department
-                  </label>
-                  <select 
+                  <SteepInput 
                     id="job-dept"
+                    label="Department"
+                    select
+                    options={['Engineering', 'Product', 'Design', 'Operations', 'Sales', 'Marketing'].map(d => ({ value: d, label: d }))}
                     value={dept}
                     onChange={e => setDept(e.target.value)}
-                    className="form-select"
-                    style={{
-                      width: '100%'
-                    }}
-                  >
-                    <option value="Engineering">Engineering</option>
-                    <option value="Product">Product</option>
-                    <option value="Design">Design</option>
-                    <option value="Operations">Operations</option>
-                  </select>
-                </div>
+                  />
 
-                <div style={{ marginBottom: 20 }}>
-                  <label htmlFor="job-desc" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Description
-                  </label>
-                  <textarea 
+                  <SteepInput 
                     id="job-desc"
                     required
+                    textarea
+                    label="Description"
                     value={desc}
                     onChange={e => setDesc(e.target.value)}
                     placeholder="Provide role description and key skills requirements..."
-                    rows={4}
-                    className="form-input"
-                    style={{
-                      width: '100%',
-                      resize: 'vertical'
-                    }}
+                    style={{ minHeight: '100px' }}
                   />
-                </div>
 
-                <div style={{ marginBottom: 28 }}>
-                  <label htmlFor="job-start" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Start Date (Optional)
-                  </label>
-                  <input 
+                  <SteepInput 
                     id="job-start"
                     type="date"
+                    label="Start Date (Optional)"
                     value={startDate}
                     onChange={e => setStartDate(e.target.value)}
-                    className="form-input"
-                    style={{
-                      width: '100%'
-                    }}
                   />
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24 }}>
+                    <SteepButton 
+                      type="button" 
+                      onClick={() => setIsModalOpen(false)}
+                      variant="secondary" 
+                    >
+                      Cancel
+                    </SteepButton>
+                    <SteepButton 
+                      type="submit" 
+                      disabled={submitting}
+                      variant="primary" 
+                    >
+                      {submitting ? 'Creating...' : 'Create Job'}
+                    </SteepButton>
+                  </div>
+                </form>
+              </SteepCard>
+            </div>
+          </div>
+        )}
+
+        {/* Modal for editing a job */}
+        {isEditModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(93, 42, 26, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'grid',
+            placeItems: 'center',
+            zIndex: 250,
+            padding: 24
+          }}>
+            <div style={{ maxWidth: 480, width: '100%' }}>
+              <SteepCard style={{ padding: 32 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                  <h2 className="font-signifier" style={{ fontSize: 24, fontWeight: 500, margin: 0, color: 'var(--color-ink)' }}>
+                    Edit Job Posting
+                  </h2>
+                  <SteepButton variant="ghost" onClick={() => { setIsEditModalOpen(false); setEditingJob(null); }} style={{ padding: 4 }}>✕</SteepButton>
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsModalOpen(false)}
-                    className="btn btn--secondary" 
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    disabled={submitting}
-                    className="btn btn--primary" 
-                  >
-                    {submitting ? 'Creating...' : 'Create Job'}
-                  </button>
-                </div>
-              </form>
+                <form onSubmit={handleEditSubmit}>
+                  <SteepInput 
+                    id="edit-job-title"
+                    required
+                    label="Job Title"
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    placeholder="e.g. Lead Frontend Engineer"
+                  />
+
+                  <SteepInput 
+                    id="edit-job-dept"
+                    label="Department"
+                    select
+                    options={['Engineering', 'Product', 'Design', 'Operations', 'Sales', 'Marketing'].map(d => ({ value: d, label: d }))}
+                    value={editDept}
+                    onChange={e => setEditDept(e.target.value)}
+                  />
+
+                  <SteepInput 
+                    id="edit-job-desc"
+                    required
+                    textarea
+                    label="Description"
+                    value={editDesc}
+                    onChange={e => setEditDesc(e.target.value)}
+                    placeholder="Provide role description and key skills requirements..."
+                    style={{ minHeight: '100px' }}
+                  />
+
+                  <SteepInput 
+                    id="edit-job-start"
+                    type="date"
+                    label="Start Date (Optional)"
+                    value={editStartDate}
+                    onChange={e => setEditStartDate(e.target.value)}
+                  />
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24 }}>
+                    <SteepButton 
+                      type="button" 
+                      onClick={() => { setIsEditModalOpen(false); setEditingJob(null); }}
+                      variant="secondary" 
+                    >
+                      Cancel
+                    </SteepButton>
+                    <SteepButton 
+                      type="submit" 
+                      disabled={editingSubmitting}
+                      variant="primary" 
+                    >
+                      {editingSubmitting ? 'Saving...' : 'Save Changes'}
+                    </SteepButton>
+                  </div>
+                </form>
+              </SteepCard>
             </div>
           </div>
         )}

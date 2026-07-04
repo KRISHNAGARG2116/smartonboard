@@ -1,43 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '../../components/AppLayout'
-import { 
-  fetchCompany, 
-  fetchDlqRecords, 
-  fetchSyncMetrics, 
-  retryDlqRecord, 
-  type Company 
-} from '../../api'
+import { fetchCompany, type Company } from '../../api'
+import SteepCard from '../../components/design-system/SteepCard'
+import SteepButton from '../../components/design-system/SteepButton'
+import SteepInput from '../../components/design-system/SteepInput'
+import SteepBadge from '../../components/design-system/SteepBadge'
 
-type DlqTab = 'dlq' | 'metrics'
+type SettingsTab = 'profile' | 'recruiters' | 'security' | 'notifications' | 'verification' | 'billing'
 
 export default function RecruiterSettings() {
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
-  // DLQ States
-  const [activeDlqTab, setActiveDlqTab] = useState<DlqTab>('dlq')
-  const [dlqRecords, setDlqRecords] = useState<any[]>([])
-  const [syncMetrics, setSyncMetrics] = useState<any[]>([])
-  const [dlqLoading, setDlqLoading] = useState(false)
-  const [dlqError, setDlqError] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
-
-  const loadDlqData = useCallback(async () => {
-    setDlqLoading(true)
-    setDlqError(null)
-    try {
-      const [records, metrics] = await Promise.all([
-        fetchDlqRecords().catch(() => []),
-        fetchSyncMetrics().catch(() => [])
-      ])
-      setDlqRecords(records)
-      setSyncMetrics(metrics)
-    } catch (err: any) {
-      setDlqError(err.response?.data?.detail || 'Failed to retrieve DLQ and metrics logs.')
-    } finally {
-      setDlqLoading(false)
-    }
-  }, [])
+  // Notification Preferences State
+  const [notifAppReceived, setNotifAppReceived] = useState(true)
+  const [notifParsingDone, setNotifParsingDone] = useState(true)
+  const [notifInterviewAccepted, setNotifInterviewAccepted] = useState(true)
+  const [notifWithdrawn, setNotifWithdrawn] = useState(false)
+  const [notifVerifyFail, setNotifVerifyFail] = useState(true)
 
   useEffect(() => {
     setLoading(true)
@@ -45,86 +26,205 @@ export default function RecruiterSettings() {
       .then(co => setCompany(co))
       .catch(err => console.error('Error fetching company details:', err))
       .finally(() => setLoading(false))
+  }, [])
 
-    loadDlqData()
-  }, [loadDlqData])
-
-  const handleRetry = async (recordId: string) => {
-    setActionMessage(null)
-    setDlqError(null)
-    try {
-      await retryDlqRecord(recordId)
-      setActionMessage('Sync retry request successfully submitted!')
-      await loadDlqData()
-    } catch (err: any) {
-      setDlqError(err.response?.data?.detail || 'Failed to retry sync outbox event.')
-    }
-  }
-
-  const dlqTabs: { id: DlqTab; label: string }[] = [
-    { id: 'dlq', label: 'Dead Letter Queue (Errors)' },
-    { id: 'metrics', label: 'Sync Metrics & Trends' },
+  const tabs: { id: SettingsTab; label: string }[] = [
+    { id: 'profile', label: 'Company Profile' },
+    { id: 'recruiters', label: 'Recruiters List' },
+    { id: 'security', label: 'Security & SSO' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'verification', label: 'DNS Verification' },
+    { id: 'billing', label: 'Billing' },
   ]
 
   return (
     <AppLayout>
-      <div className="container" style={{ padding: 'var(--space-6) 0 var(--space-12)' }}>
+      <div className="container" style={{ padding: 'var(--spacing-32) 0 var(--spacing-48)' }}>
+        
         {/* Header */}
         <div style={{
           borderBottom: '1px solid var(--border)',
-          paddingBottom: 'var(--space-6)',
-          marginBottom: 'var(--space-6)'
+          paddingBottom: 'var(--spacing-24)',
+          marginBottom: 'var(--spacing-24)'
         }}>
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 'var(--text-caption)', fontWeight: 550, color: 'var(--color-ash)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Recruiter Control Center
           </span>
-          <h1 style={{ fontSize: '29px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)', margin: '4px 0 0', lineHeight: 1.09 }}>
+          <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', margin: '4px 0 0', lineHeight: 1.09 }}>
             Workspace Settings
           </h1>
         </div>
 
         {loading ? (
-          <div style={{ padding: 'var(--space-12) 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <div style={{ padding: 'var(--spacing-48) 0', textAlign: 'center', color: 'var(--color-ash)' }}>
             Loading settings configurations...
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-            {/* Top Config Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--space-6)', alignItems: 'flex-start' }}>
-              {/* Main Config Cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                
-                {/* Profile Config Card */}
-                <div className="card card__body">
-                  <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 16px', color: 'var(--text)' }}>
-                    Workspace Profile
+          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 'var(--spacing-32)', alignItems: 'flex-start' }}>
+            
+            {/* Sidebar Navigation */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '10px 16px',
+                    fontSize: '13.5px',
+                    fontWeight: activeTab === tab.id ? 600 : 400,
+                    borderRadius: '10px',
+                    background: activeTab === tab.id ? 'var(--color-fog)' : 'transparent',
+                    color: activeTab === tab.id ? 'var(--color-ink)' : 'var(--color-ash)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Config Panels */}
+            <div style={{ minWidth: 0 }}>
+              
+              {/* Profile Config */}
+              {activeTab === 'profile' && (
+                <SteepCard>
+                  <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: '0 0 20px', color: 'var(--color-ink)' }}>
+                    Company Profile
                   </h2>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                        Organization Name
-                      </label>
-                      <div style={{ fontSize: 15, color: 'var(--text)', paddingBottom: 4, borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                        {company?.name || 'SmartOnboard Partner'}
+                    <SteepInput
+                      id="profile-name"
+                      label="Organization Name"
+                      value={company?.name || 'SmartOnboard Partner'}
+                      readOnly
+                      disabled
+                    />
+                    <SteepInput
+                      id="profile-domain"
+                      label="Workspace Domain"
+                      value={company?.slug ? `${company.slug}.com` : 'smartonboard.io'}
+                      readOnly
+                      disabled
+                    />
+                    <SteepInput
+                      id="profile-industry"
+                      label="Industry"
+                      value="Technology"
+                      readOnly
+                      disabled
+                    />
+                    <SteepInput
+                      id="profile-size"
+                      label="Company Size"
+                      value="50-100 Employees"
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                </SteepCard>
+              )}
+
+              {/* Recruiters List */}
+              {activeTab === 'recruiters' && (
+                <SteepCard>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                    <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: 0, color: 'var(--color-ink)' }}>
+                      Active Recruiter Team
+                    </h2>
+                    <SteepButton variant="secondary" size="sm">Invite Teammate</SteepButton>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-fog)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <div>
+                        <strong style={{ fontSize: '13.5px', color: 'var(--color-ink)' }}>Sarah Recruiter</strong>
+                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>sarah@company.com</span>
                       </div>
+                      <SteepBadge variant="success">Workspace Owner</SteepBadge>
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                        Workspace Domain
-                      </label>
-                      <div style={{ fontSize: 15, color: 'var(--text)', paddingBottom: 4, borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                        {company?.slug ? `${company.slug}.com` : 'smartonboard.io'}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-fog)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <div>
+                        <strong style={{ fontSize: '13.5px', color: 'var(--color-ink)' }}>John Recruiter</strong>
+                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>john.rec@company.com</span>
                       </div>
+                      <SteepBadge variant="neutral">Recruiter</SteepBadge>
                     </div>
                   </div>
-                </div>
+                </SteepCard>
+              )}
 
-                {/* DNS Verification Center */}
-                <div className="card card__body">
-                  <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 16px', color: 'var(--text)' }}>
+              {/* Security Tab */}
+              {activeTab === 'security' && (
+                <SteepCard>
+                  <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: '0 0 12px', color: 'var(--color-ink)' }}>
+                    SSO & Access Rules
+                  </h2>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginBottom: 20 }}>
+                    Manage sign-in options, restrict login networks, and control enterprise security policy.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--color-fog)' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13.5px', marginBottom: '4px' }}>Google Workspace Single Sign-On (SSO)</div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-ash)' }}>Enforce corporate Google Workspace log in for all recruiter accounts matching the verified domain.</div>
+                      <SteepButton variant="secondary" size="sm" style={{ marginTop: '12px' }}>Enable SSO enforcement</SteepButton>
+                    </div>
+
+                    <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--color-fog)' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13.5px', marginBottom: '4px' }}>IP Access Whitelist Restrictions</div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-ash)' }}>Restrict workspace logins only to corporate networks and office IP ranges.</div>
+                      <SteepButton variant="secondary" size="sm" style={{ marginTop: '12px' }}>Configure Whitelisted IP ranges</SteepButton>
+                    </div>
+                  </div>
+                </SteepCard>
+              )}
+
+              {/* Notifications Tab */}
+              {activeTab === 'notifications' && (
+                <SteepCard>
+                  <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: '0 0 12px', color: 'var(--color-ink)' }}>
+                    Email Notifications
+                  </h2>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginBottom: 20 }}>
+                    Select system alerts and updates you wish to receive in your inbox.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13.5px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={notifAppReceived} onChange={e => setNotifAppReceived(e.target.checked)} />
+                      <span>New application received</span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13.5px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={notifParsingDone} onChange={e => setNotifParsingDone(e.target.checked)} />
+                      <span>Resume processing completed</span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13.5px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={notifInterviewAccepted} onChange={e => setNotifInterviewAccepted(e.target.checked)} />
+                      <span>Interview accepted by candidate</span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13.5px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={notifWithdrawn} onChange={e => setNotifWithdrawn(e.target.checked)} />
+                      <span>Candidate withdrew application</span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13.5px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={notifVerifyFail} onChange={e => setNotifVerifyFail(e.target.checked)} />
+                      <span>Candidate verification checks failed</span>
+                    </label>
+                  </div>
+                </SteepCard>
+              )}
+
+              {/* Verification Tab */}
+              {activeTab === 'verification' && (
+                <SteepCard>
+                  <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: '0 0 16px', color: 'var(--color-ink)' }}>
                     MX / DNS Domain Verification
                   </h2>
-                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.33, margin: '0 0 16px' }}>
+                  <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', lineHeight: 1.33, margin: '0 0 16px' }}>
                     Verify company email domain records to secure workspace operations and candidate communication channels.
                   </p>
                   <div style={{
@@ -134,210 +234,48 @@ export default function RecruiterSettings() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: 'var(--bg-subtle)'
+                    background: 'var(--color-fog)'
                   }}>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>MX Domain State: <span style={{ color: 'var(--color-burnt-sienna)' }}>Pending Verification</span></div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Expected MX domain record: mail.{company?.slug ? `${company.slug}.com` : 'smartonboard.io'}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>MX Domain State: <span style={{ color: company?.domain_verified ? 'var(--color-success)' : 'var(--color-rust)' }}>{company?.domain_verified ? 'Verified & Active' : 'Pending Verification'}</span></div>
+                      <div style={{ fontSize: 11, color: 'var(--color-ash)', marginTop: 4 }}>Expected MX domain record: mail.{company?.slug ? `${company.slug}.com` : 'smartonboard.io'}</div>
                     </div>
-                    <button className="btn btn--secondary btn--sm" onClick={() => alert('Initiating background domain verification check...')}>
-                      Verify Records
-                    </button>
+                    {!company?.domain_verified && (
+                      <SteepButton variant="secondary" size="sm" onClick={() => alert('Checking records...')}>
+                        Verify Records
+                      </SteepButton>
+                    )}
                   </div>
-                </div>
-              </div>
+                </SteepCard>
+              )}
 
-              {/* Right Sidebar Columns */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                
-                {/* Billing Placeholder Card */}
-                <div className="card card__body">
-                  <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 12px', color: 'var(--text)' }}>
+              {/* Billing Tab */}
+              {activeTab === 'billing' && (
+                <SteepCard>
+                  <h2 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, margin: '0 0 12px', color: 'var(--color-ink)' }}>
                     Subscription & Billing
                   </h2>
                   <div style={{
                     fontSize: 10,
-                    fontWeight: 500,
-                    color: 'var(--color-burnt-sienna)',
+                    fontWeight: 600,
+                    color: 'var(--color-rust)',
                     letterSpacing: '0.05em',
                     textTransform: 'uppercase',
                     marginBottom: 12
                   }}>
-                    Coming Soon
+                    Standard Employer Plan
                   </div>
-                  <p style={{ fontSize: 13, lineHeight: 1.35, color: 'var(--text-secondary)', margin: 0 }}>
-                    SmartOnboard platform subscription controls, invoice tracking, plan selectors, and payment gateway configurations will be made available in the next release cycle.
+                  <p style={{ fontSize: 13.5, lineHeight: 1.35, color: 'var(--color-ash)', margin: 0 }}>
+                    SmartOnboard platform subscription plans are calculated per active job posting. 
                   </p>
-                  <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    Planned Plan Rates: <strong>$49/month per active job</strong>
+                  <div style={{ borderTop: '1px solid var(--border)', marginTop: 16, paddingTop: 16, fontSize: 13, color: 'var(--color-ink)', fontWeight: 500 }}>
+                    Workspace Plan Rates: <strong style={{ color: 'var(--color-rust)' }}>$49/month per active job</strong>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* DLQ Monitoring and Retry Section */}
-            <div className="card card__body" style={{ marginTop: 'var(--space-4)' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 500, margin: '0 0 8px', color: 'var(--text)' }}>
-                HRIS Outbox logs & Dead Letter Queue (DLQ)
-              </h2>
-              <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', lineHeight: 1.33, margin: '0 0 20px' }}>
-                Inspect failed transfers in the Dead Letter Queue, view system sync counters, and trigger manual retries.
-              </p>
-
-              {dlqError && (
-                <div className="banner banner--error" style={{ border: '1px solid var(--danger)', background: 'var(--danger-bg)', color: 'var(--text)', padding: 'var(--space-3) var(--space-4)', borderRadius: '16px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
-                  ❌ {dlqError}
-                </div>
+                </SteepCard>
               )}
 
-              {actionMessage && (
-                <div className="banner banner--success" style={{ border: '1px solid var(--border)', background: 'var(--success-bg)', color: 'var(--success)', padding: 'var(--space-3) var(--space-4)', borderRadius: '16px', marginBottom: 'var(--space-4)', fontSize: '12px' }}>
-                  ✅ {actionMessage}
-                </div>
-              )}
-
-              <div className="card" style={{ overflow: 'hidden' }}>
-                <div className="tabs" role="tablist" aria-label="DLQ Navigation" style={{ display: 'flex', borderBottom: '1px solid var(--color-cork-shadow)' }}>
-                  {dlqTabs.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeDlqTab === t.id}
-                      className={`tab ${activeDlqTab === t.id ? 'tab--active' : ''}`}
-                      style={{
-                        padding: '12px 18px',
-                        fontSize: '12px',
-                        fontFamily: 'inherit',
-                        fontWeight: 500,
-                        border: 'none',
-                        borderBottom: activeDlqTab === t.id ? '2px solid var(--color-burnt-sienna)' : '2px solid transparent',
-                        background: 'transparent',
-                        color: activeDlqTab === t.id ? 'var(--text)' : 'var(--color-grey-brown)',
-                        cursor: 'pointer',
-                        borderRadius: '0px'
-                      }}
-                      onClick={() => setActiveDlqTab(t.id)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="card__body" style={{ padding: 'var(--space-4)' }}>
-                  {dlqLoading ? (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--color-grey-brown)', fontSize: '14px' }}>
-                      Loading logs and sync metrics...
-                    </div>
-                  ) : activeDlqTab === 'dlq' ? (
-                    <div>
-                      {dlqRecords.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-4)' }}>
-                          <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>🎉</span>
-                          <h4 style={{ fontWeight: 500, fontSize: '18px', color: 'var(--text)', margin: '0 0 var(--space-2) 0' }}>Dead Letter Queue is Empty</h4>
-                          <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
-                            All outbox events synchronized successfully with connected HRIS providers.
-                          </p>
-                        </div>
-                      ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Provider</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failure Reason</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Created At</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {dlqRecords.map((rec) => (
-                                <tr key={rec.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                  <td style={{ padding: 'var(--space-4)', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{(rec.provider || '').toUpperCase()}</td>
-                                  <td style={{ padding: 'var(--space-4)', fontSize: '14px', color: 'var(--color-burnt-sienna)' }}>
-                                    <div style={{ fontWeight: 500 }}>{rec.error_detail || rec.error_message || 'Connection timeout or invalid sync parameters'}</div>
-                                    <div style={{ fontSize: '10px', color: 'var(--color-grey-brown)', marginTop: '2px' }}>Event Outbox ID: {rec.outbox_id || rec.id}</div>
-                                  </td>
-                                  <td style={{ padding: 'var(--space-4)', fontSize: '12px', color: 'var(--color-grey-brown)' }}>
-                                    {new Date(rec.created_at || Date.now()).toLocaleString()}
-                                  </td>
-                                  <td style={{ padding: 'var(--space-4)' }}>
-                                    <span className="badge" style={{ border: rec.status === 'resolved' || rec.resolved_at ? '1px solid var(--border)' : '1px solid var(--color-burnt-sienna)', color: rec.status === 'resolved' || rec.resolved_at ? 'var(--text)' : 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: 'var(--radius-sm)' }}>
-                                      {rec.resolved_at ? 'resolved' : (rec.status || 'failed')}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
-                                    {!rec.resolved_at && rec.status !== 'resolved' && (
-                                      <button
-                                        type="button"
-                                        className="btn btn--secondary btn--sm"
-                                        onClick={() => handleRetry(rec.id)}
-                                        style={{ padding: '4px 10px', fontSize: '11px' }}
-                                      >
-                                        Retry Sync
-                                      </button>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      {syncMetrics.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-4)' }}>
-                          <span style={{ fontSize: '48px', display: 'block', marginBottom: 'var(--space-4)' }}>📈</span>
-                          <h4 style={{ fontWeight: 500, fontSize: '18px', color: 'var(--text)', margin: '0 0 var(--space-2) 0' }}>No Sync Metrics Recorded</h4>
-                          <p style={{ color: 'var(--color-grey-brown)', fontSize: '14px', margin: 0 }}>
-                            System sync metric snapshots will appear here as outbox flows execute.
-                          </p>
-                        </div>
-                      ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sync Snapshot</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Provider</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Successful Syncs</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sync Failures</th>
-                                <th style={{ padding: 'var(--space-3) var(--space-4)', fontSize: '10px', fontWeight: 500, color: 'var(--color-grey-brown)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Health Ratio</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {syncMetrics.map((met) => {
-                                const total = met.success_count + met.failure_count
-                                const healthRatio = total > 0 ? ((met.success_count / total) * 100).toFixed(1) : '100'
-                                const ratioVal = parseFloat(healthRatio)
-                                return (
-                                  <tr key={met.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                    <td style={{ padding: 'var(--space-4)', fontSize: '12px', color: 'var(--color-grey-brown)' }}>
-                                      {new Date(met.timestamp || met.created_at || Date.now()).toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: 'var(--space-4)', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{(met.provider || '').toUpperCase()}</td>
-                                    <td style={{ padding: 'var(--space-4)', fontSize: '14px', color: 'var(--text)', fontWeight: 500 }}>{met.success_count}</td>
-                                    <td style={{ padding: 'var(--space-4)', fontSize: '14px', color: 'var(--color-burnt-sienna)', fontWeight: 500 }}>{met.failure_count}</td>
-                                    <td style={{ padding: 'var(--space-4)' }}>
-                                      <span className="badge" style={{ border: ratioVal >= 90 ? '1px solid var(--color-warm-cream)' : '1px solid var(--color-burnt-sienna)', color: ratioVal >= 90 ? 'var(--text)' : 'var(--color-burnt-sienna)', padding: '2px 8px', fontSize: '10px', borderRadius: '999px', background: 'transparent' }}>
-                                        {healthRatio}%
-                                      </span>
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
+
           </div>
         )}
       </div>

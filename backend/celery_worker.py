@@ -747,8 +747,14 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
         def timeout_handler(signum, frame):
             raise TimeoutError(f"Stage '{stage_name}' hung and timed out after {seconds} seconds!")
         
-        original_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(seconds)
+        has_signal = False
+        try:
+            original_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(seconds)
+            has_signal = True
+        except ValueError as e:
+            logger.warning(f"Bypassing SIGALRM stage timeout for '{stage_name}' because: {e}")
+        
         try:
             yield
             elapsed = time.time() - t0
@@ -758,8 +764,9 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
             logger.error(f"[TIMING] Failed stage: {stage_name} after {elapsed:.3f}s with error: {e}")
             raise
         finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, original_handler)
+            if has_signal:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, original_handler)
 
     db = SessionLocal()
     try:

@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import AppLayout from '../components/AppLayout'
 import CandidateDrawer from '../components/CandidateDrawer'
-import { fetchApplications, updateApplicationStatus, type Application } from '../api'
+import { fetchApplications, updateApplicationStatus, getVerificationStatus, type Application } from '../api'
 import { scoreClass } from '../utils/score'
 import SteepCard from '../components/design-system/SteepCard'
 import SteepButton from '../components/design-system/SteepButton'
@@ -22,15 +22,17 @@ const cardVariants: Variants = {
 }
 
 const COLUMNS = [
-  { id: 'SCREENING', title: 'Applied / Screening' },
-  { id: 'INTERVIEW', title: 'Interview Panel' },
-  { id: 'COMMITTEE', title: 'Committee Review' },
-  { id: 'OFFER', title: 'Offer Contract' },
-  { id: 'HIRED', title: 'Hired & Sync' },
+  { id: 'submitted', title: 'Applied' },
+  { id: 'screening', title: 'AI Screened' },
+  { id: 'verified', title: 'Verified' },
+  { id: 'interview', title: 'Interview' },
+  { id: 'offer', title: 'Offer' },
+  { id: 'hired', title: 'Hired' },
 ]
 
 export default function PipelineBoard() {
   const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
 
   // Drawer candidate state
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
@@ -39,43 +41,72 @@ export default function PipelineBoard() {
   // Drag over column state highlighting
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    setLoading(true)
     try {
       const appList = await fetchApplications()
-      setApplications(appList)
+      
+      // Enrich applications with real candidate verification status
+      const enrichedApps = await Promise.all(
+        appList.map(async (app) => {
+          if (app.candidate?.email) {
+            try {
+              const statusData = await getVerificationStatus(app.candidate.email)
+              return {
+                ...app,
+                candidate: {
+                  ...app.candidate,
+                  email_verified: statusData.email_verified,
+                  phone_verified: statusData.phone_verified,
+                  verified: !statusData.verification_required,
+                }
+              }
+            } catch {
+              return app
+            }
+          }
+          return app
+        })
+      )
+      setApplications(enrichedApps)
     } catch (err) {
       console.error('Error fetching pipeline applications:', err)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
-  // --- Dynamic Mock Metadata calculations per column ---
+  // --- Dynamic calculations per column ---
   const columnMetrics = useMemo(() => {
     const metrics: Record<string, { count: number; avgScore: number; avgDays: number }> = {}
 
     COLUMNS.forEach((col) => {
-      const colApps = applications.filter(
-        (app) => {
-          const status = app.status.toUpperCase()
-          // map basic 'applied' or 'screening' to SCREENING column
-          if (col.id === 'SCREENING') return status === 'SCREENING' || status === 'APPLIED' || status === 'REJECTED'
-          return status === col.id
+      const colApps = applications.filter((app) => {
+        const status = app.status.toLowerCase()
+        if (col.id === 'submitted') return status === 'submitted'
+        if (col.id === 'screening') {
+          return status === 'screening' && !(app.candidate as any)?.verified
         }
-      )
+        if (col.id === 'verified') {
+          return status === 'screening' && (app.candidate as any)?.verified
+        }
+        return status === col.id
+      })
 
       const count = colApps.length
       
-      // Calculate deterministic average scores & days in stage based on hashes
       let totalScore = 0
       let totalDays = 0
 
       colApps.forEach((app) => {
-        const hashNum = Math.abs(app.id.charCodeAt(0) + app.id.charCodeAt(5))
-        totalScore += (hashNum % 40) + 60
-        totalDays += (hashNum % 12) + 1
+        totalScore += app.match_score || 0
+        const diffTime = Math.abs(new Date(app.updated_at).getTime() - new Date(app.created_at).getTime())
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        totalDays += diffDays
       })
 
       const avgScore = count > 0 ? Math.round(totalScore / count) : 0
@@ -87,7 +118,7 @@ export default function PipelineBoard() {
     return metrics
   }, [applications])
 
-  // --- HTML5 Drag and Drop handlers (Type-Safe and Highly Compatible) ---
+  // --- HTML5 Drag and Drop handlers ---
   const handleDragStart = (e: React.DragEvent, appId: string) => {
     e.dataTransfer.setData('text/plain', appId)
     e.dataTransfer.effectAllowed = 'move'
@@ -112,21 +143,24 @@ export default function PipelineBoard() {
     const app = applications.find((a) => a.id === appId)
     if (!app) return
 
-    // Don't transition if same column
-    const currentColumn = app.status.toUpperCase()
-    const targetStatus = targetColumnId.toLowerCase()
-    
-    if (currentColumn === targetColumnId || (targetColumnId === 'SCREENING' && currentColumn === 'APPLIED')) {
+    // Map column target to status
+    let statusToSend = targetColumnId
+    if (targetColumnId === 'verified') {
+      statusToSend = 'screening'
+    }
+
+    const currentStatus = app.status.toLowerCase()
+    if (currentStatus === statusToSend) {
       return
     }
 
     try {
       // Optimistic update
       setApplications((prev) =>
-        prev.map((a) => (a.id === appId ? { ...a, status: targetStatus } : a))
+        prev.map((a) => (a.id === appId ? { ...a, status: statusToSend } : a))
       )
 
-      await updateApplicationStatus(appId, targetStatus)
+      await updateApplicationStatus(appId, statusToSend)
       alert(`Successfully advanced ${app.candidate?.full_name || 'candidate'} to stage: ${targetColumnId}`)
       loadData()
     } catch (err) {
@@ -134,6 +168,17 @@ export default function PipelineBoard() {
       loadData()
     }
   }
+
+  const handleStageAction = async (appId: string, name: string, status: string) => {
+    try {
+      await updateApplicationStatus(appId, status)
+      alert(`Candidate ${name} stage updated to: ${status}`)
+      loadData()
+    } catch {
+      alert('Error updating candidate stage.')
+    }
+  }
+
 
   return (
     <AppLayout>
@@ -162,11 +207,19 @@ export default function PipelineBoard() {
           }}
           aria-label="Hiring columns board"
         >
-          {COLUMNS.map((col) => {
+          {loading ? (
+            <div style={{ padding: '48px', margin: '0 auto', color: 'var(--color-ash)' }}>Loading board...</div>
+          ) : COLUMNS.map((col) => {
             const metrics = columnMetrics[col.id] || { count: 0, avgScore: 0, avgDays: 0 }
             const colApps = applications.filter((app) => {
-              const status = app.status.toUpperCase()
-              if (col.id === 'SCREENING') return status === 'SCREENING' || status === 'APPLIED' || status === 'REJECTED'
+              const status = app.status.toLowerCase()
+              if (col.id === 'submitted') return status === 'submitted'
+              if (col.id === 'screening') {
+                return status === 'screening' && !(app.candidate as any)?.verified
+              }
+              if (col.id === 'verified') {
+                return status === 'screening' && (app.candidate as any)?.verified
+              }
               return status === col.id
             })
 
@@ -204,9 +257,13 @@ export default function PipelineBoard() {
 
                   {/* Aggregated Column Metrics */}
                   <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: 'var(--color-ash)', marginTop: '6px', fontWeight: 500 }}>
-                    <span>Avg AI: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgScore}%</strong></span>
-                    <span>·</span>
-                    <span>Avg Time: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgDays}d</strong></span>
+                    {metrics.count > 0 && (
+                      <>
+                        <span>Avg AI: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgScore}%</strong></span>
+                        <span>·</span>
+                        <span>Avg Time: <strong style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{metrics.avgDays}d</strong></span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -222,9 +279,9 @@ export default function PipelineBoard() {
                   aria-label={`Candidates in ${col.title}`}
                 >
                   {colApps.map((app, index) => {
-                    const hashNum = Math.abs(app.id.charCodeAt(0) + app.id.charCodeAt(5))
-                    const score = (hashNum % 40) + 60
-                    const days = (hashNum % 12) + 1
+                    const score = app.match_score || 0
+                    const diffTime = Math.abs(new Date(app.updated_at).getTime() - new Date(app.created_at).getTime())
+                    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
                     return (
                       <div
@@ -272,9 +329,13 @@ export default function PipelineBoard() {
                                 </strong>
                               </div>
                               
-                              <span className={`score-ring ${scoreClass(score)}`} style={{ width: '22px', height: '22px', fontSize: '9px' }}>
-                                {score}
-                              </span>
+                              {score > 0 ? (
+                                <span className={`score-ring ${scoreClass(score)}`} style={{ width: '22px', height: '22px', fontSize: '9px' }}>
+                                  {score}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '10px', color: 'var(--color-ash)' }}>—</span>
+                              )}
                             </div>
 
                             {/* Job connection & Days Badge */}
@@ -288,31 +349,60 @@ export default function PipelineBoard() {
                             </div>
 
                             {/* Card hover operational triggers */}
-                            <div style={{ display: 'flex', gap: '6px', borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-8)' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-8)', marginTop: '4px' }}>
                               <SteepButton
                                 variant="secondary"
                                 size="sm"
-                                style={{ flex: 1, padding: '4px 6px', fontSize: '10px' }}
+                                style={{ padding: '3px 6px', fontSize: '9.5px' }}
                                 onClick={() => {
                                   setSelectedApp(app)
                                   setDrawerTab('overview')
                                 }}
                               >
-                                Open
+                                View
                               </SteepButton>
-                              {app.status.toLowerCase() !== 'hired' && (
+                              <SteepButton
+                                variant="secondary"
+                                size="sm"
+                                style={{ padding: '3px 6px', fontSize: '9.5px' }}
+                                onClick={() => {
+                                  setSelectedApp(app)
+                                  setDrawerTab('interviews')
+                                }}
+                              >
+                                Schedule
+                              </SteepButton>
+                              {app.status.toLowerCase() !== 'offer' && app.status.toLowerCase() !== 'hired' && (
                                 <SteepButton
                                   variant="secondary"
                                   size="sm"
-                                  style={{ flex: 1, padding: '4px 6px', fontSize: '10px' }}
-                                  onClick={() => {
-                                    setSelectedApp(app)
-                                    setDrawerTab('interviews')
-                                  }}
+                                  style={{ padding: '3px 6px', fontSize: '9.5px' }}
+                                  onClick={() => handleStageAction(app.id, app.candidate?.full_name || 'Candidate', 'offer')}
                                 >
-                                  Schedule
+                                  Offer
                                 </SteepButton>
                               )}
+                              {app.status.toLowerCase() !== 'rejected' && (
+                                <SteepButton
+                                  variant="secondary"
+                                  size="sm"
+                                  style={{ padding: '3px 6px', fontSize: '9.5px', color: 'var(--color-rust)' }}
+                                  onClick={() => handleStageAction(app.id, app.candidate?.full_name || 'Candidate', 'rejected')}
+                                >
+                                  Reject
+                                </SteepButton>
+                              )}
+                              <SteepButton
+                                variant="secondary"
+                                size="sm"
+                                style={{ padding: '3px 6px', fontSize: '9.5px' }}
+                                onClick={() => {
+                                  setSelectedApp(app)
+                                  setDrawerTab('timeline')
+                                }}
+                              >
+                                Note
+                              </SteepButton>
                             </div>
                           </SteepCard>
                         </motion.div>
@@ -347,4 +437,3 @@ export default function PipelineBoard() {
     </AppLayout>
   )
 }
-

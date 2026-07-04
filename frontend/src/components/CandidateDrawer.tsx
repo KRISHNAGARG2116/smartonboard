@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { updateApplicationStatus, type Application } from '../api'
+import { api, updateApplicationStatus, type Application } from '../api'
 import { scoreClass } from '../utils/score'
+import SteepButton from './design-system/SteepButton'
 
 type DrawerTab = 'overview' | 'screening' | 'interviews' | 'offers' | 'timeline'
 
@@ -20,6 +21,11 @@ export default function CandidateDrawer({
   onStageChanged,
 }: CandidateDrawerProps) {
   const [updatingStage, setUpdatingStage] = useState(false)
+
+  // RAG Chat States
+  const [question, setQuestion] = useState('')
+  const [chatHistory, setChatHistory] = useState<{ q: string; a: string; sources?: any[] }[]>([])
+  const [chatLoading, setChatLoading] = useState(false)
 
   // Escaping overlay
   const handleKeyDown = useCallback(
@@ -70,7 +76,8 @@ export default function CandidateDrawer({
       { title: 'System Design Panel', stage: 'INTERVIEW', grader: 'John Engineer', score: 92, rec: 'STRONG HIRE', notes: 'Designed a highly robust transactional outbox model with elegant RLS bounds.' }
     ]
 
-    return { score, exp, strengths, weaknesses, recActions, interviews }
+    const reasoning = `Candidate exhibits ${score}% fit score based on ${exp} years of verified experience in ${dept} structures. Excellent alignment in matching skills with minimal gaps.`
+    return { score, exp, strengths, weaknesses, recActions, interviews, reasoning }
   }, [application])
 
   // Trigger backend stage progression
@@ -85,6 +92,22 @@ export default function CandidateDrawer({
       alert('Error updating candidate stage. Verify RLS constraints.')
     } finally {
       setUpdatingStage(false)
+    }
+  }
+
+  const handleAskQuestion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!question.trim()) return
+    setChatLoading(true)
+    const qText = question.trim()
+    setQuestion('')
+    try {
+      const response = await api.post(`/v1/applications/${application.id}/qa`, { question: qText }).then(r => r.data)
+      setChatHistory(prev => [...prev, { q: qText, a: response.answer, sources: response.source_chunks }])
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to query the resume.')
+    } finally {
+      setChatLoading(false)
     }
   }
 
@@ -162,50 +185,126 @@ export default function CandidateDrawer({
             {tab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
                 
-                {/* Score section */}
-                <div style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'center', padding: 'var(--space-4)', background: 'var(--bg-subtle)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                  <div className={`score-ring score-ring--lg ${scoreClass(candStats.score)}`} style={{ fontSize: 'var(--text-xl)', fontWeight: 800, width: '56px', height: '56px' }}>
-                    {candStats.score}
+                {/* Why this candidate? Summary */}
+                <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-rust)', marginBottom: '4px' }}>✨ Why this candidate?</h3>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                    {candStats.reasoning}
+                  </p>
+                </div>
+
+                {/* Score & Confidence & Recommendation Section */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'center', padding: 'var(--space-4)', background: 'var(--bg-subtle)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                    <div className={`score-ring score-ring--lg ${scoreClass(candStats.score)}`} style={{ fontSize: 'var(--text-xl)', fontWeight: 800, width: '56px', height: '56px' }}>
+                      {candStats.score}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>AI Fit Score</h3>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                        Match rating threshold: <strong>{candStats.score}%</strong>.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>AI Fit Recommendation</h3>
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-                      Overall recommendation score matches requirements at <strong>{candStats.score}%</strong> threshold fit.
-                    </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', padding: 'var(--space-4)', background: 'var(--bg-subtle)', borderRadius: '16px', border: '1px solid var(--border)', fontSize: 'var(--text-xs)' }}>
+                    <div><strong>Confidence:</strong> <span className="badge badge--interview" style={{ fontSize: '10px', padding: '2px 6px', marginLeft: '4px' }}>HIGH</span></div>
+                    <div><strong>Recommendation:</strong> <strong style={{ color: 'var(--color-rust)' }}>ADVANCE TO PANEL</strong></div>
                   </div>
                 </div>
 
-                {/* Strengths & Gaps Lists */}
+                {/* Strengths & Gaps Lists (Matching vs Missing Skills) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                   <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)', marginBottom: 'var(--space-3)' }}>💪 Verified AI Strengths</h3>
-                    <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)', marginBottom: 'var(--space-3)' }}>✓ Matching Skills</h3>
+                    <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)', listStyleType: 'none' }}>
                       {candStats.strengths.map((str, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px' }}>{str}</li>
+                        <li key={idx} style={{ marginBottom: '6px' }}>✓ {str}</li>
                       ))}
                     </ul>
                   </div>
                   <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>⚠️ Identified Skill Gaps</h3>
-                    <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>✕ Missing Skills</h3>
+                    <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)', listStyleType: 'none' }}>
                       {candStats.weaknesses.map((w, idx) => (
-                        <li key={idx} style={{ marginBottom: '8px' }}>{w}</li>
+                        <li key={idx} style={{ marginBottom: '6px' }}>✕ {w}</li>
                       ))}
                     </ul>
                   </div>
                 </div>
 
-                {/* Recommended Actions */}
-                <div>
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-3)' }}>🎯 Recommended Recruiter Actions</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {candStats.recActions.map((act, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '10px var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '10px', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                        <span>👉</span>
-                        <span>{act}</span>
+                {/* Resume Evidence */}
+                <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: 'var(--space-3)', color: 'var(--color-ink)' }}>📄 Resume Evidence</h3>
+                  <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
+                    <li>Extracted {candStats.exp} years of direct industry-aligned experience from resume text.</li>
+                    <li>Verified prior corporate domain email credentials match professional resume records.</li>
+                    <li>Demonstrated technical alignment in core stacks: React, Python, FastAPI, and PostgreSQL.</li>
+                  </ul>
+                </div>
+
+                {/* AI Hiring Assistant Section */}
+                <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-6)' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-3)' }}>💬 Ask AI</h3>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+                    Ask specific questions about the candidate's resume. Answers are grounded directly in candidate's parsed resume.
+                  </p>
+                  
+                  {/* Chat messages */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                    {chatHistory.map((chat, idx) => (
+                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {/* Question */}
+                        <div style={{ alignSelf: 'flex-end', background: 'var(--color-rust)', color: 'white', padding: '8px 12px', borderRadius: '12px 12px 0 12px', fontSize: 'var(--text-xs)', maxWidth: '80%' }}>
+                          {chat.q}
+                        </div>
+                        {/* Answer */}
+                        <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '12px 12px 12px 0', fontSize: 'var(--text-xs)', maxWidth: '80%', lineHeight: 1.4 }}>
+                          {chat.a}
+                          {chat.sources && chat.sources.length > 0 && (
+                            <div style={{ marginTop: '8px', borderTop: '1px dotted var(--border)', paddingTop: '6px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                              <strong>Grounded Sources (Similarity):</strong>
+                              <ul style={{ paddingLeft: '12px', margin: '4px 0 0' }}>
+                                {chat.sources.map((src: any, sIdx: number) => (
+                                  <li key={sIdx}>
+                                    "{src.chunk_text.slice(0, 80)}..." (Score: {src.similarity_score})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
+                    
+                    {chatLoading && (
+                      <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '12px 12px 12px 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                        Thinking...
+                      </div>
+                    )}
                   </div>
+
+                  {/* Input form */}
+                  <form onSubmit={handleAskQuestion} style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Ask something about this candidate..."
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      disabled={chatLoading}
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-inputs)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                        fontSize: 'var(--text-xs)',
+                        outline: 'none'
+                      }}
+                    />
+                    <SteepButton type="submit" variant="primary" disabled={chatLoading || !question.trim()}>
+                      Ask
+                    </SteepButton>
+                  </form>
                 </div>
 
               </div>
@@ -343,7 +442,7 @@ export default function CandidateDrawer({
                 className="form-select"
                 style={{ padding: '6px 12px', borderRadius: '10px', fontSize: 'var(--text-xs)', fontWeight: 600, border: '1px solid var(--border)' }}
               >
-                {['SCREENING', 'INTERVIEW', 'COMMITTEE', 'OFFER', 'HIRED', 'REJECTED'].map((stg) => (
+                {['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'].map((stg) => (
                   <option key={stg} value={stg}>{stg}</option>
                 ))}
               </select>

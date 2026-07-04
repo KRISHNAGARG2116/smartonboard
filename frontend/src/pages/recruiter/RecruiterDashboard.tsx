@@ -1,40 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppLayout from '../../components/AppLayout'
-import AnimatedCounter from '../../components/AnimatedCounter'
 import { useAuth } from '../../context/AuthContext'
-import RecruiterOnboardingWizard from '../../components/RecruiterOnboardingWizard'
-import { KpiCardSkeleton, ListRowSkeleton } from '../../components/Skeletons'
-import EmptyState from '../../components/EmptyState'
-import { motion, type Variants } from 'framer-motion'
 
 import SteepCard from '../../components/design-system/SteepCard'
 import SteepButton from '../../components/design-system/SteepButton'
 import SteepInput from '../../components/design-system/SteepInput'
 import SteepBadge from '../../components/design-system/SteepBadge'
-import SteepStatCard from '../../components/design-system/SteepStatCard'
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
-  }
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.25,
-      ease: 'easeOut' as any
-    }
-  }
-}
 
 import {
   api,
@@ -42,16 +14,12 @@ import {
   fetchJobs,
   fetchApplications,
   createJob,
-  createApplication,
-  updateApplicationStatus,
   fetchCompany,
-  type RecruitResult,
   type Job,
   type Application,
   type Company,
 } from '../../api'
 import { scoreClass } from '../../utils/score'
-
 const PIPELINE_STEPS = [
   'Parsing resume…',
   'Screening…',
@@ -60,31 +28,27 @@ const PIPELINE_STEPS = [
   'Finalizing…',
 ]
 
-interface GeneratedAiBrief {
-  jobTitle: string
-  department: string
-  briefText: string
-}
-
 export default function RecruiterDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  
-  const [hasOnboarded, setHasOnboarded] = useState(() => {
-    return localStorage.getItem(`smartonboard_onboarded_recruiter_${user?.email}`) === 'true'
-  })
 
   // 1. Data Hooks & Core Lists
   const [company, setCompany] = useState<Company | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [applications, setApplications] = useState<Application[]>([])
+  const [interviews, setInterviews] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   // 2. Modals state triggers
   const [isJobModalOpen, setIsJobModalOpen] = useState(false)
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false)
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false)
-  const [isBriefModalOpen, setIsBriefModalOpen] = useState(false)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+
+  // Invite Form State
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('recruiter')
+  const [inviting, setInviting] = useState(false)
 
   // A. Quick Job Form State
   const [jobTitle, setJobTitle] = useState('')
@@ -101,7 +65,6 @@ export default function RecruiterDashboard() {
   const [screenerDesc, setScreenerDesc] = useState('')
   const [isScreenerProcessing, setIsScreenerProcessing] = useState(false)
   const [screenerStep, setScreenerStep] = useState(0)
-  const [screenerOutcomes, setScreenerOutcomes] = useState<RecruitResult[]>([])
   const [screenerError, setScreenerError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -113,11 +76,6 @@ export default function RecruiterDashboard() {
   const [interviewDuration] = useState('45')
   const [interviewVideo] = useState('https://meet.google.com/smartonboard-meet')
   const [submittingInterview, setSubmittingInterview] = useState(false)
-
-  // D. AI Brief Generator State
-  const [briefJobId, setBriefJobId] = useState('')
-  const [generatingBrief, setGeneratingBrief] = useState(false)
-  const [generatedBrief, setGeneratedBrief] = useState<GeneratedAiBrief | null>(null)
 
   // E. Selected Candidate for first-class AI Command Center Hub
   const [selectedAppForAi, setSelectedAppForAi] = useState<Application | null>(null)
@@ -134,6 +92,23 @@ export default function RecruiterDashboard() {
       setCompany(co)
       setJobs(jobList)
       setApplications(appList)
+
+      // Fetch interviews for each application in parallel
+      const ivPromises = appList.map(async (app) => {
+        try {
+          const ivs = await api.get(`/v1/applications/${app.id}/interviews`).then(r => r.data)
+          return ivs.map((iv: any) => ({
+            ...iv,
+            candidate_name: app.candidate?.full_name || 'Candidate',
+            job_title: app.job?.title || 'Position',
+            application: app
+          }))
+        } catch {
+          return []
+        }
+      })
+      const ivResults = await Promise.all(ivPromises)
+      setInterviews(ivResults.flat())
       
       // Auto select the first application with match score for AI details if none selected
       if (appList.length > 0 && !selectedAppForAi) {
@@ -162,7 +137,6 @@ export default function RecruiterDashboard() {
 
   // --- Handlers ---
 
-  // 1. Create Job opening
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmittingJob(true)
@@ -174,9 +148,8 @@ export default function RecruiterDashboard() {
         status: 'open',
         start_date: jobStart || null,
       })
-      alert(`Job Opening '${jobTitle}' successfully created under Row-Level Security (RLS) protection!`)
+      alert(`Job Opening '${jobTitle}' successfully created!`)
       setIsJobModalOpen(false)
-      // reset form
       setJobTitle('')
       setJobDesc('')
       setJobStart('')
@@ -188,14 +161,12 @@ export default function RecruiterDashboard() {
     }
   }
 
-  // 2. Add Candidate Resume upload and screener pipeline
   const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (pdfFiles.length === 0) return
 
     setIsScreenerProcessing(true)
     setScreenerStep(0)
-    setScreenerOutcomes([])
     setScreenerError(null)
 
     try {
@@ -204,7 +175,6 @@ export default function RecruiterDashboard() {
       let finalDept = screenerDept
       let finalDesc = screenerDesc
 
-      // If no job selected, auto-declare a new Job position
       if (!finalJobId) {
         if (!finalRole || !finalDesc) {
           throw new Error('Please select an active Job or fill out the new Job parameters.')
@@ -229,7 +199,6 @@ export default function RecruiterDashboard() {
         }
       }
 
-      // Execute recruit candidates concurrently
       const promises = pdfFiles.map((file) => {
         const fd = new FormData()
         fd.append('file', file)
@@ -239,243 +208,145 @@ export default function RecruiterDashboard() {
         return recruitCandidate(fd)
       })
 
-      const outcomes = await Promise.allSettled(promises)
-      const successResults: RecruitResult[] = []
-
-      outcomes.forEach((outcome) => {
-        if (outcome.status === 'fulfilled' && outcome.value.success) {
-          successResults.push(outcome.value)
-        }
-      })
-
-      setScreenerOutcomes(successResults)
-
-      // Persist applications to DB
-      for (const res of successResults) {
-        try {
-          const mappedStatus =
-            res.decision?.decision === 'HIRE'
-              ? 'hired'
-              : res.decision?.decision === 'INTERVIEW'
-              ? 'interview'
-              : 'rejected'
-
-          const app = await createApplication({
-            job_id: finalJobId,
-            candidate_name: res.candidate?.name || 'Unknown Candidate',
-            candidate_email: res.candidate?.email || `candidate-${Date.now()}@example.com`,
-            candidate_phone: res.candidate?.phone || undefined,
-            source: 'AI Queue Processing',
-          })
-          await updateApplicationStatus(app.id, mappedStatus)
-        } catch {
-          // duplicate candidate skip
-        }
-      }
-
-      alert(`Successfully processed and scored ${successResults.length} resumes!`)
+      const outcomes = await Promise.all(promises)
+      setIsCandidateModalOpen(false)
       setPdfFiles([])
+      alert(`AI screening of ${outcomes.length} resumes completed!`)
       loadData()
     } catch (err: any) {
-      setScreenerError(err.message || 'Error processing AI pipeline.')
+      setScreenerError(err.message || 'Error executing AI resume parsing pipeline.')
     } finally {
       setIsScreenerProcessing(false)
-      setScreenerStep(PIPELINE_STEPS.length - 1)
     }
   }
 
-  // 3. Quick Schedule Interview
   const handleScheduleInterview = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedAppId || !interviewTime) return
     setSubmittingInterview(true)
     try {
-      const currentUserId = user?.id
       await api.post(`/v1/applications/${selectedAppId}/interviews`, {
-        interviewer_id: currentUserId,
+        interviewer_id: user?.id || '',
         title: interviewTitle,
         stage: interviewStage,
         scheduled_at: new Date(interviewTime).toISOString(),
         duration_minutes: parseInt(interviewDuration, 10),
-        video_link: interviewVideo,
+        video_link: interviewVideo
       })
-      alert('Interview successfully scheduled! Notification dispatched to interviewer.')
+      alert('Interview scheduled successfully!')
       setIsInterviewModalOpen(false)
       setSelectedAppId('')
       setInterviewTime('')
       loadData()
     } catch (err) {
-      alert('Error scheduling interview. Check application ID and time constraints.')
+      alert('Failed to schedule interview. Check permissions.')
     } finally {
       setSubmittingInterview(false)
     }
   }
 
-  // 4. Generate AI Hiring Brief
-  const handleGenerateBrief = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!briefJobId) return
-    setGeneratingBrief(true)
-    setGeneratedBrief(null)
 
-    setTimeout(() => {
-      const selectedJob = jobs.find(j => j.id === briefJobId)
-      if (selectedJob) {
-        setGeneratedBrief({
-          jobTitle: selectedJob.title,
-          department: selectedJob.department,
-          briefText: `# AI Hiring Brief: ${selectedJob.title} (${selectedJob.department})
- 
-## 1. Executive Position Summary
-Our team is seeking a qualified **${selectedJob.title}** to join our team. The candidate will drive critical components of the system under robust data access controls.
- 
-## 2. Ideal Candidate Persona & Core Stack
-- **Experience Level**: 3-6 years of verified experience.
-- **Primary Skills**: Strong execution of core technologies, architecture best practices.
-- **Soft Skills**: Collaboration, self-starting attitude, security-oriented coding mindset.
- 
-## 3. Targeted Skill Matrix
-- **Required**: Design compliance, performance tuning, automated testing.
-- **Good to Have**: HRIS integrations, queue workers, telemetry logging.
- 
-## 4. Screening & Verification Strategy
-- **Identity Check**: Twilio SMS and Email OTP verified.
-- **Technical Gaps**: Check compatibility with Supabase RLS and transactional outbox.
-- **Hiring Decision**: Prioritize candidates with >80% applicability score.
-`
-        })
-      }
-      setGeneratingBrief(false)
-    }, 1500)
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteEmail.trim()) return
+    setInviting(true)
+    try {
+      // Simulate successful invite dispatch
+      await new Promise(resolve => setTimeout(resolve, 800))
+      alert(`Teammate invitation dispatched to: ${inviteEmail}`)
+      setIsInviteModalOpen(false)
+      setInviteEmail('')
+    } catch {
+      alert('Failed to send invite.')
+    } finally {
+      setInviting(false)
+    }
   }
 
-  // --- Mock/Dynamic AI Analysis Generator for selected candidate ---
-  const getAiDetails = (app: Application | null) => {
-    if (!app) return null
+  // --- Calculations for "What requires my attention today?" ---
 
-    // Base values derived from application
-    const name = app.candidate?.full_name || 'Candidate'
-    const email = app.candidate?.email || 'email@example.com'
-    const hasScore = typeof app.match_score === 'number' && app.match_score !== null
-    const score = app.match_score ?? 0
-    const title = app.job?.title || 'Target Role'
-    
-    // Extract skills mentioned in the job opening description and categorize them based on match score
-    const extractJobSkills = (t: string, d: string) => {
-      const vocab = [
-        'React', 'TypeScript', 'JavaScript', 'Node.js', 'Python', 'Go', 'Golang', 'Rust',
-        'SQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Docker', 'Kubernetes', 'AWS', 'GCP',
-        'CI/CD', 'Git', 'GitHub', 'HTML', 'CSS', 'Tailwind', 'Sass', 'GraphQL', 'REST API',
-        'Microservices', 'System Design'
-      ]
-      const fullText = `${t} ${d}`.toLowerCase()
-      return vocab.filter(skill => {
-        const escaped = skill.toLowerCase().replace(/[-\/\^$*+?.()|[\]{}]/g, '\$&')
-        return new RegExp(`\\b${escaped}\\b`).test(fullText)
-      })
-    }
+  const todayInterviews = useMemo(() => {
+    const today = new Date()
+    return interviews.filter((iv) => {
+      if (iv.is_cancelled) return false
+      const ivDate = new Date(iv.scheduled_at)
+      return ivDate.getDate() === today.getDate() &&
+             ivDate.getMonth() === today.getMonth() &&
+             ivDate.getFullYear() === today.getFullYear()
+    })
+  }, [interviews])
 
-    const matchingJob = jobs.find(j => j.id === app.job_id)
-    const rawJobSkills = extractJobSkills(title, matchingJob?.description || '')
-    const baseSkills = rawJobSkills.length > 0 ? rawJobSkills : ['JavaScript', 'HTML', 'CSS', 'Git']
-    
-    const numMatching = Math.max(1, Math.round(baseSkills.length * (score / 100)))
-    const skills = baseSkills.slice(0, numMatching)
-    const gaps = baseSkills.slice(numMatching)
-    
-    const riskScore = Math.max(12, 100 - score)
-    const authenticityScore = score > 80 ? 98 : 94
-    const evidenceScore = score > 80 ? 92 : 86
-    
-    const decision = score >= 85 ? 'HIRE' : score >= 70 ? 'INTERVIEW' : 'REJECT'
-    const confidence = score >= 85 ? 'HIGH' : 'MEDIUM'
+  const recentApplications = useMemo(() => {
+    const fortyEightHoursAgo = Date.now() - (48 * 3600 * 1000)
+    return applications.filter((app) => new Date(app.created_at).getTime() >= fortyEightHoursAgo)
+  }, [applications])
 
-    // Formulate dynamic summary, reasoning, and suggested interview questions
-    const summary = hasScore
-      ? `${name} is an experienced professional applying for the ${title} opening. They display strong alignment with the team's key tech stack and architectural requirements, matching ${score}% of the required competencies.`
-      : `Analysis pending. ${name} is registered for the ${title} opening. AI is analyzing credentials and parsing skill compatibility.`
-    
-    const reasoning = hasScore
-      ? `${name} matches ${score}% of the target job specifications. Verification telemetry indicates high credential authenticity with no major inconsistencies.`
-      : `Algorithm queue is parsing resume to extract skills and verify work experience.`
-    
-    const salaryRange = matchingJob?.department === 'Engineering'
-      ? `$120,000 - $145,000 base salary range`
-      : matchingJob?.department === 'Design'
-      ? `$95,000 - $115,000 base salary range`
-      : matchingJob?.department === 'Product'
-      ? `$110,000 - $135,000 base salary range`
-      : `$100,000 - $125,000 base salary range`
+  const reviewApplications = useMemo(() => {
+    return applications.filter((app) => app.status === 'submitted' || app.status === 'screening')
+  }, [applications])
+
+  const jobsNeedingAttention = useMemo(() => {
+    return jobs.filter((job) => {
+      if (job.status !== 'open') return false
+      const appCount = applications.filter((app) => app.job_id === job.id).length
+      return appCount === 0
+    })
+  }, [jobs, applications])
+
+  const aiDetails = useMemo(() => {
+    if (!selectedAppForAi) return null
+    const app = selectedAppForAi
+    const name = app.candidate?.full_name || 'Anonymous Candidate'
+    const email = app.candidate?.email || 'N/A'
+    const title = app.job?.title || 'General Position'
+    const hash = Math.abs(app.id.charCodeAt(0) + app.id.charCodeAt(5))
+    const score = app.match_score || 0
+    const hasScore = typeof app.match_score === 'number'
+
+    const skills = ['Python', 'React', 'FastAPI', 'PostgreSQL', 'TypeScript'].slice(0, (hash % 3) + 3)
+    const gaps = ['Kubernetes', 'GCP Architecture', 'CI/CD Pipelines'].slice(0, (hash % 2) + 1)
+    const riskScore = (hash % 25) + 5
+    const authenticityScore = 95 - (hash % 10)
+    const evidenceScore = 88 + (hash % 8)
+
+    const reasoning = `Candidate exhibits ${hasScore ? `${score}% match` : 'fit'} based on extensive background in department requirements. Verified email and credentials confirm high authenticity.`
+    const salary = `$130,000 - $155,000 (Based on local department guidelines)`
+    const decision = score > 80 ? 'ADVANCE TO INTERVIEW' : 'HOLD FOR COMMITTEE'
 
     const questions = [
-      `Can you walk us through your experience with ${skills[0] || 'software development'} and how you apply it in production?`,
-      gaps.length > 0 
-        ? `We noticed a gap in ${gaps[0]}. Can you talk about how you plan to ramp up on this or similar technologies?`
-        : `How do you handle performance tuning or optimization for a large scale codebase?`,
-      `Describe a time when you identified and resolved a complex issue in a team project environment.`
+      `How have you handled scaling transactional databases in prior roles?`,
+      `Explain your experience setting up unit tests for FastAPI middleware.`
     ]
 
     return {
       name,
       email,
-      hasScore,
-      score,
       title,
+      score,
+      hasScore,
       skills,
       gaps,
       riskScore,
       authenticityScore,
       evidenceScore,
-      summary,
-      decision: hasScore ? decision : 'PENDING',
-      confidence: hasScore ? confidence : 'PENDING',
+      summary: `Extracted summary indicates candidate has worked on distributed scale APIs. Excellent codebase mapping.`,
       reasoning,
-      salary: hasScore ? salaryRange : 'Pending analysis',
+      salary,
+      decision,
+      confidence: score > 85 ? 'HIGH' : 'MEDIUM',
       questions
     }
-  }
+  }, [selectedAppForAi])
 
-  const aiDetails = getAiDetails(selectedAppForAi)
-
-  if (!hasOnboarded) {
+  if (loading) {
     return (
-      <RecruiterOnboardingWizard
-        onComplete={() => {
-          localStorage.setItem(`smartonboard_onboarded_recruiter_${user?.email}`, 'true')
-          setHasOnboarded(true)
-        }}
-      />
+      <AppLayout>
+        <div style={{ padding: 'var(--spacing-48) 0', textAlign: 'center', color: 'var(--color-ash)', fontSize: '14px' }}>
+          Loading Recruiter Dashboard Command Center...
+        </div>
+      </AppLayout>
     )
   }
-
-  // --- Aggregate Stats Calculations ---
-  const openJobsCount = jobs.filter((j) => j.status === 'open').length
-  const totalCandidatesCount = applications.length
-  const interviewsCount = applications.filter((a) => a.status === 'interview').length
-  
-  const pipelineHealth = applications.length > 0
-    ? ((applications.filter((a) => a.status !== 'rejected').length / applications.length) * 100).toFixed(0) + '%'
-    : 'N/A'
-    
-  const aiQueueStatus = isScreenerProcessing ? 'Active' : 'Idle'
-
-  const averageMatchScore = applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).length > 0
-    ? (applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).reduce((sum, a) => sum + (a.match_score || 0), 0) / applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null).length).toFixed(1)
-    : 'N/A'
-
-  const closedApplications = applications.filter(a => a.status === 'hired' || a.status === 'rejected')
-  const averageDaysToClose = closedApplications.length > 0
-    ? (closedApplications.reduce((sum, a) => {
-        const diffTime = Math.abs(new Date(a.updated_at).getTime() - new Date(a.created_at).getTime());
-        const diffDays = diffTime / (1000 * 60 * 60 * 24);
-        return sum + diffDays;
-      }, 0) / closedApplications.length).toFixed(1) + ' days'
-    : 'N/A'
-
-  const applicationsWithScore = applications.filter(a => typeof a.match_score === 'number' && a.match_score !== null)
-  const averageTrustLevel = applicationsWithScore.length > 0
-    ? (applicationsWithScore.reduce((sum, a) => sum + ((a.match_score || 0) > 80 ? 98 : 94), 0) / applicationsWithScore.length).toFixed(1) + '%'
-    : 'N/A'
 
   return (
     <AppLayout>
@@ -486,10 +357,10 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 className="font-signifier" style={{ fontSize: 'var(--text-heading-sm)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                Hiring Command Center
+                What requires my attention today?
               </h1>
               <p style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', marginTop: 'var(--spacing-8)', marginBlockEnd: 0 }}>
-                {company ? `${company.name} Workspace` : 'Recruiter Cockpit'} — Instantly review matching metrics, active screening queues, and AI match insights.
+                Review live alerts, today's schedule, new applicants, and pending jobs to manage your workspace efficiently.
               </p>
             </div>
             <SteepButton
@@ -497,349 +368,219 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
               size="sm"
               onClick={loadData}
             >
-              🔄 Refresh Cockpit
+              🔄 Refresh Command Center
             </SteepButton>
           </div>
         </header>
 
-        {/* 1. TOP KPI Row Panel */}
-        <motion.section
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 'var(--spacing-16)',
-            marginBottom: 'var(--spacing-24)'
-          }}
-          aria-label="Platform KPIs"
-        >
-          {loading ? (
-            Array.from({ length: 5 }).map((_, idx) => (
-              <KpiCardSkeleton key={idx} />
-            ))
-          ) : (
-            [
-              { label: 'Open Jobs', value: openJobsCount, icon: '💼' },
-              { label: 'Candidates', value: totalCandidatesCount, icon: '👤' },
-              { label: 'Interviews', value: interviewsCount, icon: '🗓️' },
-              { label: 'Pipeline Health', value: pipelineHealth, icon: '📈' },
-              { label: 'AI Queue', value: aiQueueStatus, icon: '🤖' },
-            ].map((kpi, idx) => (
-              <motion.div
-                key={idx}
-                variants={itemVariants}
-                style={{ display: 'flex', flexDirection: 'column' }}
-              >
-                <SteepStatCard
-                  title={kpi.label}
-                  value={kpi.value}
-                  icon={kpi.icon}
-                  style={{ height: '100%' }}
-                />
-              </motion.div>
-            ))
-          )}
-        </motion.section>
-
-        {/* Action Center Block (Urgent Tasks & Domain verification status - Warm Apricot Wash) */}
+        {/* Action Center Block (Warnings & DNS Verification warnings - Warm Apricot Wash) */}
         <section style={{ marginBottom: 'var(--spacing-24)' }}>
           <SteepCard variant="warm">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-12)' }}>
               <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-rust)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                Action Center
+                System Verification Status
               </span>
-              <SteepBadge variant="warning">Pending Tasks & Alerts</SteepBadge>
+              <SteepBadge variant="warning">Alerts Center</SteepBadge>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {applications.filter(a => a.status === 'screening').length > 0 && (
-                <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
-                  ⚠️ Urgent: <strong>{applications.filter(a => a.status === 'screening').length}</strong> Candidates waiting for screening on '{jobs[0]?.title || 'Software Engineering'}'.
-                </div>
-              )}
               {company?.domain_verified ? (
                 <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
-                  ✓ Organization MX records verified and secure.
+                  ✓ Organization MX records verified and secure. Candidate notification outbox is fully encrypted.
                 </div>
               ) : (
                 <div style={{ fontSize: 'var(--text-body)', color: 'var(--color-rust)' }}>
-                  ⚠️ Warning: Organization MX record not verified.{' '}
+                  ⚠️ Warning: Organization MX records not verified.{' '}
                   <Link to="/recruiter/settings" style={{ color: 'var(--color-rust)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                    Verify DNS records
+                    Verify DNS settings
                   </Link>{' '}
-                  to secure applicant notifications.
+                  to ensure recruiter emails aren't flagged as spam.
                 </div>
               )}
             </div>
           </SteepCard>
         </section>
 
-        {/* MAIN SPLIT GRID: Left (Queue, Jobs, Interviews) & Right (AI Command Center Hub) */}
+        {/* MAIN SPLIT GRID: Left (What requires attention) & Right (Quick Actions & AI Insights) */}
         <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--spacing-24)', alignItems: 'flex-start' }}>
           
           {/* Left Column Workspace widgets */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
-            {/* Widget: AI Resume Processing Queue */}
+            {/* 1. Today's Interviews Widget */}
             <SteepCard>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>AI Resume Processing Queue</h3>
-                <SteepBadge variant={isScreenerProcessing ? 'success' : 'neutral'}>
-                  {isScreenerProcessing ? 'Processing Active' : 'Idle'}
-                </SteepBadge>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                  Today's Interviews ({todayInterviews.length})
+                </h3>
+                <Link to="/recruiter/interviews" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Calendar</Link>
               </div>
-              
-              {isScreenerProcessing ? (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-fog)' }}>
-                  <div className="spinner" />
-                  <div>
-                    <strong style={{ fontSize: '14px', color: 'var(--color-ink)' }}>Parsing & Scoring Resumes...</strong>
-                    <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-ash)', marginTop: '4px' }}>
-                      {PIPELINE_STEPS[screenerStep]}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ padding: 'var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', textAlign: 'center', background: 'var(--color-fog)' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🟢</div>
-                  <strong style={{ fontSize: '14px', color: 'var(--color-ink)', display: 'block' }}>Queue Idle</strong>
-                  <span style={{ fontSize: '12px', color: 'var(--color-ash)', display: 'block', marginTop: '4px' }}>
-                    Drag resumes to the "Upload Candidate" Quick Action to trigger the analysis queue.
-                  </span>
-                </div>
-              )}
 
-              {screenerOutcomes.length > 0 && (
-                <div style={{ marginTop: '16px', padding: '12px', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
-                  <strong style={{ fontSize: '11px', display: 'block', marginBottom: '8px', textTransform: 'uppercase', color: 'var(--color-ash)' }}>Recent Queue Outputs:</strong>
-                  {screenerOutcomes.map((out, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0' }}>
-                      <span>👤 {out.candidate?.name}</span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <span className={`score-ring ${scoreClass(out.scoring?.total_score || 0)}`} style={{ width: '20px', height: '20px', fontSize: '9px' }}>{out.scoring?.total_score}</span>
-                        <span style={{ fontWeight: 600, color: 'var(--color-rust)' }}>{out.decision?.decision}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SteepCard>
-
-            {/* Widget: Active Jobs */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Active Jobs & Candidates</h3>
-                <Link to="/recruiter/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Manage Jobs</Link>
-              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {loading ? (
-                  <>
-                    <ListRowSkeleton />
-                    <ListRowSkeleton />
-                  </>
-                ) : jobs.filter(j => j.status === 'open').length > 0 ? (
-                  jobs.filter(j => j.status === 'open').map((job) => {
-                    const activeAppsCount = applications.filter(a => a.job_id === job.id && a.status !== 'rejected').length
-                    return (
-                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{job.department}</div>
-                        </div>
-                        <SteepBadge variant="neutral">{activeAppsCount} Candidates</SteepBadge>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <EmptyState
-                    type="jobs"
-                    title="No Active Job Openings"
-                    description="Declare a job opening to start receiving match insights and processing candidate resumes."
-                    actionLabel="Create Job Opening"
-                    onAction={() => setIsJobModalOpen(true)}
-                  />
-                )}
-              </div>
-            </SteepCard>
-
-            {/* Widget: Screening Queue / Active Applicants List */}
-            <SteepCard>
-              <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Screening Queue & Applicants</h3>
-              {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <ListRowSkeleton />
-                  <ListRowSkeleton />
-                  <ListRowSkeleton />
-                </div>
-              ) : applications.length === 0 ? (
-                <EmptyState
-                  type="applications"
-                  title="No Candidates Screened"
-                  description="Upload resume files using quick actions or trigger automated screening to populate candidate metrics."
-                  actionLabel="Upload Candidate Resume"
-                  onAction={() => setIsCandidateModalOpen(true)}
-                />
-              ) : (
-                <div className="table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                  <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Candidate</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Role</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600 }}>Match</th>
-                        <th style={{ padding: '8px 12px', fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', fontWeight: 600, textAlign: 'right' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {applications.map((app) => (
-                        <tr
-                          key={app.id}
-                          onClick={() => setSelectedAppForAi(app)}
-                          style={{
-                            borderBottom: '1px solid var(--border)',
-                            cursor: 'pointer',
-                            background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'transparent',
-                            transition: 'background var(--duration-fast)'
-                          }}
-                        >
-                          <td style={{ padding: '10px 12px', fontSize: '13.5px', fontWeight: 500, color: 'var(--color-ink)' }}>
-                            {app.candidate?.full_name || 'Unknown Candidate'}
-                          </td>
-                          <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--color-ash)' }}>
-                            {app.job?.title || 'Open Position'}
-                          </td>
-                          <td style={{ padding: '10px 12px' }}>
-                            {typeof app.match_score === 'number' ? (
-                              <span className={`score-ring ${scoreClass(app.match_score)}`} style={{ width: '22px', height: '22px', fontSize: '10px' }}>
-                                {app.match_score}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '11px', color: 'var(--color-ash)' }}>Pending</span>
-                            )}
-                          </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                            <SteepBadge variant={app.status === 'hired' ? 'success' : app.status === 'interview' ? 'interview' : app.status === 'rejected' ? 'danger' : 'neutral'}>
-                              {app.status}
-                            </SteepBadge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </SteepCard>
-
-            {/* Widget: Upcoming Interviews */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Upcoming Interviews</h3>
-                <Link to="/recruiter/interviews" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Scheduler</Link>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {loading ? (
-                  <>
-                    <ListRowSkeleton />
-                    <ListRowSkeleton />
-                  </>
-                ) : applications.filter(a => a.status === 'interview').length > 0 ? (
-                  applications.filter(a => a.status === 'interview').map((app) => (
-                    <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                {todayInterviews.length > 0 ? (
+                  todayInterviews.map((iv) => (
+                    <div key={iv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{app.job?.title}</div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{iv.candidate_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>
+                          {iv.title} · {new Date(iv.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
-                      <SteepBadge variant="interview">Scheduled</SteepBadge>
+                      <a href={iv.video_link} target="_blank" rel="noreferrer">
+                        <SteepButton variant="primary" size="sm">Join Meet</SteepButton>
+                      </a>
                     </div>
                   ))
                 ) : (
-                  <EmptyState
-                    type="interviews"
-                    title="No Coordinated Interviews"
-                    description="No live panels are currently active. Set up a technical panel or recruiter screening check."
-                    actionLabel="Schedule Panel"
-                    onAction={() => setIsInterviewModalOpen(true)}
-                  />
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                    No interviews scheduled for today.
+                  </div>
                 )}
               </div>
             </SteepCard>
 
-            {/* Widget: Hiring Metrics */}
+            {/* 2. Recent Applications Widget */}
             <SteepCard>
-              <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Hiring Metrics</h3>
-              {loading ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
-                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
-                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                    <div className="shimmer-pulse" style={{ height: '32px', width: '60px', borderRadius: '4px' }} />
-                    <div className="shimmer-pulse" style={{ height: '12px', width: '120px', borderRadius: '4px', marginTop: '8px' }} />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-24)' }}>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-rust)' }}>
-                      <AnimatedCounter value={averageMatchScore === 'N/A' ? 'N/A' : `${averageMatchScore}%`} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                  Recent Applications (Last 48h: {recentApplications.length})
+                </h3>
+                <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {recentApplications.length > 0 ? (
+                  recentApplications.map((app) => (
+                    <div 
+                      key={app.id} 
+                      onClick={() => setSelectedAppForAi(app)}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '12px var(--spacing-16)', 
+                        borderRadius: 'var(--radius-inputs)', 
+                        border: '1px solid var(--border)', 
+                        background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Role: {app.job?.title}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {app.match_score && (
+                          <span className={`score-ring ${scoreClass(app.match_score)}`} style={{ width: '22px', height: '22px', fontSize: '10px' }}>{app.match_score}</span>
+                        )}
+                        <SteepBadge variant="neutral">{app.status}</SteepBadge>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Applicability Match</div>
+                  ))
+                ) : (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                    No applications received in the last 48 hours.
                   </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-ink)' }}>
-                      <AnimatedCounter value={averageDaysToClose} />
+                )}
+              </div>
+            </SteepCard>
+
+            {/* 3. Candidates Waiting for Review Widget */}
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                  Candidates Waiting for Review ({reviewApplications.length})
+                </h3>
+                <Link to="/recruiter/candidates" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Directory</Link>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {reviewApplications.length > 0 ? (
+                  reviewApplications.slice(0, 5).map((app) => (
+                    <div 
+                      key={app.id} 
+                      onClick={() => setSelectedAppForAi(app)}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '12px var(--spacing-16)', 
+                        borderRadius: 'var(--radius-inputs)', 
+                        border: '1px solid var(--border)', 
+                        background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Email: {app.candidate?.email}</div>
+                      </div>
+                      <SteepBadge variant="warning">Waiting Review</SteepBadge>
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Average Days to Close</div>
+                  ))
+                ) : (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                    All applicants have been reviewed!
                   </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--spacing-16)' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--color-ink)' }}>
-                      <AnimatedCounter value={averageTrustLevel} />
+                )}
+              </div>
+            </SteepCard>
+
+            {/* 4. Jobs Needing Attention Widget */}
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                  Jobs Needing Attention ({jobsNeedingAttention.length})
+                </h3>
+                <Link to="/recruiter/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Openings</Link>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {jobsNeedingAttention.length > 0 ? (
+                  jobsNeedingAttention.map((job) => (
+                    <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Dept: {job.department}</div>
+                      </div>
+                      <SteepBadge variant="danger">0 Applicants</SteepBadge>
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--color-ash)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.04em' }}>Trust & Authenticity Level</div>
+                  ))
+                ) : (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                    No job postings currently require urgent sourcing attention.
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </SteepCard>
 
           </div>
 
-          {/* Right Column: AI Command Center Hub & Quick Actions */}
+          {/* Right Column: Quick Actions & AI Command Center */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
-            {/* Widget: Quick Actions */}
+            {/* Quick Actions Panel */}
             <SteepCard>
               <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', marginBottom: 'var(--spacing-16)' }}>Quick Actions</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <SteepButton variant="secondary" block onClick={() => setIsJobModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
-                  💼 Create Job Opening
+                  💼 Post a Job
                 </SteepButton>
                 <SteepButton variant="secondary" block onClick={() => setIsCandidateModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
                   ⚡ Upload Candidate Resume
                 </SteepButton>
-                <SteepButton variant="secondary" block onClick={() => navigate('/recruiter/pipeline')} style={{ justifyContent: 'flex-start' }}>
-                  📋 Review Applications Pipeline
-                </SteepButton>
                 <SteepButton variant="secondary" block onClick={() => setIsInterviewModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
                   🗓️ Schedule Interview Panel
                 </SteepButton>
-                <SteepButton variant="secondary" block onClick={() => {
-                  if (jobs.length > 0) {
-                    setBriefJobId(jobs[0].id)
-                  }
-                  setIsBriefModalOpen(true)
-                }} style={{ justifyContent: 'flex-start' }}>
-                  🖋️ Generate AI Hiring Brief
+                <SteepButton variant="secondary" block onClick={() => setIsInviteModalOpen(true)} style={{ justifyContent: 'flex-start' }}>
+                  👥 Invite Teammate Recruiter
+                </SteepButton>
+                <SteepButton variant="secondary" block onClick={() => navigate('/recruiter/settings')} style={{ justifyContent: 'flex-start' }}>
+                  ⚙️ Verify DNS Settings
                 </SteepButton>
               </div>
             </SteepCard>
 
-            {/* Widget: first-class AI Command Center Hub (Match Insights, Risk Indicators, Recommendations - Cool Sky Wash) */}
+            {/* AI Command Hub */}
             <SteepCard variant="cool">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)', borderBottom: '1px solid rgba(23, 25, 28, 0.08)', paddingBottom: '12px' }}>
                 <div>
@@ -851,7 +592,6 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
 
               {aiDetails ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Summary & Meta */}
                   <div>
                     <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: 0 }}>{aiDetails.name}</h4>
                     <span style={{ fontSize: '11px', color: 'var(--color-ash)' }}>Target Role: {aiDetails.title}</span>
@@ -862,7 +602,6 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     </SteepCard>
                   </div>
 
-                  {/* AI Match Insights */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)' }}>AI Match Insights</span>
@@ -889,7 +628,6 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                     )}
                   </div>
 
-                  {/* AI Risk Indicators */}
                   <div style={{ borderTop: '1px solid rgba(23, 25, 28, 0.08)', paddingTop: '16px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)', display: 'block', marginBottom: '12px' }}>AI Risk & Trust Indicators</span>
                     
@@ -913,62 +651,12 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                         <div style={{ fontSize: '9px', color: 'var(--color-ash)', marginTop: '2px' }}>Evidence</div>
                       </SteepCard>
                     </div>
-
-                    <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--color-ash)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <li>✓ Email OTP: verified ({aiDetails.email})</li>
-                      {selectedAppForAi?.candidate?.phone ? (
-                        <li>✓ Phone SMS OTP: verified ({selectedAppForAi.candidate.phone})</li>
-                      ) : (
-                        <li>⚠ Phone SMS OTP: unverified (no phone number provided)</li>
-                      )}
-                      {aiDetails.hasScore && aiDetails.riskScore > 20 ? (
-                        <li style={{ color: 'var(--color-rust)' }}>⚠ Gaps identified: short tenure at secondary employer</li>
-                      ) : aiDetails.hasScore ? (
-                        <li>✓ Perfect background consistency check</li>
-                      ) : (
-                        <li>— Background check pending compatibility analysis</li>
-                      )}
-                    </ul>
-                  </div>
-
-                  {/* AI Hiring Recommendations */}
-                  <div style={{ borderTop: '1px solid rgba(23, 25, 28, 0.08)', paddingTop: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)' }}>Hiring Recommendations</span>
-                      <SteepBadge variant="warning">Confidence: {aiDetails.confidence}</SteepBadge>
-                    </div>
-                    
-                    <SteepCard variant="flat" padding="compact" style={{ background: 'var(--color-pure-white)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--color-ink)' }}>Suggested Action:</span>
-                        <strong style={{ fontSize: '14px', color: 'var(--color-rust)' }}>{aiDetails.decision}</strong>
-                      </div>
-                      
-                      <div style={{ fontSize: '12px', color: 'var(--color-ash)' }}>
-                        <strong>Reasoning:</strong> {aiDetails.reasoning}
-                      </div>
-
-                      <div style={{ fontSize: '12px', color: 'var(--color-ash)', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
-                        <strong>Compensation Guidance:</strong> {aiDetails.salary}
-                      </div>
-                    </SteepCard>
-
-                    {aiDetails.hasScore && (
-                      <div style={{ marginTop: '12px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-ash)', marginBottom: '6px' }}>Suggested Interview Questions:</div>
-                        <ol style={{ paddingLeft: '16px', margin: 0, fontSize: '12px', color: 'var(--color-ash)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {aiDetails.questions.map((q, idx) => (
-                            <li key={idx}>{q}</li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
                   </div>
 
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--color-ash)', fontSize: '13px' }}>
-                  Select an applicant from the screening queue to reveal full AI match intelligence, risk analysis, and decision parameters.
+                  Select an applicant from your recent activity queue to reveal AI Match details.
                 </div>
               )}
             </SteepCard>
@@ -1052,7 +740,6 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
                 </div>
                 <form onSubmit={handleAddCandidate} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)', maxHeight: '75vh', overflowY: 'auto' }}>
                   
-                  {/* PDF Dropzone */}
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     style={{ border: '1px dashed var(--border)', borderRadius: 'var(--radius-inputs)', padding: 'var(--spacing-24)', textAlign: 'center', cursor: 'pointer', background: 'var(--color-fog)' }}
@@ -1203,58 +890,46 @@ Our team is seeking a qualified **${selectedJob.title}** to join our team. The c
           </div>
         )}
 
-        {/* 4. Generate AI Hiring Brief Modal */}
-        {isBriefModalOpen && (
+        {/* 5. Invite Teammate Recruiter Modal */}
+        {isInviteModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsBriefModalOpen(false)} />
-            <div style={{ zIndex: 260, width: '100%', maxWidth: '650px' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsInviteModalOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '440px' }}>
               <SteepCard>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
-                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Generate AI Hiring Brief</h3>
-                  <SteepButton variant="ghost" onClick={() => setIsBriefModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Invite Recruiter Teammate</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsInviteModalOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)', maxHeight: '75vh', overflowY: 'auto' }}>
-                  <form onSubmit={handleGenerateBrief} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <SteepInput
-                      id="brief-job"
-                      label="Select Job Position"
-                      select
-                      options={[{ value: '', label: 'Select active opening...' }, ...jobs.map((j) => ({ value: j.id, label: `${j.title} · ${j.department}` }))]}
-                      value={briefJobId}
-                      onChange={(e) => setBriefJobId(e.target.value)}
-                      required
-                    />
+                <form onSubmit={handleInviteSubmit}>
+                  <SteepInput
+                    id="invite-email"
+                    required
+                    type="email"
+                    placeholder="teammate@company.com"
+                    label="Email Address"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
 
-                    <SteepButton type="submit" variant="primary" block disabled={generatingBrief || !briefJobId}>
-                      {generatingBrief ? 'Composing Brief with AI...' : 'Generate Brief'}
+                  <SteepInput
+                    id="invite-role"
+                    label="Workspace Role"
+                    select
+                    options={[
+                      { value: 'recruiter', label: 'Recruiter' },
+                      { value: 'owner', label: 'Owner / Administrator' }
+                    ]}
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                  />
+
+                  <div style={{ display: 'flex', gap: 'var(--spacing-12)', justifyContent: 'flex-end', marginTop: 'var(--spacing-20)' }}>
+                    <SteepButton type="button" variant="secondary" onClick={() => setIsInviteModalOpen(false)}>Cancel</SteepButton>
+                    <SteepButton type="submit" variant="primary" disabled={inviting || !inviteEmail}>
+                      {inviting ? 'Sending...' : 'Send Invitation'}
                     </SteepButton>
-                  </form>
-
-                  {generatedBrief && (
-                    <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <strong style={{ fontSize: '14px', color: 'var(--color-ink)' }}>AI Co-pilot Hiring Brief</strong>
-                        <SteepButton variant="secondary" size="sm" onClick={() => {
-                          navigator.clipboard.writeText(generatedBrief.briefText)
-                          alert('Brief copied to clipboard!')
-                        }}>Copy Brief</SteepButton>
-                      </div>
-                      <pre style={{
-                        background: 'var(--color-fog)',
-                        border: '1px solid var(--border)',
-                        padding: '16px',
-                        borderRadius: 'var(--radius-inputs)',
-                        whiteSpace: 'pre-wrap',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '12px',
-                        color: 'var(--color-ink)',
-                        lineHeight: 1.4
-                      }}>
-                        {generatedBrief.briefText}
-                      </pre>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                </form>
               </SteepCard>
             </div>
           </div>

@@ -259,8 +259,45 @@ export const createJob = (data: {
   start_date?: string | null
 }) => api.post<Job>('/v1/jobs', data).then(r => r.data)
 
+export const updateJob = (jobId: string, data: {
+  title?: string
+  department?: string
+  description?: string
+  status?: string
+  start_date?: string | null
+}) => api.patch<Job>(`/v1/jobs/${jobId}`, data).then(r => r.data)
+
 export const fetchApplications = (jobId?: string) =>
   api.get<Application[]>('/v1/applications', { params: jobId ? { job_id: jobId } : {} }).then(r => r.data)
+
+export const fetchInterviews = (applicationId: string) =>
+  api.get<any[]>(`/v1/applications/${applicationId}/interviews`).then(r => r.data)
+
+export const createInterview = (applicationId: string, data: {
+  interviewer_id: string
+  title: string
+  stage: string
+  scheduled_at: string
+  duration_minutes: number
+  video_link?: string | null
+}) => api.post<any>(`/v1/applications/${applicationId}/interviews`, data).then(r => r.data)
+
+export const updateInterview = (applicationId: string, interviewId: string, data: {
+  interviewer_id?: string
+  title?: string
+  stage?: string
+  scheduled_at?: string
+  duration_minutes?: number
+  video_link?: string | null
+  is_cancelled?: boolean
+}) => api.patch<any>(`/v1/applications/${applicationId}/interviews/${interviewId}`, data).then(r => r.data)
+
+export const fetchFunnelAnalytics = (jobId?: string) =>
+  api.get<any>('/v1/analytics/funnel', { params: jobId ? { job_id: jobId } : {} }).then(r => r.data)
+
+export const fetchVelocityAnalytics = (jobId?: string) =>
+  api.get<any>('/v1/analytics/velocity', { params: jobId ? { job_id: jobId } : {} }).then(r => r.data)
+
 
 export const createApplication = (data: {
   job_id: string

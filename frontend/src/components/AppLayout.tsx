@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -6,12 +6,13 @@ import { fetchJobs, fetchApplications } from '../api'
 import AnimatedPage from './AnimatedPage'
 import { AnimatePresence } from 'framer-motion'
 import SteepSidebarItem from './design-system/SteepSidebarItem'
+import NotificationCenter from './NotificationCenter'
 
 interface AppLayoutProps {
   children: ReactNode
 }
 
-interface ActivityEvent {
+export interface ActivityEvent {
   id: string
   title: string
   detail: string
@@ -50,72 +51,104 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   // Formulated live operational activity stream events
-  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([
-    {
-      id: 'evt-1',
-      title: 'Candidate converted to Employee',
-      detail: 'Sarah Connor converted to Software Engineer (Full-Time)',
-      time: '2 mins ago',
-      type: 'success',
-    },
-    {
-      id: 'evt-2',
-      title: 'Escalation triggered',
-      detail: 'Level 2 Escalation: Overdue onboarding document checklist (I-9 form verification)',
-      time: '15 mins ago',
-      type: 'danger',
-    },
-    {
-      id: 'evt-3',
-      title: 'HRIS sync completed',
-      detail: 'HiBob HRIS adapter synchronized 4 new employee records successfully',
-      time: '1 hour ago',
-      type: 'success',
-    },
-    {
-      id: 'evt-4',
-      title: 'Interview scheduled',
-      detail: 'Hiring Panel for Julie Vance (Security Operations) scheduled for tomorrow',
-      time: '2 hours ago',
-      type: 'info',
-    },
-    {
-      id: 'evt-5',
-      title: 'NDA signed',
-      detail: 'Pre-boarding candidate cryptographic NDA signature verified matching identity',
-      time: '4 hours ago',
-      type: 'success',
-    },
-    {
-      id: 'evt-6',
-      title: 'Committee decision submitted',
-      detail: 'Voter choice "STRONG HIRE" filed for John Connor by Sarah Connor (committee chair)',
-      time: '5 hours ago',
-      type: 'info',
-    },
-    {
-      id: 'evt-7',
-      title: 'Sync failure detected',
-      detail: 'Failed sweeping Gusto Outbox: Invalid OAuth Token connection parameter',
-      time: '1 day ago',
-      type: 'danger',
-    },
-    {
-      id: 'evt-8',
-      title: 'Escalation resolved',
-      detail: 'Level 1 escalation resolved by hiring manager for IT laptop kit confirmation',
-      time: '1 day ago',
-      type: 'warning',
-    },
-  ])
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
 
-  // Fetch jobs and applications on mount or user log
+  // Fetch jobs, applications and live notifications on mount
+  const loadNotifications = useCallback(async () => {
+    try {
+      const [jobList, appList] = await Promise.all([
+        fetchJobs().catch(() => []),
+        fetchApplications().catch(() => []),
+      ])
+      setJobs(jobList)
+      setApplications(appList)
+
+      const generatedEvents: ActivityEvent[] = appList.slice(0, 8).map((app) => {
+        const name = app.candidate?.full_name || 'Candidate'
+        const role = app.job?.title || 'General Position'
+        if (app.status === 'hired') {
+          return {
+            id: `notif-hired-${app.id}`,
+            title: 'Offer Accepted & Synced',
+            detail: `${name} has signed the offer for ${role}. Syncing to Gusto.`,
+            time: 'Just now',
+            type: 'success'
+          }
+        }
+        if (app.status === 'offer') {
+          return {
+            id: `notif-offer-${app.id}`,
+            title: 'Offer Extended',
+            detail: `Offer contract created for ${name} (${role}).`,
+            time: '10 mins ago',
+            type: 'info'
+          }
+        }
+        if (app.status === 'interview') {
+          return {
+            id: `notif-iv-${app.id}`,
+            title: 'Interview Scheduled',
+            detail: `Hiring panel scheduled for ${name} (${role}).`,
+            time: '1 hour ago',
+            type: 'info'
+          }
+        }
+        if (app.status === 'screening') {
+          return {
+            id: `notif-scr-${app.id}`,
+            title: 'AI Processing Completed',
+            detail: `Resume parsing & fit score computed for ${name}.`,
+            time: '2 hours ago',
+            type: 'success'
+          }
+        }
+        return {
+          id: `notif-sub-${app.id}`,
+          title: 'New Application Received',
+          detail: `${name} applied for the ${role} position.`,
+          time: '3 hours ago',
+          type: 'info'
+        }
+      })
+      
+      // Merge with legacy HRIS alerts so we preserve all existing functionality:
+      setActivityEvents([
+        ...generatedEvents,
+        {
+          id: 'evt-2',
+          title: 'Escalation triggered',
+          detail: 'Level 2 Escalation: Overdue onboarding document checklist (I-9 form verification)',
+          time: '15 mins ago',
+          type: 'danger',
+        },
+        {
+          id: 'evt-3',
+          title: 'HRIS sync completed',
+          detail: 'HiBob HRIS adapter synchronized 4 new employee records successfully',
+          time: '1 hour ago',
+          type: 'success',
+        },
+        {
+          id: 'evt-7',
+          title: 'Sync failure detected',
+          detail: 'Failed sweeping Gusto Outbox: Invalid OAuth Token connection parameter',
+          time: '1 day ago',
+          type: 'danger',
+        }
+      ])
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+    }
+  }, [])
+
   useEffect(() => {
     if (user) {
-      fetchJobs().then(setJobs).catch(() => {})
-      fetchApplications().then(setApplications).catch(() => {})
+      loadNotifications()
+      // Poll notifications every 60 seconds
+      const interval = setInterval(loadNotifications, 60000)
+      return () => clearInterval(interval)
     }
-  }, [user])
+  }, [user, loadNotifications])
 
   // Keypress listener for Command Palette (Ctrl+K / Cmd+K)
   useEffect(() => {
@@ -924,167 +957,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* 4. Slide-Out Global Activity Feed Drawer (bell drawer) */}
-      {isActivityDrawerOpen && (
-        <>
-          <div
-            className="drawer-backdrop"
-            style={{ zIndex: 200 }}
-            onClick={() => setIsActivityDrawerOpen(false)}
-          />
-          <aside
-            className="drawer"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              width: 'min(460px, 100vw)',
-              borderRadius: '0px',
-              borderLeft: '1px solid var(--color-cork-shadow)',
-              background: 'var(--bg)',
-              zIndex: 201,
-            }}
-          >
-            <div
-              className="drawer-header"
-              style={{
-                padding: 'var(--space-6)',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, letterSpacing: '-0.01em' }}>
-                  Global Activity Stream
-                </h2>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                  Real-time hiring & synchronization logs
-                </p>
-              </div>
-              <button
-                type="button"
-                className="icon-btn"
-                style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-                onClick={() => setIsActivityDrawerOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div
-              className="drawer-body"
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: 'var(--space-6)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-4)',
-              }}
-            >
-              {activityEvents.length > 0 ? (
-                activityEvents.map((event) => (
-                  <article
-                    key={event.id}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      padding: 'var(--space-4)',
-                      borderRadius: 'var(--radius-cards)',
-                      border: '1px solid var(--border)',
-                      background: 'transparent',
-                      transition: 'transform var(--duration-fast)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span
-                        className={`badge badge--${
-                          event.type === 'danger'
-                            ? 'reject'
-                            : event.type === 'warning'
-                            ? 'interview'
-                            : event.type === 'success'
-                            ? 'hire'
-                            : 'neutral'
-                        }`}
-                        style={{ fontSize: '9px', fontWeight: 700 }}
-                      >
-                        {event.type === 'danger'
-                          ? 'Failed'
-                          : event.type === 'warning'
-                          ? 'Escalation'
-                          : event.type === 'success'
-                          ? 'Completed'
-                          : 'Operational'}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{event.time}</span>
-                    </div>
-
-                    <h3 style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                      {event.title}
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: '12.5px',
-                        color: 'var(--text-secondary)',
-                        margin: 0,
-                        lineHeight: '1.4',
-                      }}
-                    >
-                      {event.detail}
-                    </p>
-                  </article>
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: 'var(--space-12) 0', color: 'var(--text-tertiary)' }}>
-                  No historical event logs in cache.
-                </div>
-              )}
-            </div>
-
-            <div
-              style={{
-                padding: 'var(--space-4)',
-                borderTop: '1px solid var(--border)',
-                background: 'var(--bg-subtle)',
-                textAlign: 'center',
-                display: 'flex',
-                gap: '12px',
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm btn--block"
-                onClick={() => {
-                  simulateLiveEvent(
-                    'Simulated Dynamic Sync',
-                    'Recruiter manually sweepedoutbox queues successfully.',
-                    'success'
-                  )
-                }}
-              >
-                Simulate Sweeping
-              </button>
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm btn--block"
-                style={{ color: 'var(--danger)' }}
-                onClick={() => setActivityEvents([])}
-              >
-                Clear all activities
-              </button>
-            </div>
-          </aside>
-        </>
-      )}
+      <NotificationCenter
+        isOpen={isActivityDrawerOpen}
+        onClose={() => setIsActivityDrawerOpen(false)}
+        activityEvents={activityEvents}
+        onSimulateSweep={() => {
+          simulateLiveEvent(
+            'Simulated Dynamic Sync',
+            'Recruiter manually sweepedoutbox queues successfully.',
+            'success'
+          )
+        }}
+        onClearAll={() => setActivityEvents([])}
+      />
 
       {/* 5. Frosted Command Palette Overlay (Ctrl+K) */}
       {isCommandPaletteOpen && (
