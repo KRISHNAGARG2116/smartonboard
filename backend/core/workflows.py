@@ -98,6 +98,10 @@ def transition_candidate_stage(
         raise ValueError("Application not found")
         
     from_stage_id = application.current_stage_id
+    if from_stage_id:
+        current_stage = db.get(StageDefinition, from_stage_id)
+        if current_stage:
+            validate_stage_exit_requirements(db, application, current_stage)
     
     # 2. Fetch Target Stage
     target_stage = db.scalar(
@@ -146,8 +150,11 @@ def transition_candidate_stage(
         )
         db.add(tracker)
         db.flush()
+
+    # 6. Apply SLA pausing checks
+    check_and_update_sla_timers(db, application_id)
         
-    # 6. Log Audit Events
+    # 7. Log Audit Events
     log_audit_event(
         db=db,
         action="pipeline.stage_transitioned",
@@ -180,6 +187,50 @@ def transition_candidate_stage(
     db.commit()
     db.refresh(application)
     return application
+
+
+def check_and_update_sla_timers(db: Session, application_id: uuid.UUID):
+    """
+    Looks up the active SLA tracker for the application, and decides whether
+    to pause or resume it based on the application's current state.
+    """
+    tracker = db.scalar(
+        select(CandidateStageSLATracker).where(
+            CandidateStageSLATracker.application_id == application_id,
+            CandidateStageSLATracker.status.in_(["active", "paused"])
+        )
+    )
+    if not tracker:
+        return
+
+    from models.interview import Interview
+    from sqlalchemy import func
+    scheduled_interviews_count = db.scalar(
+        select(func.count(Interview.id)).where(
+            Interview.application_id == application_id,
+            Interview.status == "scheduled"
+        )
+    )
+
+    stage = db.get(StageDefinition, tracker.stage_definition_id)
+    should_pause = (
+        scheduled_interviews_count > 0 or
+        (stage and stage.settings.get("pause_sla") is True)
+    )
+
+    now = datetime.now(timezone.utc)
+    if should_pause and tracker.status == "active":
+        tracker.paused_at = now
+        tracker.status = "paused"
+        db.commit()
+    elif not should_pause and tracker.status == "paused" and tracker.paused_at is not None:
+        paused_duration = (now - tracker.paused_at.replace(tzinfo=timezone.utc)).total_seconds()
+        tracker.total_paused_seconds += int(paused_duration)
+        tracker.expires_at = tracker.expires_at.replace(tzinfo=timezone.utc) + timedelta(seconds=paused_duration)
+        tracker.paused_at = None
+        tracker.status = "active"
+        db.commit()
+
 
 def evaluate_auto_progression_rules(db: Session, application: Application, context: dict | None = None) -> bool:
     """
@@ -264,3 +315,60 @@ def evaluate_auto_progression_rules(db: Session, application: Application, conte
             logger.exception("Auto-progression rule evaluation failed")
             
     return False
+
+
+def validate_stage_exit_requirements(db: Session, application: Application, current_stage: StageDefinition):
+    """
+    Validates stage-level exit gate requirements (scorecard, interview, note, or resume)
+    before allowing a candidate to transition to the next stage.
+    """
+    if not current_stage or not current_stage.settings:
+        return
+
+    settings = current_stage.settings
+
+    # 1. Scorecard required
+    if settings.get("scorecard_required") is True:
+        from models.scorecard import Scorecard
+        submitted_scorecard = db.scalar(
+            select(Scorecard).where(
+                Scorecard.application_id == application.id,
+                Scorecard.is_draft == False
+            )
+        )
+        if not submitted_scorecard:
+            raise ValueError(f"Exit requirement failed: A final scorecard is required for the stage '{current_stage.name}' before moving the candidate.")
+
+    # 2. Interview required
+    if settings.get("interview_required") is True:
+        from models.interview import Interview
+        completed_interview = db.scalar(
+            select(Interview).where(
+                Interview.application_id == application.id,
+                Interview.is_cancelled == False
+            )
+        )
+        if not completed_interview:
+            raise ValueError(f"Exit requirement failed: A completed interview is required for the stage '{current_stage.name}' before moving the candidate.")
+
+    # 3. Note required
+    if settings.get("note_required") is True:
+        from models.note import CandidateNote
+        note = db.scalar(
+            select(CandidateNote).where(CandidateNote.application_id == application.id)
+        )
+        if not note:
+            raise ValueError(f"Exit requirement failed: A recruiter note is required for the stage '{current_stage.name}' before moving the candidate.")
+
+    # 4. Resume required
+    if settings.get("resume_required") is True:
+        from models.candidate_resume import CandidateResume
+        resume = db.scalar(
+            select(CandidateResume).where(
+                CandidateResume.user_id == application.candidate_id,
+                CandidateResume.is_active == True
+            )
+        )
+        if not resume:
+            raise ValueError(f"Exit requirement failed: A candidate resume is required for the stage '{current_stage.name}' before moving the candidate.")
+

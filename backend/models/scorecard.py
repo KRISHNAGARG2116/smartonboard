@@ -7,7 +7,7 @@ try:
 except ImportError:
     pass
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func, Numeric
+from sqlalchemy import DateTime, ForeignKey, String, Text, func, Numeric, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +37,7 @@ class Scorecard(Base):
         UUID(as_uuid=True), ForeignKey("committee_reviews.id", ondelete="SET NULL"), nullable=True, index=True
     )
     weighted_score: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
+    is_draft: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

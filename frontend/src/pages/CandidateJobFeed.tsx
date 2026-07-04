@@ -27,6 +27,11 @@ import {
   type JobFeedItem,
   type CandidateResume
 } from '../api'
+import JobPreviewHeader from '../components/job-preview/JobPreviewHeader'
+import JobPreviewFitRing from '../components/job-preview/JobPreviewFitRing'
+import JobPreviewSkills from '../components/job-preview/JobPreviewSkills'
+import JobPreviewDescription from '../components/job-preview/JobPreviewDescription'
+import JobPreviewMetadata from '../components/job-preview/JobPreviewMetadata'
 
 export default function CandidateJobFeed() {
   const [jobs, setJobs] = useState<JobFeedItem[]>([])
@@ -377,200 +382,61 @@ export default function CandidateJobFeed() {
             }}
           >
             {/* Drawer Header */}
-            <div 
-              style={{ 
-                padding: 'var(--space-6)', 
-                borderBottom: '1px solid var(--border)', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start' 
-              }}
-            >
-              <div>
-                <h2 id="drawer-job-title" style={{ fontSize: 'var(--text-lg)', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
-                  {selectedJob.title}
-                </h2>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-                  {selectedJob.company_name} · <strong>{selectedJob.department}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => setSelectedJob(null)}
-                style={{ 
-                  border: '1px solid var(--color-cork-shadow)', 
-                  borderRadius: '50%', 
-                  width: '32px', 
-                  height: '32px', 
-                  display: 'grid', 
-                  placeItems: 'center',
-                  background: 'transparent',
-                  color: 'var(--text)'
-                }}
-                aria-label="Close Job Drawer"
-              >
-                ✕
-              </button>
-            </div>
+            <JobPreviewHeader
+              title={selectedJob.title}
+              companyName={selectedJob.company_name}
+              department={selectedJob.department}
+              action={
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setSelectedJob(null)}
+                  style={{ 
+                    border: '1px solid var(--color-cork-shadow)', 
+                    borderRadius: '50%', 
+                    width: '32px', 
+                    height: '32px', 
+                    display: 'grid', 
+                    placeItems: 'center',
+                    background: 'transparent',
+                    color: 'var(--text)'
+                  }}
+                  aria-label="Close Job Drawer"
+                >
+                  ✕
+                </button>
+              }
+            />
 
             {/* Drawer Body Scroll Content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-              
-              {/* Applicability Ring Block */}
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 'var(--space-5)', 
-                  padding: 'var(--space-4)', 
-                  background: 'var(--color-pure-white)', 
-                  borderRadius: 'var(--radius-cards)', 
-                  border: '1px solid var(--border)' 
-                }}
-              >
-                {/* Visual Circular Ring */}
-                <div 
-                  style={{
-                    position: 'relative',
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    background: `conic-gradient(var(--color-rust) ${selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%, var(--color-cork-shadow) 0)`,
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0
-                  }}
-                >
-                  <div 
-                    style={{
-                      position: 'absolute',
-                      inset: '5px',
-                      borderRadius: '50%',
-                      background: 'var(--color-pure-white)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 800
-                    }}
-                  >
-                    {selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? 100 : selectedJob.applicability_score}%
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 750, margin: 0 }}>Personalized Applicability Fit</h4>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '2px', margin: 0, lineHeight: 1.3 }}>
-                    {selectedJob.matching_skills.length === 0 && selectedJob.missing_skills.length === 0 ? (
-                      'This job has no specific skills configuration. All candidates match at 100%.'
-                    ) : (
-                      `Your resume matches ${selectedJob.matching_skills.length} of ${selectedJob.matching_skills.length + selectedJob.missing_skills.length} identified requirements.`
-                    )}
-                  </p>
-                </div>
-              </div>
+              <JobPreviewFitRing
+                applicabilityScore={selectedJob.applicability_score}
+                matchingSkillsCount={selectedJob.matching_skills.length}
+                totalSkillsCount={selectedJob.matching_skills.length + selectedJob.missing_skills.length}
+              />
 
-              {/* Skills Analysis */}
-              {(selectedJob.matching_skills.length > 0 || selectedJob.missing_skills.length > 0) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', margin: 0 }}>
-                    Skills Matching Audit
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-3)' }}>
-                    
-                    {/* Matching */}
-                    {selectedJob.matching_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)', background: 'var(--color-pure-white)' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--success)', display: 'block', marginBottom: '8px' }}>
-                          ✓ Matching Skills ({selectedJob.matching_skills.length})
-                        </span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {selectedJob.matching_skills.map((skill, idx) => (
-                            <span 
-                              key={idx} 
-                              style={{ 
-                                fontSize: '10px', 
-                                padding: '2px 8px', 
-                                borderRadius: '6px', 
-                                background: 'var(--success-bg)', 
-                                color: 'var(--success)',
-                                fontWeight: 550
-                              }}
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+              <JobPreviewSkills
+                matchingSkills={selectedJob.matching_skills}
+                missingSkills={selectedJob.missing_skills}
+              />
 
-                    {/* Missing */}
-                    {selectedJob.missing_skills.length > 0 && (
-                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-cards)', padding: 'var(--space-3)', background: 'var(--color-pure-white)' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 750, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                          ? Missing Skills ({selectedJob.missing_skills.length})
-                        </span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {selectedJob.missing_skills.map((skill, idx) => (
-                            <span 
-                              key={idx} 
-                              style={{ 
-                                fontSize: '10px', 
-                                padding: '2px 8px', 
-                                borderRadius: '6px', 
-                                background: 'transparent', 
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--color-cork-shadow)',
-                                fontWeight: 400
-                              }}
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+              <JobPreviewDescription
+                description={selectedJob.description}
+              />
 
-                  </div>
-                </div>
-              )}
-
-              {/* Job Description */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', margin: 0 }}>
-                  Description
-                </h4>
-                <div 
-                  style={{ 
-                    fontSize: 'var(--text-sm)', 
-                    color: 'var(--text)', 
-                    lineHeight: 1.6, 
-                    whiteSpace: 'pre-wrap',
-                    background: 'var(--color-pure-white)',
-                    padding: 'var(--space-4)',
-                    borderRadius: 'var(--radius-cards)',
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  {selectedJob.description}
-                </div>
-              </div>
-
-              {/* Job Metadata Properties */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--color-pure-white)', padding: 'var(--space-4)', borderRadius: 'var(--radius-cards)', border: '1px solid var(--border)' }}>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Target Start Date</span>
-                  <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>
-                    {selectedJob.start_date ? new Date(selectedJob.start_date).toLocaleDateString() : 'Immediate'}
-                  </strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Status</span>
-                  <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--success)' }}>
-                    Active / Open
-                  </strong>
-                </div>
-              </div>
+              <JobPreviewMetadata
+                startDate={selectedJob.start_date}
+                workplaceType={selectedJob.settings?.workplace_type}
+                employmentType={selectedJob.settings?.employment_type}
+                location={selectedJob.settings?.office_address}
+                salaryMin={selectedJob.settings?.salary_min}
+                salaryMax={selectedJob.settings?.salary_max}
+                currency={selectedJob.settings?.currency}
+                hideSalary={selectedJob.settings?.hide_salary}
+                openings={selectedJob.settings?.openings}
+                benefits={selectedJob.settings?.benefits}
+              />
 
             </div>
 

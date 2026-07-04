@@ -24,6 +24,7 @@ import CandidateDirectory from './pages/CandidateDirectory'
 import PipelineBoard from './pages/PipelineBoard'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import RecruiterJobs from './pages/recruiter/RecruiterJobs'
+import RecruiterJobBuilder from './pages/recruiter/RecruiterJobBuilder'
 import RecruiterInterviews from './pages/recruiter/RecruiterInterviews'
 import RecruiterSettings from './pages/recruiter/RecruiterSettings'
 
@@ -88,6 +89,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
               <AnimatedPage><RecruiterJobs /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/jobs/new"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><RecruiterJobBuilder /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/jobs/:id/edit"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><RecruiterJobBuilder /></AnimatedPage>
             </ProtectedRoute>
           }
         />

@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from api.deps import CurrentUser, TenantDb, RequireRecruiter
-from models import Application, Candidate, Job, CandidateEmbedding
+from api.deps import CurrentUser, TenantDb, RequireRecruiter, has_job_access
+from models import Application, Candidate, Job, CandidateEmbedding, StageDefinition, User
 from models.enums import ApplicationStatus
 from schemas.application import (
     ApplicationCreateRequest,
@@ -13,6 +13,10 @@ from schemas.application import (
     ApplicationUpdateRequest,
     CandidateBrief,
     JobBrief,
+    BulkUpdatePreviewPayload,
+    BulkUpdatePayload,
+    BulkUpdatePreviewResponse,
+    BulkPreviewWarning,
 )
 
 from fastapi import File, Form, UploadFile
@@ -621,6 +625,307 @@ Answer concisely and professionally."""
             for c in top_chunks
         ]
     }
+
+
+@router.post("/{application_id}/sla/pause")
+def pause_application_sla(
+    application_id: uuid.UUID,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Manually pauses the active SLA tracker for the application.
+    """
+    from models.sla import CandidateStageSLATracker
+    from datetime import datetime, timezone
+
+    tracker = db.scalar(
+        select(CandidateStageSLATracker).where(
+            CandidateStageSLATracker.application_id == application_id,
+            CandidateStageSLATracker.status == "active",
+            CandidateStageSLATracker.company_id == current_user.company_id
+        )
+    )
+    if not tracker:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active SLA tracker found to pause for this application."
+        )
+
+    tracker.paused_at = datetime.now(timezone.utc)
+    tracker.status = "paused"
+    db.commit()
+
+    return {"status": "success", "message": "SLA timer paused successfully"}
+
+
+@router.post("/{application_id}/sla/resume")
+def resume_application_sla(
+    application_id: uuid.UUID,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Manually resumes a paused SLA tracker for the application.
+    """
+    from models.sla import CandidateStageSLATracker
+    from datetime import datetime, timezone, timedelta
+
+    tracker = db.scalar(
+        select(CandidateStageSLATracker).where(
+            CandidateStageSLATracker.application_id == application_id,
+            CandidateStageSLATracker.status == "paused",
+            CandidateStageSLATracker.company_id == current_user.company_id
+        )
+    )
+    if not tracker:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No paused SLA tracker found to resume for this application."
+        )
+
+    now = datetime.now(timezone.utc)
+    if tracker.paused_at:
+        paused_duration = (now - tracker.paused_at.replace(tzinfo=timezone.utc)).total_seconds()
+        tracker.total_paused_seconds += int(paused_duration)
+        tracker.expires_at = tracker.expires_at.replace(tzinfo=timezone.utc) + timedelta(seconds=paused_duration)
+    tracker.paused_at = None
+    tracker.status = "active"
+    db.commit()
+
+    return {"status": "success", "message": "SLA timer resumed successfully"}
+
+
+@router.post("/bulk-update/preview", response_model=BulkUpdatePreviewResponse)
+def bulk_update_preview(
+    payload: BulkUpdatePreviewPayload,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Simulates stage movement and validation, returning conflict/exit warnings.
+    """
+    apps = db.scalars(
+        select(Application)
+        .options(selectinload(Application.candidate))
+        .where(
+            Application.id.in_(payload.application_ids),
+            Application.company_id == current_user.company_id
+        )
+    ).all()
+
+    warnings = []
+    for app in apps:
+        if app.status == ApplicationStatus.REJECTED:
+            warnings.append(
+                BulkPreviewWarning(
+                    application_id=app.id,
+                    candidate_name=app.candidate.full_name,
+                    warning_type="rejected",
+                    message="Candidate is already rejected."
+                )
+            )
+
+        from models.interview import Interview
+        from sqlalchemy import func
+        scheduled_count = db.scalar(
+            select(func.count(Interview.id)).where(
+                Interview.application_id == app.id,
+                Interview.status == "scheduled"
+            )
+        ) or 0
+        if scheduled_count > 0:
+            warnings.append(
+                BulkPreviewWarning(
+                    application_id=app.id,
+                    candidate_name=app.candidate.full_name,
+                    warning_type="interview_conflict",
+                    message=f"Candidate has {scheduled_count} scheduled interview(s) in progress."
+                )
+            )
+
+        if payload.target_stage_id and app.current_stage_id:
+            current_stage = db.get(StageDefinition, app.current_stage_id)
+            if current_stage:
+                from core.workflows import validate_stage_exit_requirements
+                try:
+                    validate_stage_exit_requirements(db, app, current_stage)
+                except ValueError as val_err:
+                    warnings.append(
+                        BulkPreviewWarning(
+                            application_id=app.id,
+                            candidate_name=app.candidate.full_name,
+                            warning_type="exit_requirement_violation",
+                            message=str(val_err)
+                        )
+                    )
+
+    return BulkUpdatePreviewResponse(
+        total_applications=len(apps),
+        warnings=warnings
+    )
+
+
+@router.post("/bulk-update")
+def bulk_update_applications(
+    payload: BulkUpdatePayload,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Executes bulk updates (stage change, status change, owner change) as a single transaction,
+    logging previous states for potential Undos.
+    """
+    apps = db.scalars(
+        select(Application)
+        .options(selectinload(Application.candidate))
+        .where(
+            Application.id.in_(payload.application_ids),
+            Application.company_id == current_user.company_id
+        )
+    ).all()
+
+    if not apps:
+        return {"status": "success", "updated_count": 0}
+
+    for app in apps:
+        if not has_job_access(db, current_user, app.job_id, "write"):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"No write access to job for application {app.id}")
+
+    previous_states = {}
+    for app in apps:
+        previous_states[str(app.id)] = {
+            "current_stage_id": str(app.current_stage_id) if app.current_stage_id else None,
+            "status": app.status.value if app.status else None,
+            "owner_id": str(app.owner_id) if app.owner_id else None,
+        }
+
+    from models.ats_models import BulkOperationLog
+    op_log = BulkOperationLog(
+        company_id=current_user.company_id,
+        recruiter_id=current_user.id,
+        action_type="move_stage" if payload.target_stage_id else "update_fields",
+        affected_application_ids=[str(a.id) for a in apps],
+        previous_states=previous_states
+    )
+    db.add(op_log)
+    db.flush()
+
+    from core.workflows import transition_candidate_stage
+    from core.timeline import log_application_event
+
+    for app in apps:
+        if payload.target_stage_id:
+            try:
+                transition_candidate_stage(
+                    db=db,
+                    company_id=current_user.company_id,
+                    application_id=app.id,
+                    target_stage_id=payload.target_stage_id,
+                    actor_id=current_user.id
+                )
+            except Exception as e:
+                db.rollback()
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        if payload.target_status:
+            app.status = _parse_application_status(payload.target_status)
+
+        if payload.target_owner_id:
+            owner = db.get(User, payload.target_owner_id)
+            if not owner or owner.company_id != current_user.company_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target owner user not found")
+            app.owner_id = payload.target_owner_id
+
+        log_application_event(
+            db=db,
+            application_id=app.id,
+            event_type="application.bulk_updated",
+            actor_id=current_user.id,
+            actor_name=current_user.full_name,
+            metadata={
+                "bulk_operation_id": str(op_log.id),
+                "target_stage_id": str(payload.target_stage_id) if payload.target_stage_id else None,
+                "target_status": payload.target_status,
+                "target_owner_id": str(payload.target_owner_id) if payload.target_owner_id else None,
+            }
+        )
+
+    db.commit()
+    return {"status": "success", "updated_count": len(apps), "operation_id": op_log.id}
+
+
+@router.post("/bulk-undo")
+def bulk_undo_operation(
+    current_user: RequireRecruiter,
+    db: TenantDb,
+    operation_id: uuid.UUID | None = None,
+):
+    """
+    Rolls back the last bulk operation executed within a 5-minute window.
+    """
+    from models.ats_models import BulkOperationLog
+    from core.timeline import log_application_event
+
+    if operation_id:
+        op_log = db.scalar(
+            select(BulkOperationLog).where(
+                BulkOperationLog.id == operation_id,
+                BulkOperationLog.company_id == current_user.company_id
+            )
+        )
+    else:
+        op_log = db.scalar(
+            select(BulkOperationLog)
+            .where(
+                BulkOperationLog.company_id == current_user.company_id,
+                BulkOperationLog.recruiter_id == current_user.id
+            )
+            .order_by(BulkOperationLog.executed_at.desc())
+            .limit(1)
+        )
+
+    if not op_log:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No bulk operation log found to undo.")
+
+    now = datetime.now(timezone.utc)
+    delta = (now - op_log.executed_at.replace(tzinfo=timezone.utc)).total_seconds()
+    if delta > 300:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot undo bulk operation: operation was executed {int(delta)} seconds ago, which is outside the 5-minute (300 seconds) window."
+        )
+
+    reverted_count = 0
+    for app_id_str, prev_state in op_log.previous_states.items():
+        app_id = uuid.UUID(app_id_str)
+        app = db.scalar(
+            select(Application).where(
+                Application.id == app_id,
+                Application.company_id == current_user.company_id
+            )
+        )
+        if app:
+            app.current_stage_id = uuid.UUID(prev_state["current_stage_id"]) if prev_state["current_stage_id"] else None
+            app.status = _parse_application_status(prev_state["status"]) if prev_state["status"] else None
+            app.owner_id = uuid.UUID(prev_state["owner_id"]) if prev_state["owner_id"] else None
+            reverted_count += 1
+
+            log_application_event(
+                db=db,
+                application_id=app.id,
+                event_type="application.bulk_undone",
+                actor_id=current_user.id,
+                actor_name=current_user.full_name,
+                metadata={"bulk_operation_id": str(op_log.id)}
+            )
+
+    db.delete(op_log)
+    db.commit()
+
+    return {"status": "success", "reverted_count": reverted_count}
+
+
 
 
 

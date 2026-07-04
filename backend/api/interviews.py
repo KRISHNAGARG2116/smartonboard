@@ -18,7 +18,7 @@ from schemas.interview import (
     InterviewUpdateRequest,
     InterviewNotificationDraftResponse,
 )
-from schemas.scorecard import ScorecardSubmitRequest, ScorecardResponse
+from schemas.scorecard import ScorecardSubmitRequest, ScorecardResponse, ScorecardDraftRequest
 from core.audit import log_audit_event
 
 router = APIRouter(prefix="/applications/{application_id}/interviews", tags=["interviews"])
@@ -134,6 +134,9 @@ def schedule_interview(
     db.refresh(interview)
     if status_changed:
         db.refresh(app_record)
+
+    from core.workflows import check_and_update_sla_timers
+    check_and_update_sla_timers(db, app_record.id)
 
     # Dispatch background tracking tasks
     track_recruiter_productivity_async.delay(
@@ -275,6 +278,9 @@ def update_interview(
     db.commit()
     db.refresh(interview)
 
+    from core.workflows import check_and_update_sla_timers
+    check_and_update_sla_timers(db, interview.application_id)
+
     # Log audit event
     action = "interview.cancelled" if is_cancelled_transition else "interview.updated"
     log_audit_event(
@@ -300,17 +306,19 @@ def update_interview(
     return interview
 
 
-@router.post("/{interview_id}/scorecard", response_model=ScorecardResponse, status_code=status.HTTP_201_CREATED)
-def submit_scorecard(
+@router.post("/{interview_id}/scorecard/draft", response_model=ScorecardResponse, status_code=status.HTTP_201_CREATED)
+def save_scorecard_draft(
     application_id: uuid.UUID,
     interview_id: uuid.UUID,
-    body: ScorecardSubmitRequest,
+    body: ScorecardDraftRequest,
     request: Request,
     current_user: RequireRecruiter,
     db: TenantDb,
 ):
+    """
+    Saves a draft of the scorecard without enforcing completeness.
+    """
     app_record = _get_application(application_id, db, current_user)
-
     interview = db.scalar(
         select(Interview).where(
             Interview.id == interview_id,
@@ -321,12 +329,82 @@ def submit_scorecard(
     if not interview:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interview not found")
 
-    # Verify if scorecard already exists
     existing = db.scalar(select(Scorecard).where(Scorecard.interview_id == interview_id))
     if existing:
+        if not existing.is_draft:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Scorecard already submitted and locked for this interview"
+            )
+        existing.criteria_scores = body.criteria_scores
+        existing.overall_recommendation = body.overall_recommendation or "yes"
+        existing.notes = body.notes
+        existing.is_draft = True
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    scorecard = Scorecard(
+        company_id=current_user.company_id,
+        application_id=application_id,
+        interview_id=interview_id,
+        grader_id=current_user.id,
+        criteria_scores=body.criteria_scores,
+        overall_recommendation=body.overall_recommendation or "yes",
+        notes=body.notes,
+        is_draft=True,
+        submitted_at=datetime.now(timezone.utc)
+    )
+    db.add(scorecard)
+    db.commit()
+    db.refresh(scorecard)
+
+    log_audit_event(
+        db=db,
+        action="scorecard.draft_saved",
+        actor_type="RECRUITER",
+        actor_id=current_user.id,
+        company_id=current_user.company_id,
+        resource_type="scorecards",
+        resource_id=str(scorecard.id),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "application_id": str(application_id),
+            "interview_id": str(interview_id),
+        }
+    )
+    return scorecard
+
+
+@router.post("/{interview_id}/scorecard/submit", response_model=ScorecardResponse, status_code=status.HTTP_201_CREATED)
+def submit_scorecard_final(
+    application_id: uuid.UUID,
+    interview_id: uuid.UUID,
+    body: ScorecardSubmitRequest,
+    request: Request,
+    current_user: RequireRecruiter,
+    db: TenantDb,
+):
+    """
+    Submits a completed scorecard, locking it from further edits.
+    """
+    app_record = _get_application(application_id, db, current_user)
+    interview = db.scalar(
+        select(Interview).where(
+            Interview.id == interview_id,
+            Interview.application_id == application_id,
+            Interview.company_id == current_user.company_id
+        )
+    )
+    if not interview:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interview not found")
+
+    existing = db.scalar(select(Scorecard).where(Scorecard.interview_id == interview_id))
+    if existing and not existing.is_draft:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Scorecard already submitted for this interview"
+            detail="Scorecard already submitted and locked for this interview"
         )
 
     # 1. Fetch Job criteria template rules from Job.settings
@@ -335,32 +413,38 @@ def submit_scorecard(
     if job and job.settings:
         configured_criteria = job.settings.get("scorecard_criteria")
 
-    # Fallback default if not explicitly configured in Job.settings
     if not configured_criteria:
         configured_criteria = ["coding", "system_design", "communication"]
 
-    # 2. Enforce Structured Hiring consistency: Submitted keys must match configured template criteria
+    # 2. Enforce Structured Hiring consistency
     submitted_keys = set(body.criteria_scores.keys())
     template_keys = set(configured_criteria)
-    
     if submitted_keys != template_keys:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Scorecard criteria mismatch. Expected exactly: {configured_criteria}. Got: {list(body.criteria_scores.keys())}"
         )
 
-    # 3. Create & Submit Scorecard (we record both scorecard.created and scorecard.submitted events to be fully compliant)
-    scorecard = Scorecard(
-        company_id=current_user.company_id,
-        application_id=application_id,
-        interview_id=interview_id,
-        grader_id=current_user.id,
-        criteria_scores=body.criteria_scores,
-        overall_recommendation=body.overall_recommendation,
-        notes=body.notes,
-        submitted_at=datetime.now(timezone.utc)
-    )
-    db.add(scorecard)
+    if existing:
+        scorecard = existing
+        scorecard.criteria_scores = body.criteria_scores
+        scorecard.overall_recommendation = body.overall_recommendation
+        scorecard.notes = body.notes
+        scorecard.is_draft = False
+        scorecard.submitted_at = datetime.now(timezone.utc)
+    else:
+        scorecard = Scorecard(
+            company_id=current_user.company_id,
+            application_id=application_id,
+            interview_id=interview_id,
+            grader_id=current_user.id,
+            criteria_scores=body.criteria_scores,
+            overall_recommendation=body.overall_recommendation,
+            notes=body.notes,
+            is_draft=False,
+            submitted_at=datetime.now(timezone.utc)
+        )
+        db.add(scorecard)
 
     # Check for active pending committee review cycle
     from models.committee import CommitteeReview, CommitteeReviewReviewer
@@ -391,17 +475,29 @@ def submit_scorecard(
     if active_review and scorecard.committee_review_id:
         evaluate_committee_review_consensus(db, active_review.id)
 
-
     # Evaluate auto-progression rules
     from core.workflows import evaluate_auto_progression_rules
     evaluate_auto_progression_rules(db=db, application=app_record)
 
-
-    # Soft-invalidate cached insights due to scorecard changes
+    # Soft-invalidate cached insights
     from celery_worker import invalidate_insights
     invalidate_insights(db, application_id, ["scorecard_consensus", "hiring_recommendation"])
 
-    # 4. Log scorecard.created
+    # Log timeline event
+    from core.timeline import log_application_event
+    log_application_event(
+        db=db,
+        application_id=application_id,
+        event_type="scorecard.submitted",
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        metadata={
+            "scorecard_id": str(scorecard.id),
+            "grader_id": str(current_user.id),
+            "recommendation": scorecard.overall_recommendation
+        }
+    )
+
     log_audit_event(
         db=db,
         action="scorecard.created",
@@ -423,7 +519,7 @@ def submit_scorecard(
         }
     )
 
-    # 5. Log scorecard.submitted
+    # Log scorecard.submitted
     log_audit_event(
         db=db,
         action="scorecard.submitted",

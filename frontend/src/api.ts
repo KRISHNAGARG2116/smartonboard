@@ -274,11 +274,6 @@ export const updateJob = (jobId: string, data: {
   change_reason?: string
 }) => api.patch<Job>(`/v1/jobs/${jobId}`, data).then(r => r.data)
 
-export const generateJobDescription = (title: string, department: string) =>
-  api.post<any>('/v1/jobs/generate-description', null, { params: { title, department } }).then(r => r.data)
-
-export const suggestSkills = (title: string) =>
-  api.post<string[]>('/v1/jobs/suggest-skills', null, { params: { title } }).then(r => r.data)
 
 export const fetchApplications = (jobId?: string) =>
   api.get<Application[]>('/v1/applications', { params: jobId ? { job_id: jobId } : {} }).then(r => r.data)
@@ -439,6 +434,7 @@ export interface JobFeedItem {
   applicability_score: number
   matching_skills: string[]
   missing_skills: string[]
+  settings?: any
 }
 
 export interface JobFeedResponse {
@@ -534,6 +530,109 @@ export const rescheduleCandidateBooking = (slotId: string, newStartTime: string)
     `/v1/candidate/bookings/${slotId}/reschedule`,
     { new_start_time: newStartTime }
   ).then(r => r.data)
+
+export const fetchJob = (jobId: string) =>
+  api.get<any>(`/v1/jobs/${jobId}`).then(r => r.data)
+
+export const fetchCompanyUsers = () =>
+  api.get<User[]>(`/v1/companies/me/users`).then(r => r.data)
+
+
+// --- Phase B.2 AI & Intelligent ATS Builder Helpers ---
+
+export interface JobDescriptionGenerateRequest {
+  title: string
+  department: string
+  industry?: string | null
+  workplace_type?: string | null
+  employment_type?: string | null
+  seniority?: string | null
+  required_skills?: string[] | null
+  preferred_skills?: string[] | null
+  section?: string | null
+}
+
+export interface JobDescriptionGenerateResponse {
+  success: boolean
+  error_code?: string | null
+  message?: string | null
+  retryable?: boolean | null
+  description?: string | null
+  responsibilities?: string | null
+  requirements?: string | null
+  benefits?: string | null
+  qualifications?: string | null
+}
+
+export interface SkillSuggestionsRequest {
+  title: string
+  department?: string | null
+  existing_skills?: string[] | null
+}
+
+export interface SkillSuggestionsResponse {
+  required_skills: string[]
+  preferred_skills: string[]
+  technologies: string[]
+  languages: string[]
+}
+
+export interface JobQualityAnalyzeRequest {
+  title: string
+  department: string
+  description: string
+  settings?: any
+}
+
+export interface JobQualityAnalyzeResponse {
+  score: number
+  warnings: string[]
+  recommendations: string[]
+}
+
+export interface JobRevision {
+  id: string
+  version: number
+  title: string
+  department: string
+  job_status: string
+  change_reason?: string | null
+  created_by?: string | null
+  created_at: string
+}
+
+export interface JobRevisionDetail extends JobRevision {
+  job_id: string
+  description: string
+  settings?: any
+}
+
+export const generateJobDescription = (
+  data: JobDescriptionGenerateRequest,
+  options?: { signal?: AbortSignal; idempotencyKey?: string }
+) => {
+  const headers: Record<string, string> = {}
+  if (options?.idempotencyKey) {
+    headers['Idempotency-Key'] = options.idempotencyKey
+  }
+  return api.post<JobDescriptionGenerateResponse>('/v1/jobs/generate-description', data, {
+    signal: options?.signal,
+    headers,
+  }).then(r => r.data)
+}
+
+export const suggestSkills = (data: SkillSuggestionsRequest) =>
+  api.post<SkillSuggestionsResponse>('/v1/jobs/suggest-skills', data).then(r => r.data)
+
+export const analyzeJobQuality = (data: JobQualityAnalyzeRequest) =>
+  api.post<JobQualityAnalyzeResponse>('/v1/jobs/analyze-quality', data).then(r => r.data)
+
+export const fetchJobRevisions = (jobId: string) =>
+  api.get<JobRevision[]>(`/v1/jobs/${jobId}/revisions`).then(r => r.data)
+
+export const fetchJobRevisionDetail = (jobId: string, version: number) =>
+  api.get<JobRevisionDetail>(`/v1/jobs/${jobId}/revisions/${version}`).then(r => r.data)
+
 
 
 

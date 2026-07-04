@@ -1,14 +1,22 @@
 import uuid
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status, Request
+from fastapi import APIRouter, HTTPException, Query, status, Request, Header
 from sqlalchemy import select
 
 from api.deps import CurrentUser, TenantDb, RequireRecruiter
 from models import Job, Candidate, CandidateEmbedding
 from models.enums import JobStatus
-from schemas.job import JobCreateRequest, JobResponse, JobUpdateRequest
+from schemas.job import (
+    JobCreateRequest, JobResponse, JobUpdateRequest,
+    JobDescriptionGenerateRequest, JobDescriptionGenerateResponse,
+    SkillSuggestionsRequest, SkillSuggestionsResponse,
+    JobRevisionListResponse, JobRevisionDetailResponse,
+    JobQualityAnalyzeRequest, JobQualityAnalyzeResponse
+)
 from core.embeddings import EmbeddingService
 from core.audit import log_audit_event
+from core.limiter import limiter, recruiter_rate_limit_key
 
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -330,66 +338,331 @@ def get_candidate_matches(
 
 _job_description_cache = {}
 _suggest_skills_cache = {}
+_idempotency_cache = {}
+_local_ai_usage = {}
 
 
-@router.post("/generate-description")
+def get_redis_connection():
+    from core.config import get_settings
+    import redis
+    try:
+        settings = get_settings()
+        r = redis.from_url(settings.redis_url)
+        r.ping()
+        return r
+    except Exception:
+        return None
+
+
+def check_ai_quota(recruiter_id: str, company_id: str) -> str | None:
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    r = get_redis_connection()
+    if r is not None:
+        rec_key = f"ai_usage:recruiter:{recruiter_id}:{today}"
+        comp_key = f"ai_usage:company:{company_id}:{today}"
+        rec_count = int(r.get(rec_key) or 0)
+        comp_count = int(r.get(comp_key) or 0)
+        if rec_count >= 20:
+            return "recruiter_limit_exceeded"
+        if comp_count >= 100:
+            return "company_limit_exceeded"
+        r.incr(rec_key)
+        r.expire(rec_key, 86400)
+        r.incr(comp_key)
+        r.expire(comp_key, 86400)
+        return None
+    else:
+        global _local_ai_usage
+        if recruiter_id not in _local_ai_usage or _local_ai_usage[recruiter_id]["date"] != today:
+            _local_ai_usage[recruiter_id] = {"date": today, "count": 0}
+        if _local_ai_usage[recruiter_id]["count"] >= 20:
+            return "recruiter_limit_exceeded"
+        if company_id not in _local_ai_usage or _local_ai_usage[company_id]["date"] != today:
+            _local_ai_usage[company_id] = {"date": today, "count": 0}
+        if _local_ai_usage[company_id]["count"] >= 100:
+            return "company_limit_exceeded"
+        _local_ai_usage[recruiter_id]["count"] += 1
+        _local_ai_usage[company_id]["count"] += 1
+        return None
+
+
+@router.post("/generate-description", response_model=JobDescriptionGenerateResponse)
+@limiter.limit("5/minute", key_func=recruiter_rate_limit_key)
 def generate_job_description(
-    title: str,
-    department: str,
+    body: JobDescriptionGenerateRequest,
+    request: Request,
     current_user: RequireRecruiter,
-    db: TenantDb
+    db: TenantDb,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")
 ):
+    import json
+    import time
+    
+    # 1. Idempotency Check
+    r = get_redis_connection()
+    if idempotency_key:
+        idemp_key = f"idempotency:generate-description:{str(current_user.id)}:{idempotency_key}"
+        if r is not None:
+            cached_val = r.get(idemp_key)
+            if cached_val:
+                return JobDescriptionGenerateResponse(**json.loads(cached_val))
+        else:
+            global _idempotency_cache
+            if idemp_key in _idempotency_cache:
+                cached_time, cached_val = _idempotency_cache[idemp_key]
+                if (time.time() - cached_time) < 300:
+                    return JobDescriptionGenerateResponse(**cached_val)
+
+    # 2. Cache Check
     from models import Company
     from core.intelligence import GenerativeIntelligenceService
     
     company = db.scalar(select(Company).where(Company.id == current_user.company_id))
     company_name = company.name if company else "Our Company"
-    company_industry = company.settings.get("industry") if company and company.settings else None
+    company_industry = body.industry or (company.settings.get("industry") if company and company.settings else None)
 
-    cache_key = (
-        title.lower().strip(),
-        department.lower().strip(),
-        company_name.lower().strip(),
-        GenerativeIntelligenceService.MODEL_VERSION,
-        GenerativeIntelligenceService.PROMPT_VERSION
-    )
-    
-    global _job_description_cache
-    if cache_key in _job_description_cache:
-        return _job_description_cache[cache_key]
+    cache_hash = f"{body.title.lower().strip()}:{body.department.lower().strip()}:{company_name.lower().strip()}:{body.section or 'all'}"
+    if r is not None:
+        cached_res = r.get(f"cache:generate-description:{cache_hash}")
+        if cached_res:
+            return JobDescriptionGenerateResponse(**json.loads(cached_res))
+    else:
+        global _job_description_cache
+        if cache_hash in _job_description_cache:
+            return JobDescriptionGenerateResponse(**_job_description_cache[cache_hash])
 
-    result = GenerativeIntelligenceService.generate_job_description(
-        title=title,
-        department=department,
+    # 3. Quota Check
+    quota_err = check_ai_quota(str(current_user.id), str(current_user.company_id))
+    if quota_err:
+        limit_type = "recruiter daily limit (20 requests)" if quota_err == "recruiter_limit_exceeded" else "company daily limit (100 requests)"
+        return JobDescriptionGenerateResponse(
+            success=False,
+            error_code="quota_exceeded",
+            message=f"AI limit reached: you have exceeded your {limit_type}.",
+            retryable=False
+        )
+
+    # 4. Invoke LLM and time it
+    start_time = time.perf_counter()
+    result = GenerativeIntelligenceService.generate_job_description_v2(
+        title=body.title,
+        department=body.department,
         company_name=company_name,
-        industry=company_industry
+        industry=company_industry,
+        workplace_type=body.workplace_type,
+        employment_type=body.employment_type,
+        seniority=body.seniority,
+        required_skills=body.required_skills,
+        preferred_skills=body.preferred_skills,
+        section=body.section
     )
-    
-    _job_description_cache[cache_key] = result
-    return result
+    latency = time.perf_counter() - start_time
+
+    # 5. Log Audit Event
+    audit_action = f"ai.generate_description.{result.get('error_code') or 'success'}"
+    audit_metadata = {
+        "latency_seconds": round(latency, 3),
+        "success": result.get("success", False),
+        "error_code": result.get("error_code"),
+        "section": body.section or "all",
+        "title": body.title,
+        "department": body.department
+    }
+    log_audit_event(
+        db=db,
+        action=audit_action,
+        actor_type="recruiter",
+        company_id=current_user.company_id,
+        actor_id=current_user.id,
+        metadata=audit_metadata
+    )
+
+    # 6. Save Caches
+    if result.get("success", False):
+        res_json = json.dumps(result)
+        if r is not None:
+            r.set(f"cache:generate-description:{cache_hash}", res_json, ex=3600)
+            if idempotency_key:
+                r.set(idemp_key, res_json, ex=300)
+        else:
+            _job_description_cache[cache_hash] = result
+            if idempotency_key:
+                _idempotency_cache[idemp_key] = (time.time(), result)
+
+    return JobDescriptionGenerateResponse(**result)
 
 
-@router.post("/suggest-skills")
+@router.post("/suggest-skills", response_model=SkillSuggestionsResponse)
+@limiter.limit("10/minute", key_func=recruiter_rate_limit_key)
 def suggest_skills(
-    title: str,
+    body: SkillSuggestionsRequest,
+    request: Request,
     current_user: RequireRecruiter,
     db: TenantDb
 ):
+    import json
     from core.intelligence import GenerativeIntelligenceService
-    
-    cache_key = (
-        title.lower().strip(),
-        GenerativeIntelligenceService.MODEL_VERSION,
-        GenerativeIntelligenceService.PROMPT_VERSION
-    )
-    
-    global _suggest_skills_cache
-    if cache_key in _suggest_skills_cache:
-        return _suggest_skills_cache[cache_key]
+    r = get_redis_connection()
+    cache_hash = f"{body.title.lower().strip()}:{body.department.lower().strip() if body.department else 'general'}"
+    if r is not None:
+        cached_res = r.get(f"cache:suggest-skills:{cache_hash}")
+        if cached_res:
+            return SkillSuggestionsResponse(**json.loads(cached_res))
+    else:
+        global _suggest_skills_cache
+        if cache_hash in _suggest_skills_cache:
+            return SkillSuggestionsResponse(**_suggest_skills_cache[cache_hash])
 
-    result = GenerativeIntelligenceService.suggest_skills(title=title)
+    result = GenerativeIntelligenceService.suggest_skills_v2(
+        title=body.title,
+        department=body.department,
+        existing_skills=body.existing_skills
+    )
+
+    if r is not None:
+        r.set(f"cache:suggest-skills:{cache_hash}", json.dumps(result), ex=3600)
+    else:
+        _suggest_skills_cache[cache_hash] = result
+
+    return SkillSuggestionsResponse(**result)
+
+
+@router.post("/analyze-quality", response_model=JobQualityAnalyzeResponse)
+def analyze_job_quality(
+    body: JobQualityAnalyzeRequest,
+    current_user: RequireRecruiter
+):
+    score = 0
+    warnings = []
+    recommendations = []
+
+    # 1. Job Title (15 points)
+    title_len = len(body.title.strip())
+    if title_len > 0:
+        score += 10
+        if 5 <= title_len <= 50:
+            score += 5
+        else:
+            recommendations.append("Keep the job title concise (between 5 and 50 characters) to optimize search matches.")
+    else:
+        warnings.append("Job title is empty. A descriptive title is required before publishing.")
+
+    # 2. Role Description (20 points)
+    desc = body.description or ""
+    overview_match = "### Role Overview" in desc
+    responsibilities_match = "### Key Responsibilities" in desc
+    requirements_match = "### Requirements & Qualifications" in desc or "### Requirements &amp; Qualifications" in desc
     
-    _suggest_skills_cache[cache_key] = result
-    return result
+    if len(desc.strip()) > 300:
+        score += 5
+    else:
+        recommendations.append("Expand the job description context (over 300 characters) to attract higher quality candidates.")
+
+    if overview_match or len(desc.strip()) > 100:
+        score += 5
+    else:
+        warnings.append("Add a detailed Role Overview paragraph.")
+
+    if responsibilities_match:
+        score += 5
+    else:
+        warnings.append("Outline the Key Responsibilities section clearly.")
+
+    if requirements_match:
+        score += 5
+    else:
+        warnings.append("Outline the Requirements & Qualifications section clearly.")
+
+    # 3. Skills (20 points)
+    req_skills = body.settings.get("required_skills", [])
+    if req_skills:
+        score += 15
+        if len(req_skills) >= 3:
+            score += 5
+        else:
+            recommendations.append("Add at least 3 required skills to enable the AI matching engine to rank candidates accurately.")
+    else:
+        warnings.append("No required skills added. At least 1 required skill is blocker before publishing.")
+
+    # 4. Salary details (15 points)
+    salary_min = body.settings.get("salary_min")
+    salary_max = body.settings.get("salary_max")
+    hide_salary = body.settings.get("hide_salary", False)
+    if salary_min is not None or salary_max is not None:
+        score += 10
+        if not hide_salary:
+            score += 5
+        else:
+            recommendations.append("Unhide the salary range to increase application conversion rate by up to 30%.")
+    else:
+        recommendations.append("Add a salary range (even if hidden) to help candidates assess fit.")
+
+    # 5. Benefits (10 points)
+    benefits = body.settings.get("benefits", [])
+    if benefits:
+        score += 10
+    else:
+        recommendations.append("Specify perks & benefits (e.g. Health Insurance, Remote settings) to stand out to top talent.")
+
+    # 6. Hiring Manager (10 points)
+    hm_id = body.settings.get("hiring_manager_id")
+    if hm_id:
+        score += 10
+    else:
+        warnings.append("Assign a Hiring Manager to this opening to manage candidate review workflows.")
+
+    # 7. Logistics (workplace, openings) (10 points)
+    workplace = body.settings.get("workplace_type", "On-site")
+    office = body.settings.get("office_address", "")
+    openings = body.settings.get("openings", 1)
+
+    if workplace == "Remote" or office.strip():
+        score += 5
+    elif workplace in ["On-site", "Hybrid"] and not office.strip():
+        warnings.append("Office address is missing for On-site or Hybrid workplace configuration.")
+
+    if openings > 0:
+        score += 5
+
+    return JobQualityAnalyzeResponse(
+        score=score,
+        warnings=warnings,
+        recommendations=recommendations
+    )
+
+
+@router.get("/{id}/revisions", response_model=list[JobRevisionListResponse])
+def get_job_revisions(
+    id: uuid.UUID,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    job = db.scalar(select(Job).where(Job.id == id))
+    if not job or job.company_id != current_user.company_id:
+        raise HTTPException(status_code=404, detail="Job opening not found.")
+        
+    from models import JobRevision
+    stmt = select(JobRevision).where(JobRevision.job_id == id).order_by(JobRevision.version.desc())
+    revisions = db.scalars(stmt).all()
+    return revisions
+
+
+@router.get("/{id}/revisions/{version}", response_model=JobRevisionDetailResponse)
+def get_job_revision_detail(
+    id: uuid.UUID,
+    version: int,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    job = db.scalar(select(Job).where(Job.id == id))
+    if not job or job.company_id != current_user.company_id:
+        raise HTTPException(status_code=404, detail="Job opening not found.")
+        
+    from models import JobRevision
+    revision = db.scalar(select(JobRevision).where(JobRevision.job_id == id, JobRevision.version == version))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Revision version not found.")
+    return revision
+
 
 

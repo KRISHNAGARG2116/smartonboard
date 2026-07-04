@@ -16,6 +16,7 @@ class CandidateResume(Base):
     )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     parsed_skills: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     parsed_summary: Mapped[str | None] = mapped_column(String, nullable=True)

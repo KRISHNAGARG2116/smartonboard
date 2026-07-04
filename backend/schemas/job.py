@@ -38,6 +38,8 @@ class JobSettingsSchema(BaseModel):
     languages: list[str] = Field(default_factory=list)
     technologies: list[str] = Field(default_factory=list)
     benefits: list[str] = Field(default_factory=list)
+    responsibilities: str | None = None
+    requirements: str | None = None
 
     # Hiring Team & Templates
     hiring_manager_id: str | None = None
@@ -104,4 +106,83 @@ class JobResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class JobDescriptionGenerateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    department: str = Field(min_length=1, max_length=100)
+    industry: str | None = None
+    workplace_type: str | None = None
+    employment_type: str | None = None
+    seniority: str | None = None
+    required_skills: list[str] | None = None
+    preferred_skills: list[str] | None = None
+    section: str | None = None
+
+
+class JobDescriptionGenerateResponse(BaseModel):
+    success: bool = True
+    error_code: str | None = None
+    message: str | None = None
+    retryable: bool | None = None
+    description: str | None = None
+    responsibilities: str | None = None
+    requirements: str | None = None
+    benefits: str | None = None
+    qualifications: str | None = None
+
+
+class SkillSuggestionsRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    department: str | None = None
+    existing_skills: list[str] | None = None
+
+
+class SkillSuggestionsResponse(BaseModel):
+    required_skills: list[str] = Field(default_factory=list)
+    preferred_skills: list[str] = Field(default_factory=list)
+    technologies: list[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+
+
+class JobRevisionListResponse(BaseModel):
+    id: uuid.UUID
+    version: int
+    title: str
+    department: str
+    job_status: str
+    change_reason: str | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class JobRevisionDetailResponse(BaseModel):
+    id: uuid.UUID
+    job_id: uuid.UUID
+    version: int
+    title: str
+    department: str
+    description: str
+    settings: dict = Field(default_factory=dict)
+    job_status: str
+    change_reason: str | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class JobQualityAnalyzeRequest(BaseModel):
+    title: str
+    department: str
+    description: str
+    settings: dict = Field(default_factory=dict)
+
+
+class JobQualityAnalyzeResponse(BaseModel):
+    score: int
+    warnings: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
 

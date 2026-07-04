@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from api.deps import RequireRecruiter, TenantDb
 from models.pipeline import PipelineTemplate, Pipeline, StageDefinition
@@ -12,6 +12,8 @@ from schemas.pipeline import (
     PipelineResponse,
     StageSLACreate,
     StageSLAResponse,
+    PipelineUpdate,
+    PipelineDetailsResponse,
 )
 from core.audit import log_audit_event
 
@@ -132,6 +134,7 @@ def instantiate_pipeline_from_template(
         )
         db.add(stage)
 
+    job.pipeline_id = pipeline.id
     db.commit()
     db.refresh(pipeline)
 
@@ -226,3 +229,180 @@ def create_stage_sla(
     )
 
     return sla
+
+
+@router.get("/templates", response_model=list[PipelineTemplateResponse])
+def list_pipeline_templates(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    """
+    Lists all reusable pipeline templates.
+    """
+    templates = db.scalars(
+        select(PipelineTemplate).where(
+            PipelineTemplate.company_id == current_user.company_id,
+            PipelineTemplate.is_active == True
+        )
+    ).all()
+    return templates
+
+
+@router.get("/jobs/{job_id}/pipeline", response_model=PipelineDetailsResponse)
+def get_job_pipeline(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+    job_id: uuid.UUID,
+):
+    """
+    Returns the instantiated pipeline with its active StageDefinitions for the job.
+    """
+    job = db.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.company_id == current_user.company_id
+        )
+    )
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+
+    if not job.pipeline_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job does not have an active pipeline")
+
+    pipeline = db.scalar(
+        select(Pipeline).where(
+            Pipeline.id == job.pipeline_id,
+            Pipeline.company_id == current_user.company_id
+        )
+    )
+    if not pipeline:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")
+
+    stages = db.scalars(
+        select(StageDefinition).where(
+            StageDefinition.pipeline_id == pipeline.id,
+            StageDefinition.is_active == True
+        ).order_by(StageDefinition.sequence)
+    ).all()
+    pipeline.stages = stages
+    return pipeline
+
+
+@router.put("/jobs/{job_id}/pipeline", response_model=PipelineDetailsResponse)
+def update_job_pipeline(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+    job_id: uuid.UUID,
+    payload: PipelineUpdate,
+):
+    """
+    Customizes the stage definitions of a job pipeline. If candidates are actively
+    moving through the current version, increments version and clones new StageDefinitions
+    so that active applications stay bound to the version they started with.
+    """
+    job = db.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.company_id == current_user.company_id
+        )
+    )
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+
+    if not job.pipeline_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Job does not have an active pipeline")
+
+    current_pipeline = db.scalar(
+        select(Pipeline).where(
+            Pipeline.id == job.pipeline_id,
+            Pipeline.company_id == current_user.company_id
+        )
+    )
+    if not current_pipeline:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")
+
+    from models.application import Application
+    from sqlalchemy import func
+    active_apps_count = db.scalar(
+        select(func.count(Application.id))
+        .join(StageDefinition, Application.current_stage_id == StageDefinition.id)
+        .where(
+            StageDefinition.pipeline_id == current_pipeline.id,
+            Application.company_id == current_user.company_id
+        )
+    )
+
+    if active_apps_count > 0:
+        # Clone current pipeline to new version
+        new_version = current_pipeline.pipeline_version + 1
+        pipeline = Pipeline(
+            company_id=current_user.company_id,
+            name=payload.name or current_pipeline.name,
+            description=payload.description or current_pipeline.description,
+            pipeline_version=new_version,
+        )
+        db.add(pipeline)
+        db.flush()
+
+        for stage_data in payload.stages:
+            stage = StageDefinition(
+                company_id=current_user.company_id,
+                pipeline_id=pipeline.id,
+                name=stage_data.name,
+                sequence=stage_data.sequence,
+                base_category=stage_data.base_category,
+                settings=stage_data.settings,
+                automation_rules=[rule.model_dump() for rule in stage_data.automation_rules],
+                is_active=True,
+            )
+            db.add(stage)
+        
+        job.pipeline_id = pipeline.id
+        db.commit()
+        db.refresh(pipeline)
+        
+        stages = db.scalars(
+            select(StageDefinition).where(
+                StageDefinition.pipeline_id == pipeline.id,
+                StageDefinition.is_active == True
+            ).order_by(StageDefinition.sequence)
+        ).all()
+        pipeline.stages = stages
+        return pipeline
+    else:
+        # Safely mutate in-place
+        if payload.name:
+            current_pipeline.name = payload.name
+        if payload.description:
+            current_pipeline.description = payload.description
+        
+        # Deactivate or delete old stages
+        db.execute(
+            delete(StageDefinition).where(StageDefinition.pipeline_id == current_pipeline.id)
+        )
+        
+        for stage_data in payload.stages:
+            stage = StageDefinition(
+                company_id=current_user.company_id,
+                pipeline_id=current_pipeline.id,
+                name=stage_data.name,
+                sequence=stage_data.sequence,
+                base_category=stage_data.base_category,
+                settings=stage_data.settings,
+                automation_rules=[rule.model_dump() for rule in stage_data.automation_rules],
+                is_active=True,
+            )
+            db.add(stage)
+        
+        db.commit()
+        db.refresh(current_pipeline)
+        
+        stages = db.scalars(
+            select(StageDefinition).where(
+                StageDefinition.pipeline_id == current_pipeline.id,
+                StageDefinition.is_active == True
+            ).order_by(StageDefinition.sequence)
+        ).all()
+        current_pipeline.stages = stages
+        return current_pipeline
+

@@ -1,11 +1,45 @@
 import json
 import uuid
+import time
+import random
+import concurrent.futures
 from datetime import datetime, timezone
 from sqlalchemy import select
 
 from core.anonymization import AnonymizationService
 from models import Application, Candidate, CandidateEmbedding, Scorecard, Interview, User
 from langchain_groq import ChatGroq
+
+
+def call_with_timeout(func, *args, timeout=30, **kwargs):
+    """Executes a function inside a ThreadPoolExecutor with a strict timeout."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            raise TimeoutError("AI request timed out.")
+
+
+def invoke_with_retry(llm, prompt, max_retries=2, timeout=30):
+    """Retries transient failures with exponential backoff and jitter."""
+    delay = 1.0
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return call_with_timeout(llm.invoke, prompt, timeout=timeout)
+        except Exception as e:
+            last_exc = e
+            err_msg = str(e).lower()
+            is_transient = any(
+                k in err_msg for k in ["timeout", "429", "rate_limit", "503", "overloaded", "server_error"]
+            )
+            if not is_transient or attempt == max_retries - 1:
+                raise e
+            time.sleep(delay + random.uniform(0, 0.5))
+            delay *= 2
+    raise last_exc
+
 
 
 class GenerativeIntelligenceService:
@@ -388,3 +422,140 @@ JSON Output:"""
             import logging
             logging.getLogger("smartonboard.intelligence").error(f"AI skill suggestions failed: {e}")
             return ["Communication", "Problem Solving", "Teamwork"]
+
+    @classmethod
+    def generate_job_description_v2(
+        cls,
+        title: str,
+        department: str,
+        company_name: str,
+        industry: str | None = None,
+        workplace_type: str | None = None,
+        employment_type: str | None = None,
+        seniority: str | None = None,
+        required_skills: list[str] | None = None,
+        preferred_skills: list[str] | None = None,
+        section: str | None = None
+    ) -> dict:
+        context = f"""Job Title: {title}
+Department: {department}
+Company: {company_name}
+{f"Industry: {industry}" if industry else ""}
+{f"Workplace Setting: {workplace_type}" if workplace_type else ""}
+{f"Employment Type: {employment_type}" if employment_type else ""}
+{f"Seniority Level: {seniority}" if seniority else ""}
+{f"Required Skills: {', '.join(required_skills)}" if required_skills else ""}
+{f"Preferred Skills: {', '.join(preferred_skills)}" if preferred_skills else ""}"""
+
+        if section:
+            prompt = f"""You are a professional recruiting copywriter. Under the following context:
+{context}
+
+Generate only the "{section}" section of the job description as a plain text string. Return a JSON object with a single key "{section}".
+Output exactly this JSON format:
+{{
+  "{section}": "Generated text..."
+}}
+
+JSON Output:"""
+        else:
+            prompt = f"""You are a professional recruiting copywriter. Under the following context:
+{context}
+
+Generate a full structured job description. Return a JSON object containing exactly the following keys:
+- description: Overview of the role, team, and company.
+- responsibilities: Core tasks and responsibilities of the role.
+- requirements: Core required skills and experience.
+- benefits: Perks and benefits offered.
+- qualifications: Core educational or professional qualifications.
+
+Each key must map to a formatted string block.
+
+JSON Output:"""
+
+        def validate_data(data: dict) -> bool:
+            if section:
+                return section in data and isinstance(data[section], str)
+            expected_keys = ["description", "responsibilities", "requirements", "benefits", "qualifications"]
+            return all(k in data and isinstance(data[k], str) for k in expected_keys)
+
+        llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.5)
+
+        try:
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            content_str = response.content.strip()
+            
+            try:
+                data = json.loads(content_str)
+                if validate_data(data):
+                    return {"success": True, **data}
+                raise ValueError("Missing required keys or invalid schema types")
+            except Exception as parse_err:
+                repair_prompt = f"""You are a JSON fixer assistant. The previous output failed validation.
+Error details: {parse_err}
+Original instruction prompt:
+{prompt}
+
+Malformed output returned:
+{content_str}
+
+Please return the corrected JSON object matching the required schema:"""
+                repair_response = invoke_with_retry(llm, repair_prompt, max_retries=1, timeout=30)
+                repaired_data = json.loads(repair_response.content.strip())
+                if validate_data(repaired_data):
+                    return {"success": True, **repaired_data}
+                raise ValueError("JSON repair pass failed to produce valid structure")
+                
+        except TimeoutError:
+            return {
+                "success": False,
+                "error_code": "timeout",
+                "message": "AI request timed out. Please try again.",
+                "retryable": True
+            }
+        except Exception as e:
+            err_msg = str(e).lower()
+            error_code = "rate_limit" if "429" in err_msg or "rate" in err_msg else "provider_error"
+            return {
+                "success": False,
+                "error_code": error_code,
+                "message": f"AI generation failed: {str(e)}",
+                "retryable": True
+            }
+
+    @classmethod
+    def suggest_skills_v2(
+        cls,
+        title: str,
+        department: str | None = None,
+        existing_skills: list[str] | None = None
+    ) -> dict:
+        prompt = f"""You are a premium AI recruitment assistant. Given the job title: "{title}", department: "{department or 'General'}", and existing skills: {existing_skills or []}, suggest contextually relevant criteria.
+        
+        Return a JSON object containing exactly the following keys:
+        - required_skills: A list of 5-8 essential core technical skills.
+        - preferred_skills: A list of 4-6 nice-to-have supporting skills.
+        - technologies: A list of 5-8 technologies, frameworks, tools, or libraries.
+        - languages: A list of 2-3 languages (programming or natural spoken) that are useful.
+        
+        JSON Output:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            data = json.loads(response.content.strip())
+            return {
+                "required_skills": [str(s).strip() for s in data.get("required_skills", []) if s],
+                "preferred_skills": [str(s).strip() for s in data.get("preferred_skills", []) if s],
+                "technologies": [str(s).strip() for s in data.get("technologies", []) if s],
+                "languages": [str(s).strip() for s in data.get("languages", []) if s]
+            }
+        except Exception as e:
+            import logging
+            logging.getLogger("smartonboard.intelligence").error(f"AI skill suggestions failed: {e}")
+            return {
+                "required_skills": ["Communication", "Problem Solving"],
+                "preferred_skills": ["Teamwork"],
+                "technologies": [],
+                "languages": ["English"]
+            }
+

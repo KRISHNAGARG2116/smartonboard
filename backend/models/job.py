@@ -27,6 +27,9 @@ class Job(Base):
     )
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pipelines.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -35,6 +38,7 @@ class Job(Base):
     company: Mapped["Company"] = relationship(back_populates="jobs")
     applications: Mapped[list["Application"]] = relationship(back_populates="job", cascade="all, delete-orphan")
     revisions: Mapped[list["JobRevision"]] = relationship(back_populates="job", cascade="all, delete-orphan", order_by="JobRevision.version")
+    pipeline: Mapped["Pipeline | None"] = relationship("Pipeline")
 
 
 class JobRevision(Base):

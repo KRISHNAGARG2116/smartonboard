@@ -119,3 +119,14 @@ class StageSLAResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PipelineUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    stages: list[StageDefinitionCreate] = Field(..., min_length=1)
+
+
+class PipelineDetailsResponse(PipelineResponse):
+    stages: list[StageDefinitionResponse]
+

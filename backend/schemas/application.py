@@ -47,3 +47,30 @@ class ApplicationResponse(BaseModel):
     job: JobBrief | None = None
 
     model_config = {"from_attributes": True}
+
+
+class BulkUpdatePreviewPayload(BaseModel):
+    application_ids: list[uuid.UUID]
+    target_stage_id: uuid.UUID | None = None
+    target_status: str | None = None
+    target_owner_id: uuid.UUID | None = None
+
+
+class BulkUpdatePayload(BaseModel):
+    application_ids: list[uuid.UUID]
+    target_stage_id: uuid.UUID | None = None
+    target_status: str | None = None
+    target_owner_id: uuid.UUID | None = None
+
+
+class BulkPreviewWarning(BaseModel):
+    application_id: uuid.UUID
+    candidate_name: str
+    warning_type: str
+    message: str
+
+
+class BulkUpdatePreviewResponse(BaseModel):
+    total_applications: int
+    warnings: list[BulkPreviewWarning]
+

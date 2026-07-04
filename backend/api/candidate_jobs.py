@@ -61,7 +61,8 @@ def get_jobs_feed(
                 "start_date": job.start_date.isoformat() if job.start_date else None,
                 "applicability_score": match["applicability_score"],
                 "matching_skills": match["matching_skills"],
-                "missing_skills": match["missing_skills"]
+                "missing_skills": match["missing_skills"],
+                "settings": job.settings
             })
 
     return {

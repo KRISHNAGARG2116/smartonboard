@@ -420,4 +420,109 @@ VerifiedCandidate = Annotated[User, Depends(get_verified_candidate)]
 VerifiedRecruiter = Annotated[User, Depends(get_verified_recruiter)]
 
 
+import json
+import threading
+from datetime import datetime, timedelta
+
+_local_permission_cache = {}
+_local_permission_cache_lock = threading.Lock()
+
+
+def get_user_permissions(db: Session, user_id: UUID, company_id: UUID) -> set[str]:
+    cache_key = f"user_permissions:{str(user_id)}:{str(company_id)}"
+    redis_client = None
+    try:
+        import redis
+        from core.config import get_settings
+        redis_client = redis.from_url(get_settings().redis_url)
+        cached = redis_client.get(cache_key)
+        if cached:
+            return set(json.loads(cached.decode("utf-8")))
+    except Exception:
+        pass
+
+    with _local_permission_cache_lock:
+        if cache_key in _local_permission_cache:
+            val, expiry = _local_permission_cache[cache_key]
+            if datetime.now() < expiry:
+                return val
+
+    from models.rbac import Permission, Role, user_roles, role_permissions
+    stmt = (
+        select(Permission.name)
+        .join(role_permissions, Permission.id == role_permissions.c.permission_id)
+        .join(Role, Role.id == role_permissions.c.role_id)
+        .join(user_roles, Role.id == user_roles.c.role_id)
+        .where(
+            user_roles.c.user_id == user_id,
+            Role.is_active == True,
+            Role.deleted_at.is_(None)
+        )
+    )
+    perm_names = set(db.scalars(stmt).all())
+
+    if redis_client:
+        try:
+            redis_client.setex(cache_key, 3600, json.dumps(list(perm_names)))
+        except Exception:
+            pass
+
+    with _local_permission_cache_lock:
+        _local_permission_cache[cache_key] = (perm_names, datetime.now() + timedelta(hours=1))
+
+    return perm_names
+
+
+def invalidate_permission_cache(user_id: UUID, company_id: UUID):
+    cache_key = f"user_permissions:{str(user_id)}:{str(company_id)}"
+    try:
+        import redis
+        from core.config import get_settings
+        redis_client = redis.from_url(get_settings().redis_url)
+        redis_client.delete(cache_key)
+    except Exception:
+        pass
+    with _local_permission_cache_lock:
+        _local_permission_cache.pop(cache_key, None)
+
+
+class RequirePermission:
+    def __init__(self, permission: str):
+        self.permission = permission
+
+    def __call__(
+        self,
+        current_user: Annotated[User, Depends(get_verified_recruiter)],
+        db: TenantDb,
+    ) -> User:
+        if current_user.role == UserRole.OWNER:
+            return current_user
+
+        perms = get_user_permissions(db, current_user.id, current_user.company_id)
+        if self.permission not in perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Forbidden: missing required permission '{self.permission}'",
+            )
+        return current_user
+
+
+def has_job_access(db: Session, user: User, job_id: UUID, required_level: str = "read") -> bool:
+    if user.role == UserRole.OWNER:
+        return True
+    from models.rbac import UserJobAccess
+    stmt = select(UserJobAccess).where(UserJobAccess.user_id == user.id)
+    user_accesses = db.scalars(stmt).all()
+    if not user_accesses:
+        return True
+    for access in user_accesses:
+        if access.job_id == job_id:
+            if required_level == "read":
+                return True
+            elif required_level == "write" and access.access_level == "write":
+                return True
+    return False
+
+
+
 

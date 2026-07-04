@@ -49,7 +49,9 @@ class CandidateStageSLATracker(Base):
     entered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     breached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="active", nullable=False)  # 'active', 'completed', 'breached'
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    total_paused_seconds: Mapped[int] = mapped_column(Integer, default=0, server_default='0', nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="active", nullable=False)  # 'active', 'completed', 'breached', 'paused'
     escalation_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

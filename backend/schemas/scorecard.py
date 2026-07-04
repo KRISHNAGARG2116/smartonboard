@@ -35,8 +35,16 @@ class ScorecardResponse(BaseModel):
     criteria_scores: Dict[str, int]
     overall_recommendation: str
     notes: str | None
+    is_draft: bool
     submitted_at: datetime
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ScorecardDraftRequest(BaseModel):
+    criteria_scores: Dict[str, int] = Field(default_factory=dict)
+    overall_recommendation: str | None = None
+    notes: str | None = None
+

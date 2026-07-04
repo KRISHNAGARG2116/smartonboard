@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from api.deps import CurrentUser, TenantDb, RequireOwner
-from models import Company
+from api.deps import CurrentUser, TenantDb, RequireOwner, RequireRecruiter
+from models import Company, User
 from schemas.company import CompanyResponse, CompanyUpdateRequest
+from schemas.auth import UserResponse
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -43,3 +44,16 @@ def update_my_company(body: CompanyUpdateRequest, current_user: RequireOwner, db
     )
     
     return company
+
+
+@router.get("/me/users", response_model=list[UserResponse])
+def list_company_users(
+    db: TenantDb,
+    current_user: RequireRecruiter
+):
+    """
+    List all active team members/recruiters within the current company/tenant.
+    """
+    stmt = select(User).where(User.company_id == current_user.company_id, User.is_active.is_(True))
+    return list(db.scalars(stmt).all())
+

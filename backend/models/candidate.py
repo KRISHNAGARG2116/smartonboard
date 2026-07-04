@@ -27,3 +27,4 @@ class Candidate(Base):
     company: Mapped["Company"] = relationship(back_populates="candidates")
     applications: Mapped[list["Application"]] = relationship(back_populates="candidate", cascade="all, delete-orphan")
     candidate_embeddings: Mapped[list["CandidateEmbedding"]] = relationship("CandidateEmbedding", back_populates="candidate", cascade="all, delete-orphan")
+    tags: Mapped[list["CandidateTag"]] = relationship("CandidateTag", secondary="candidate_tag_associations", back_populates="candidates")
