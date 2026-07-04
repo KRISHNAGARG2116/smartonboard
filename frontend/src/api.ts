@@ -179,6 +179,8 @@ export interface User {
   email_verified: boolean
   phone_verified: boolean
   company_id: string | null
+  company_verified?: boolean
+  company_onboarding_completed?: boolean
 }
 
 export interface AuthResponse {
@@ -207,6 +209,7 @@ export interface Job {
   start_date: string | null
   created_at: string
   updated_at: string
+  settings?: any
 }
 
 export interface Application {
@@ -257,6 +260,7 @@ export const createJob = (data: {
   description: string
   status?: string
   start_date?: string | null
+  settings?: any
 }) => api.post<Job>('/v1/jobs', data).then(r => r.data)
 
 export const updateJob = (jobId: string, data: {
@@ -265,7 +269,16 @@ export const updateJob = (jobId: string, data: {
   description?: string
   status?: string
   start_date?: string | null
+  settings?: any
+  client_updated_at?: string
+  change_reason?: string
 }) => api.patch<Job>(`/v1/jobs/${jobId}`, data).then(r => r.data)
+
+export const generateJobDescription = (title: string, department: string) =>
+  api.post<any>('/v1/jobs/generate-description', null, { params: { title, department } }).then(r => r.data)
+
+export const suggestSkills = (title: string) =>
+  api.post<string[]>('/v1/jobs/suggest-skills', null, { params: { title } }).then(r => r.data)
 
 export const fetchApplications = (jobId?: string) =>
   api.get<Application[]>('/v1/applications', { params: jobId ? { job_id: jobId } : {} }).then(r => r.data)

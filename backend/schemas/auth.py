@@ -60,6 +60,8 @@ class UserResponse(BaseModel):
     phone_verified: bool = False
     company_id: Optional[uuid.UUID] = None
     auth_provider: AuthProvider = AuthProvider.LOCAL
+    company_onboarding_completed: bool = False
+    company_verified: bool = False
 
     model_config = {"from_attributes": True}
 

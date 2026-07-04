@@ -46,7 +46,9 @@ def get_jobs_feed(
                 candidate_skills=candidate_skills,
                 job_title=job.title,
                 job_description=job.description,
-                job_settings=job.settings
+                job_settings=job.settings,
+                candidate_summary=profile.summary if profile else None,
+                candidate_location=profile.location if profile else None
             )
             results.append({
                 "id": str(job.id),

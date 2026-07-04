@@ -133,9 +133,11 @@ def get_current_user_setup(
         )
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    if user.company_id is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already belongs to a company")
+    with tenant_context(auth_mode="true"):
+        if user.company_id is not None and user.company_onboarding_completed:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already belongs to a company")
     return user
+
 
 
 def get_current_user_for_profile(
@@ -285,8 +287,19 @@ def get_current_candidate(
     return user
 
 
+def get_onboarded_recruiter(
+    current_user: Annotated[User, Depends(get_verified_recruiter)],
+) -> User:
+    if not current_user.company_onboarding_completed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Onboarding incomplete"
+        )
+    return current_user
+
+
 def get_tenant_db(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_onboarded_recruiter)],
 ) -> Generator[Session, None, None]:
     db = SessionLocal()
     tenant_id_var.set(str(current_user.company_id))
@@ -302,13 +315,14 @@ class RoleChecker:
     def __init__(self, allowed_roles: list[UserRole]):
         self.allowed_roles = allowed_roles
 
-    def __call__(self, current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    def __call__(self, current_user: Annotated[User, Depends(get_onboarded_recruiter)]) -> User:
         if current_user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Forbidden: insufficient role privileges",
             )
         return current_user
+
 
 
 def get_portal_session(

@@ -58,3 +58,33 @@ class User(Base):
         if self.role == UserRole.CANDIDATE:
             return self.candidate_profile.phone_verified if self.candidate_profile else False
         return True
+
+    @property
+    def company_onboarding_completed(self) -> bool:
+        if self.role == UserRole.CANDIDATE:
+            return True
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session:
+            from db.session import tenant_context
+            with tenant_context(auth_mode="true"):
+                company = self.company
+        else:
+            company = self.company
+
+        if company:
+            settings = company.settings or {}
+
+
+            from core.company_validation import validate_company_profile
+            return validate_company_profile(
+                name=company.name,
+                website=settings.get("website", ""),
+                domain=settings.get("domain", ""),
+                industry=settings.get("industry", ""),
+                company_size=settings.get("company_size", ""),
+            )
+
+        return False
+
+

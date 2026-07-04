@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -121,29 +121,32 @@ def register(
             detail=email_strict["error"],
         )
 
-    # 2. Block public mail hosts
-    if is_public_mail_host(email_lower):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Recruiters must register with a corporate email address. Public email providers (Gmail, Yahoo, etc.) are not accepted.",
-        )
+    # 2. Public mail hosts checking
+    is_public = is_public_mail_host(email_lower)
 
-    # 2. DNS/MX domain verification
-    dns_result = validate_domain_dns(email_lower)
-    if dns_result["error"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Email domain validation failed: {dns_result['error']}",
-        )
+    initial_verification_state = VerificationState.PENDING_VERIFICATION
+    initial_domain_verified = False
 
-    # Determine initial verification state based on MX result
-    if dns_result["mx_verified"]:
-        initial_verification_state = VerificationState.VERIFIED_RECRUITER
-        initial_domain_verified = True
-    else:
-        # Domain exists but MX query failed — allow with manual review path
-        initial_verification_state = VerificationState.PENDING_VERIFICATION
-        initial_domain_verified = False
+    # Default fallback for logging/auditing public domain signups
+    dns_result = {
+        "domain": email_lower.split("@")[-1],
+        "domain_exists": True,
+        "mx_verified": False,
+        "mx_records": [],
+        "error": None
+    }
+
+    if not is_public:
+        # DNS/MX domain verification for corporate domains
+        dns_result = validate_domain_dns(email_lower)
+        if dns_result["error"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Email domain validation failed: {dns_result['error']}",
+            )
+        if dns_result["mx_verified"]:
+            initial_verification_state = VerificationState.VERIFIED_RECRUITER
+            initial_domain_verified = True
 
     try:
         with tenant_context(auth_mode="true"):
@@ -259,6 +262,7 @@ def register(
             role=user.role.value,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
+            company_onboarding_completed=user.company_onboarding_completed,
         ),
     )
 
@@ -418,6 +422,7 @@ def login(
             email_verified=user.email_verified,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
+            company_onboarding_completed=user.company_onboarding_completed,
         ),
     )
 
@@ -515,6 +520,7 @@ def verify_email(
             email_verified=user.email_verified,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
+            company_onboarding_completed=user.company_onboarding_completed,
         ),
     )
 
@@ -861,6 +867,7 @@ def refresh_token_route(
             role=user.role.value,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
+            company_onboarding_completed=user.company_onboarding_completed,
         )
     )
 
@@ -950,8 +957,19 @@ def logout(
 @limiter.limit("100/minute")
 def me(
     request: Request,
-    current_user: CurrentUserProfile
+    current_user: CurrentUserProfile,
+    db: Annotated[Session, Depends(get_db)]
 ):
+    company_verified = False
+    if current_user.company_id:
+        from db.session import tenant_context
+        with tenant_context(auth_mode="true"):
+            from models import Company
+            from models.enums import VerificationState
+            company = db.scalar(select(Company).where(Company.id == current_user.company_id))
+            if company:
+                company_verified = (company.is_verified_company or company.verification_state == VerificationState.VERIFIED_COMPANY)
+
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
@@ -960,6 +978,8 @@ def me(
         email_verified=current_user.email_verified,
         company_id=current_user.company_id,
         auth_provider=current_user.auth_provider,
+        company_onboarding_completed=current_user.company_onboarding_completed,
+        company_verified=company_verified
     )
 
 
@@ -1056,6 +1076,31 @@ class SetupCompanyRequest(BaseModel):
     company_domain: str = Field(min_length=3, max_length=255)
     industry: str = Field(min_length=2, max_length=255)
     company_size: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    hq_location: str | None = None
+    logo_url: str | None = None
+    cover_image_url: str | None = None
+    founded_year: int | None = None
+    employee_count: int | None = None
+    company_type: str | None = None
+    linkedin_url: str | None = None
+    careers_page_url: str | None = None
+
+    @model_validator(mode="after")
+    def validate_profile_shared(self) -> "SetupCompanyRequest":
+        from core.company_validation import validate_company_profile
+        is_valid = validate_company_profile(
+            name=self.company_name,
+            website=self.company_website,
+            domain=self.company_domain,
+            industry=self.industry,
+            company_size=self.company_size,
+        )
+        if not is_valid:
+            raise ValueError("Company profile fields are invalid")
+        return self
+
+
 
 
 def setup_company_rate_limit_key(request: Request) -> str:
@@ -1267,16 +1312,8 @@ def google_auth(
     else:
         # User does not exist, perform registration checks
         if role_requested == "recruiter":
-            # Recruiter Domain Restrictions
-            blocked_hosts = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "proton.me", "protonmail.com"}
-            email_domain = email.split("@")[1]
-            if email_domain in blocked_hosts or is_public_mail_host(email):
-                record_google_failed_attempt(ip)
-                log_google_auth_audit(db, None, email_or_token=email, action="auth.google_public_email_rejected", success=False, ip=ip, reason="Public email providers are not accepted for recruiters")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Recruiters must register with a corporate email address. Public email providers (Gmail, Yahoo, etc.) are not accepted."
-                )
+            # Public emails are allowed via Google OAuth, will be marked pending on setup-company
+            pass
 
             # Create recruiter user with company_id = None
             with tenant_context(auth_mode="true"):
@@ -1379,6 +1416,7 @@ def google_auth(
             phone_verified=user.phone_verified,
             company_id=user.company_id,
             auth_provider=user.auth_provider,
+            company_onboarding_completed=user.company_onboarding_completed,
         ),
     )
 
@@ -1392,31 +1430,58 @@ def setup_company(
     current_user: CurrentUserSetup,
     db: Annotated[Session, Depends(get_db)]
 ):
+    from core.domain_validation import is_public_mail_host, extract_domain_from_url, validate_domain_dns
+
+    is_public = is_public_mail_host(current_user.email)
     company_domain = body.company_domain.lower().strip()
     email_domain = current_user.email.split("@")[1].lower().strip()
 
-    # Enforce email domain matches company domain
-    if email_domain != company_domain:
-        from core.audit import log_audit_event
-        log_audit_event(
-            db=db,
-            action="auth.setup_company_failed",
-            actor_type="RECRUITER",
-            actor_id=current_user.id,
-            metadata={
-                "email": current_user.email,
-                "requested_domain": company_domain,
-                "reason": "Email domain does not match company domain"
-            }
-        )
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Company domain must match authenticated email domain"
-        )
+    # Enforce email domain matches company domain for corporate domains
+    if not is_public:
+        if email_domain != company_domain:
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.setup_company_failed",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                metadata={
+                    "email": current_user.email,
+                    "requested_domain": company_domain,
+                    "reason": "Email domain does not match company domain"
+                }
+            )
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Company domain must match authenticated email domain"
+            )
 
-    # Google Workspace Hosted Domain check
-    if current_user.google_hosted_domain:
+        # Enforce company website domain matches corporate email domain
+        web_domain = extract_domain_from_url(body.company_website)
+        if web_domain != email_domain and not web_domain.endswith("." + email_domain):
+            from core.audit import log_audit_event
+            log_audit_event(
+                db=db,
+                action="auth.setup_company_failed",
+                actor_type="RECRUITER",
+                actor_id=current_user.id,
+                metadata={
+                    "email": current_user.email,
+                    "website": body.company_website,
+                    "web_domain": web_domain,
+                    "email_domain": email_domain,
+                    "reason": "Website domain does not match corporate email domain"
+                }
+            )
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Company website domain ({web_domain}) must match your corporate email domain ({email_domain})"
+            )
+
+    # Google Workspace Hosted Domain check (corporate only)
+    if not is_public and current_user.google_hosted_domain:
         google_hd = current_user.google_hosted_domain.lower().strip()
         if google_hd != company_domain or google_hd != email_domain:
             from core.audit import log_audit_event
@@ -1438,30 +1503,89 @@ def setup_company(
                 detail="Company domain must match authenticated email domain"
             )
 
-    # All validations pass, create company
+    # Run DNS/MX validation for corporate emails
+    mx_verified = False
+    if not is_public:
+        dns_res = validate_domain_dns(email_domain)
+        mx_verified = dns_res.get("mx_verified", False)
+
+    # All validations pass, check if user already has a company
     with tenant_context(auth_mode="true"):
-        slugs = set(db.scalars(select(Company.slug)).all())
-        company = Company(
-            name=body.company_name,
-            slug=unique_slug(body.company_name, slugs),
-            status=CompanyStatus.ACTIVE,
-            verification_state=VerificationState.VERIFIED_RECRUITER,
-            domain_verified=True,
-            settings={
+        if current_user.company_id is not None:
+            company = db.scalar(select(Company).where(Company.id == current_user.company_id))
+            if not company:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Associated company not found"
+                )
+            company.name = body.company_name
+            company.domain_verified = mx_verified
+            company.website_verified = mx_verified
+            company.settings = {
                 "website": body.company_website,
                 "domain": company_domain,
                 "industry": body.industry,
                 "company_size": body.company_size,
+                "description": body.description,
+                "hq_location": body.hq_location,
+                "logo_url": body.logo_url,
+                "cover_image_url": body.cover_image_url,
+                "founded_year": body.founded_year,
+                "employee_count": body.employee_count,
+                "company_type": body.company_type,
+                "linkedin_url": body.linkedin_url,
+                "careers_page_url": body.careers_page_url,
+                "lifecycle_state": "onboarding_completed",
+                "email_verified": current_user.email_verified,
+                "domain_verified": company.domain_verified,
+                "identity_verified": company.identity_verified,
+                "verified_company": company.is_verified_company,
+                "trusted_employer": company.is_trusted_employer,
             }
-        )
-        db.add(company)
-        db.flush()
+            db.add(company)
+        else:
+            slugs = set(db.scalars(select(Company.slug)).all())
+            company = Company(
+                name=body.company_name,
+                slug=unique_slug(body.company_name, slugs),
+                status=CompanyStatus.ACTIVE,
+                verification_state=VerificationState.PENDING_VERIFICATION,
+                domain_verified=mx_verified,
+                website_verified=mx_verified,
+            )
+            company.settings = {
+                "website": body.company_website,
+                "domain": company_domain,
+                "industry": body.industry,
+                "company_size": body.company_size,
+                "description": body.description,
+                "hq_location": body.hq_location,
+                "logo_url": body.logo_url,
+                "cover_image_url": body.cover_image_url,
+                "founded_year": body.founded_year,
+                "employee_count": body.employee_count,
+                "company_type": body.company_type,
+                "linkedin_url": body.linkedin_url,
+                "careers_page_url": body.careers_page_url,
+                "lifecycle_state": "onboarding_completed",
+                "email_verified": current_user.email_verified,
+                "domain_verified": company.domain_verified,
+                "identity_verified": company.identity_verified,
+                "verified_company": company.is_verified_company,
+                "trusted_employer": company.is_trusted_employer,
+            }
+            db.add(company)
+            db.flush()
 
-        # Link recruiter to company
-        current_user.company_id = company.id
-        db.add(current_user)
+            # Link recruiter to company
+            current_user.company_id = company.id
+            db.add(current_user)
+
         db.commit()
+        db.refresh(company)
         db.refresh(current_user)
+
+
 
     # Log setup completion event
     from core.audit import log_audit_event
@@ -1503,6 +1627,7 @@ def setup_company(
             email_verified=current_user.email_verified,
             company_id=current_user.company_id,
             auth_provider=current_user.auth_provider,
+            company_onboarding_completed=current_user.company_onboarding_completed,
         )
     )
 

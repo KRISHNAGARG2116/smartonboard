@@ -248,6 +248,39 @@ Output structure in Markdown format:
             )
         raw_scorecard_text = "\n\n".join(grades_summary)
 
+        # Gather job and company context
+        job = app.job
+        company = job.company if job else None
+        
+        job_info = ""
+        if job:
+            job_info += f"Job Title: {job.title}\n"
+            job_info += f"Department: {job.department}\n"
+            job_info += f"Description: {job.description}\n"
+            if job.settings:
+                settings = job.settings
+                job_info += f"Employment Type: {settings.get('employment_type', 'Full Time')}\n"
+                job_info += f"Workplace: {settings.get('workplace_type', 'On-site')}\n"
+                if settings.get('salary_min') or settings.get('salary_max'):
+                    job_info += f"Compensation Range: {settings.get('salary_min')} - {settings.get('salary_max')} {settings.get('currency', 'USD')}\n"
+                if settings.get('required_skills'):
+                    job_info += f"Required Skills: {', '.join(settings.get('required_skills'))}\n"
+                if settings.get('preferred_skills'):
+                    job_info += f"Preferred Skills: {', '.join(settings.get('preferred_skills'))}\n"
+                if settings.get('benefits'):
+                    job_info += f"Benefits: {', '.join(settings.get('benefits'))}\n"
+
+        if company:
+            job_info += f"Company Name: {company.name}\n"
+            if company.settings:
+                c_settings = company.settings
+                if c_settings.get('description'):
+                    job_info += f"Company Description: {c_settings.get('description')}\n"
+                if c_settings.get('industry'):
+                    job_info += f"Company Industry: {c_settings.get('industry')}\n"
+                if c_settings.get('company_size'):
+                    job_info += f"Company Size: {c_settings.get('company_size')}\n"
+
         # Anonymize all inputs
         anonymized_resume = AnonymizationService.anonymize_text(
             text=raw_resume,
@@ -265,8 +298,11 @@ Output structure in Markdown format:
         )
 
         prompt = f"""You are the head of structured recruitment and hiring.
-Determine a final Hire/No-Hire decision based on candidate resume and scorecard feedback.
+Determine a final Hire/No-Hire decision based on candidate resume, scorecard feedback, and the target job description/requirements.
 Candidate: {candidate_alias}
+
+Target Job Requirements & Company Context:
+{job_info}
 
 Anonymized Resume:
 {anonymized_resume}
@@ -285,3 +321,70 @@ Output structure in Markdown format:
         llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.1)
         response = llm.invoke(prompt)
         return response.content.strip(), embedding_ids, scorecard_ids
+
+    @classmethod
+    def generate_job_description(
+        cls,
+        title: str,
+        department: str,
+        company_name: str,
+        industry: str | None = None
+    ) -> dict:
+        """
+        AI-generated job description content structured into Overview, Responsibilities, Requirements, and Benefits.
+        Reuses existing AI service abstraction and returns structured JSON with error fallbacks.
+        """
+        prompt = f"""You are a professional recruiting copywriter. Generate a high-quality, structured job description for:
+Job Title: {title}
+Department: {department}
+Company: {company_name}
+{f"Industry: {industry}" if industry else ""}
+
+Return a JSON object containing exactly the following keys:
+- description: Overview of the role and team.
+- responsibilities: A list of key responsibilities for the role.
+- requirements: A list of requirements (skills, experience).
+- benefits: A list of benefits/perks offered.
+
+JSON Output:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.5)
+            response = llm.invoke(prompt)
+            data = json.loads(response.content.strip())
+            return {
+                "description": str(data.get("description", "")),
+                "responsibilities": list(data.get("responsibilities", [])),
+                "requirements": list(data.get("requirements", [])),
+                "benefits": list(data.get("benefits", []))
+            }
+        except Exception as e:
+            import logging
+            logging.getLogger("smartonboard.intelligence").error(f"AI job description generation failed: {e}")
+            return {
+                "description": f"We are seeking a talented {title} to join our {department} team.",
+                "responsibilities": [f"Contribute to the goals of the {department} department."],
+                "requirements": [f"Experience as a {title} or related role."],
+                "benefits": ["Competitive salary and benefits."]
+            }
+
+    @classmethod
+    def suggest_skills(cls, title: str) -> list[str]:
+        """
+        AI-suggested contextual skills for a given job title.
+        Returns a list of 10 skills.
+        """
+        prompt = f"""Given the job title: "{title}", suggest a list of 10 related technical skills, technologies, frameworks, and tools.
+Return a JSON array of strings.
+
+JSON Output:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = llm.invoke(prompt)
+            skills = json.loads(response.content.strip())
+            if isinstance(skills, list):
+                return [str(s).strip() for s in skills if s]
+            return []
+        except Exception as e:
+            import logging
+            logging.getLogger("smartonboard.intelligence").error(f"AI skill suggestions failed: {e}")
+            return ["Communication", "Problem Solving", "Teamwork"]

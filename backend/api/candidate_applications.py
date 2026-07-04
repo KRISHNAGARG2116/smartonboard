@@ -93,7 +93,9 @@ def apply_to_job(
             candidate_skills=candidate_skills,
             job_title=job.title,
             job_description=job.description,
-            job_settings=job.settings
+            job_settings=job.settings,
+            candidate_summary=resume.parsed_summary if (resume and resume.parsed_summary) else (profile.summary if profile else None),
+            candidate_location=profile.location if profile else None
         )
 
         # 7. Create Application

@@ -1,7 +1,7 @@
 from models.application import Application
 from models.candidate import Candidate
 from models.company import Company
-from models.job import Job
+from models.job import Job, JobRevision
 from models.user import User
 from models.quarantine import QuarantinedFile
 from models.session import UserSession, RevokedToken
@@ -142,6 +142,7 @@ __all__ = [
     "VerificationToken",
     "ApplicationSnapshot",
     "CandidateResume",
+    "JobRevision",
 ]
 
 

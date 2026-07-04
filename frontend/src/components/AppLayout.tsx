@@ -820,9 +820,33 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 />
               </button>
 
+              {user && user.role === 'recruiter' && !user.company_verified && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: 'rgba(217, 119, 6, 0.08)',
+                    border: '1px solid rgba(217, 119, 6, 0.2)',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#d97706',
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                  }}
+                  title="Your company profile is unverified. Certain actions may be restricted."
+                >
+                  <span style={{ fontSize: '10px' }}>⚠️</span>
+                  <span>Unverified Company</span>
+                </div>
+              )}
+
               {/* User Recruiter dropdown list menu */}
               {user ? (
-                <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <div style={{ position: 'relative' }}>
                   <button
                     type="button"
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -923,6 +947,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       </button>
                     </div>
                   )}
+                </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>

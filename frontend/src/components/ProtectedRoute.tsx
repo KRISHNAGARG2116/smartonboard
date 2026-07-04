@@ -26,16 +26,26 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   // Recruiter Setup Company & Email Verification Guard
   if (user.role !== 'candidate') {
-    if (!user.company_id) {
-      if (location.pathname !== '/recruiter/setup-company') {
-        return <Navigate to="/recruiter/setup-company" replace />
-      }
-    } else {
-      if (!user.email_verified && location.pathname !== '/recruiter/verify-email') {
+    if (!user.email_verified) {
+      if (location.pathname !== '/recruiter/verify-email') {
         return <Navigate to="/recruiter/verify-email" replace />
       }
-      if (user.email_verified && (location.pathname === '/recruiter/verify-email' || location.pathname === '/recruiter/setup-company')) {
-        return <Navigate to="/recruiter/dashboard" replace />
+    } else {
+      const needsOnboarding = !user.company_id || !user.company_onboarding_completed;
+      if (needsOnboarding) {
+        if (location.pathname !== '/recruiter/setup-company') {
+          return <Navigate to="/recruiter/setup-company" replace />
+        }
+      } else {
+        if (location.pathname === '/recruiter/verify-email') {
+          return <Navigate to="/recruiter/dashboard" replace />
+        }
+        if (location.pathname === '/recruiter/setup-company') {
+          const wizardStep = localStorage.getItem('recruiter_onboarding_step');
+          if (!wizardStep || wizardStep === 'completed') {
+            return <Navigate to="/recruiter/dashboard" replace />
+          }
+        }
       }
     }
   }
@@ -61,13 +71,6 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     const onboarded = localStorage.getItem(`smartonboard_onboarded_candidate_${user.email}`) === 'true'
     if (!onboarded && location.pathname !== '/candidate/dashboard') {
       return <Navigate to="/candidate/dashboard" replace />
-    }
-  } else {
-    if (user.email_verified) {
-      const onboarded = localStorage.getItem(`smartonboard_onboarded_recruiter_${user.email}`) === 'true'
-      if (!onboarded && location.pathname !== '/recruiter/dashboard') {
-        return <Navigate to="/recruiter/dashboard" replace />
-      }
     }
   }
 

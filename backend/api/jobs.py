@@ -16,9 +16,10 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 def _parse_job_status(value: str) -> JobStatus:
     try:
-        return JobStatus(value)
+        return JobStatus(value.lower())
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid job status") from exc
+
 
 
 @router.get("", response_model=list[JobResponse])
@@ -41,6 +42,7 @@ def create_job(
         from core.quota import increment_quota_usage
         increment_quota_usage(db, current_user.company_id, "active_jobs_count", increment_by=1, request=request)
 
+    settings_dict = body.settings.model_dump() if body.settings else {}
     job = Job(
         company_id=current_user.company_id,
         title=body.title,
@@ -48,6 +50,7 @@ def create_job(
         description=body.description,
         status=job_status,
         start_date=body.start_date,
+        settings=settings_dict,
     )
     db.add(job)
     db.commit()
@@ -95,8 +98,58 @@ def update_job(
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
+    # 1. Optimistic Concurrency check
+    if body.client_updated_at is not None:
+        db_updated_at = job.updated_at.replace(tzinfo=None)
+        client_updated_at = body.client_updated_at.replace(tzinfo=None)
+        if (db_updated_at - client_updated_at).total_seconds() > 1.0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This job posting has been updated by another user. Please reload the latest changes."
+            )
+
     old_status = job.status
     changes = {}
+
+    # 2. Check for meaningful changes to trigger a new revision
+    has_meaningful_changes = False
+    if body.title is not None and job.title != body.title:
+        has_meaningful_changes = True
+    if body.department is not None and job.department != body.department:
+        has_meaningful_changes = True
+    if body.description is not None and job.description != body.description:
+        has_meaningful_changes = True
+
+    new_settings_dict = {}
+    if body.settings is not None:
+        new_settings_dict = body.settings.model_dump()
+        for key in ["required_skills", "preferred_skills", "salary_min", "salary_max", "workplace_type", "stages"]:
+            if job.settings.get(key) != new_settings_dict.get(key):
+                has_meaningful_changes = True
+
+    # 3. Save a JobRevision snapshot of the PREVIOUS state if published and changed
+    if old_status == JobStatus.OPEN and has_meaningful_changes:
+        from sqlalchemy import func
+        from models import JobRevision
+        last_version = db.scalar(
+            select(func.coalesce(func.max(JobRevision.version), 0))
+            .where(JobRevision.job_id == job.id)
+        ) or 0
+
+        revision = JobRevision(
+            job_id=job.id,
+            version=last_version + 1,
+            title=job.title,
+            department=job.department,
+            description=job.description,
+            settings=job.settings,
+            job_status=old_status,
+            created_by=current_user.id,
+            change_reason=body.change_reason or "Job details updated"
+        )
+        db.add(revision)
+
+    # 4. Apply changes
     if body.title is not None:
         if job.title != body.title:
             changes["title"] = {"old": job.title, "new": body.title}
@@ -109,6 +162,11 @@ def update_job(
         if job.description != body.description:
             changes["description"] = "edited"
             job.description = body.description
+    if body.settings is not None:
+        current_settings = dict(job.settings)
+        current_settings.update(new_settings_dict)
+        job.settings = current_settings
+        changes["settings"] = "edited"
     if body.status is not None:
         new_status = _parse_job_status(body.status)
         if old_status != new_status:
@@ -268,4 +326,70 @@ def get_candidate_matches(
     )
 
     return matches
+
+
+_job_description_cache = {}
+_suggest_skills_cache = {}
+
+
+@router.post("/generate-description")
+def generate_job_description(
+    title: str,
+    department: str,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    from models import Company
+    from core.intelligence import GenerativeIntelligenceService
+    
+    company = db.scalar(select(Company).where(Company.id == current_user.company_id))
+    company_name = company.name if company else "Our Company"
+    company_industry = company.settings.get("industry") if company and company.settings else None
+
+    cache_key = (
+        title.lower().strip(),
+        department.lower().strip(),
+        company_name.lower().strip(),
+        GenerativeIntelligenceService.MODEL_VERSION,
+        GenerativeIntelligenceService.PROMPT_VERSION
+    )
+    
+    global _job_description_cache
+    if cache_key in _job_description_cache:
+        return _job_description_cache[cache_key]
+
+    result = GenerativeIntelligenceService.generate_job_description(
+        title=title,
+        department=department,
+        company_name=company_name,
+        industry=company_industry
+    )
+    
+    _job_description_cache[cache_key] = result
+    return result
+
+
+@router.post("/suggest-skills")
+def suggest_skills(
+    title: str,
+    current_user: RequireRecruiter,
+    db: TenantDb
+):
+    from core.intelligence import GenerativeIntelligenceService
+    
+    cache_key = (
+        title.lower().strip(),
+        GenerativeIntelligenceService.MODEL_VERSION,
+        GenerativeIntelligenceService.PROMPT_VERSION
+    )
+    
+    global _suggest_skills_cache
+    if cache_key in _suggest_skills_cache:
+        return _suggest_skills_cache[cache_key]
+
+    result = GenerativeIntelligenceService.suggest_skills(title=title)
+    
+    _suggest_skills_cache[cache_key] = result
+    return result
+
 

@@ -157,3 +157,23 @@ def validate_email_strict(email: str) -> dict:
         return {"valid": False, "error": "Disposable email addresses are not allowed"}
 
     return {"valid": True, "error": None}
+
+
+import urllib.parse
+
+def extract_domain_from_url(url: str) -> str:
+    """Extract and normalize the root domain name from a website URL."""
+    if not url:
+        return ""
+    url_str = url.strip().lower()
+    if not url_str.startswith(("http://", "https://")):
+        url_str = "https://" + url_str
+    try:
+        parsed = urllib.parse.urlparse(url_str)
+        netloc = parsed.netloc.split(":")[0]  # Remove port
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+        return netloc.strip()
+    except Exception:
+        return ""
+

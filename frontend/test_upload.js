@@ -107,6 +107,12 @@ async function run() {
   await new Promise(r => setTimeout(r, 6000));
   console.log('Current URL after registration:', page.url());
 
+  // Bypass the onboarding wizard check
+  await page.evaluate((email) => {
+    localStorage.setItem(`smartonboard_onboarded_candidate_${email}`, 'true');
+  }, uniqueEmail);
+  console.log('Set onboarding flag in localStorage');
+
   // 3. Navigate to resumes library
   console.log('Navigating to Resume Library...');
   await page.goto(`${BASE_URL}/candidate/resumes`, { waitUntil: 'domcontentloaded' });
