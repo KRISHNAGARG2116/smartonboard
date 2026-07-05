@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, status, Request
 from sqlalchemy import select
@@ -63,6 +64,8 @@ def _application_response(application: Application) -> ApplicationResponse:
         match_score=application.match_score,
         candidate=CandidateBrief.model_validate(application.candidate) if application.candidate else None,
         job=JobBrief.model_validate(application.job) if application.job else None,
+        current_stage_id=application.current_stage_id,
+        owner_id=application.owner_id,
     )
 
 
@@ -182,6 +185,11 @@ def update_application(
     current_user: CurrentUser,
     db: TenantDb
 ):
+    from datetime import datetime, timezone, timedelta
+    from models.enums import UserRole
+    from core.workflows import transition_candidate_stage, ensure_job_stages
+    from core.application_events import ApplicationEventService
+
     application = db.scalar(
         select(Application)
         .options(selectinload(Application.candidate), selectinload(Application.job))
@@ -189,92 +197,90 @@ def update_application(
     )
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
-        
-    old_status = application.status
-    if body.status is not None:
-        new_status = _parse_application_status(body.status)
-        if old_status != new_status:
-            application.status = new_status
-            db.commit()
-            db.refresh(application)
-            
-            # Dispatch background tracking tasks
-            track_stage_transition_async.delay(
-                str(current_user.company_id),
-                str(application.id),
-                old_status.value,
-                new_status.value,
-                str(current_user.id)
-            )
-            
-            if old_status == ApplicationStatus.SUBMITTED:
-                track_recruiter_productivity_async.delay(
-                    str(current_user.company_id),
-                    str(current_user.id),
-                    "review"
+
+    # 1. Optimistic Concurrency Check
+    if body.client_updated_at is not None:
+        db_updated = application.updated_at
+        client_updated = body.client_updated_at
+        if db_updated and client_updated:
+            db_u_naive = db_updated.astimezone(timezone.utc).replace(tzinfo=None) if db_updated.tzinfo else db_updated
+            cl_u_naive = client_updated.astimezone(timezone.utc).replace(tzinfo=None) if client_updated.tzinfo else client_updated
+            if db_u_naive > cl_u_naive + timedelta(milliseconds=1):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Application has been modified by another user. Please reload and try again."
                 )
-            
-            order = [
-                ApplicationStatus.SUBMITTED,
-                ApplicationStatus.SCREENING,
-                ApplicationStatus.INTERVIEW,
-                ApplicationStatus.OFFER,
-                ApplicationStatus.HIRED
-            ]
-            if old_status in order and new_status in order:
-                if order.index(new_status) > order.index(old_status):
-                    track_recruiter_productivity_async.delay(
-                        str(current_user.company_id),
-                        str(current_user.id),
-                        "advance"
-                    )
-            
-            # Log audit events for status updates
-            from core.audit import log_audit_event
-            
-            # 1. Log recruiter override
-            log_audit_event(
-                db=db,
-                action="ai.recruiter_override",
-                actor_type="RECRUITER",
-                actor_id=current_user.id,
-                company_id=current_user.company_id,
-                resource_type="applications",
-                resource_id=str(application.id),
-                ip_address=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                metadata={
-                    "application_id": str(application.id),
-                    "candidate_id": str(application.candidate_id),
-                    "old_status": old_status.value,
-                    "new_status": new_status.value
-                }
+
+    # 2. Ownership Restriction Check
+    if application.owner_id is not None:
+        if current_user.id != application.owner_id and current_user.role != UserRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Only the application owner or a Company Owner can edit this application."
             )
+
+    # Wrap writes in a transaction block
+    with db.begin_nested():
+        # 3. Handle owner assignment
+        if body.owner_id is not None or (hasattr(body, 'owner_id') and body.owner_id is None and application.owner_id is not None):
+            if body.owner_id is not None:
+                target_user = db.scalar(select(User).where(User.id == body.owner_id, User.company_id == current_user.company_id))
+                if not target_user:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned owner must belong to the same company.")
             
-            # 2. Log corresponding lifecycle state event
-            action_lifecycle = "candidate.stage_changed"
-            if new_status == ApplicationStatus.HIRED:
-                action_lifecycle = "candidate.hired"
-            elif new_status == ApplicationStatus.REJECTED:
-                action_lifecycle = "candidate.rejected"
-                
-            log_audit_event(
+            old_owner_id = str(application.owner_id) if application.owner_id else None
+            new_owner_id = str(body.owner_id) if body.owner_id else None
+            if old_owner_id != new_owner_id:
+                application.owner_id = body.owner_id
+                db.flush()
+                # Log timeline event
+                ApplicationEventService.record_event(
+                    db=db,
+                    company_id=current_user.company_id,
+                    application_id=application.id,
+                    event_type="application.owner_assigned",
+                    actor_id=current_user.id,
+                    previous_value=old_owner_id,
+                    new_value=new_owner_id,
+                    metadata={
+                        "previous_owner": old_owner_id,
+                        "new_owner": new_owner_id
+                    }
+                )
+
+        # 4. Handle stage transition
+        if body.current_stage_id is not None:
+            transition_candidate_stage(
                 db=db,
-                action=action_lifecycle,
-                actor_type="RECRUITER",
-                actor_id=current_user.id,
                 company_id=current_user.company_id,
-                resource_type="candidates",
-                resource_id=str(application.candidate_id),
-                ip_address=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                metadata={
-                    "application_id": str(application.id),
-                    "old_status": old_status.value,
-                    "new_status": new_status.value
-                }
+                application_id=application.id,
+                target_stage_id=body.current_stage_id,
+                actor_id=current_user.id
             )
-            
+        elif body.status is not None:
+            new_status = _parse_application_status(body.status)
+            status_to_cat = {
+                ApplicationStatus.SUBMITTED: "applied",
+                ApplicationStatus.SCREENING: "screening",
+                ApplicationStatus.INTERVIEW: "interviewing",
+                ApplicationStatus.OFFER: "offered",
+                ApplicationStatus.HIRED: "hired",
+                ApplicationStatus.REJECTED: "rejected",
+            }
+            target_cat = status_to_cat.get(new_status, "screening")
+            stages = ensure_job_stages(db, application.job_id, current_user.company_id)
+            target_stage = next((s for s in stages if s.base_category == target_cat and s.deleted_at is None), None)
+            if target_stage:
+                transition_candidate_stage(
+                    db=db,
+                    company_id=current_user.company_id,
+                    application_id=application.id,
+                    target_stage_id=target_stage.id,
+                    actor_id=current_user.id
+                )
+
+    db.commit()
+    db.refresh(application)
     return _application_response(application)
 
 
@@ -924,6 +930,183 @@ def bulk_undo_operation(
     db.commit()
 
     return {"status": "success", "reverted_count": reverted_count}
+
+
+# --- Phase B.3A ATS Endpoints ---
+from schemas.application import ApplicationEventResponse
+from pydantic import BaseModel
+
+class MoveStageBody(BaseModel):
+    target_stage_id: uuid.UUID
+    client_updated_at: datetime | None = None
+
+class AssignBody(BaseModel):
+    owner_id: uuid.UUID | None = None
+    client_updated_at: datetime | None = None
+
+@router.post("/{application_id}/move-stage", response_model=ApplicationResponse)
+def move_application_stage(
+    application_id: uuid.UUID,
+    body: MoveStageBody,
+    current_user: CurrentUser,
+    db: TenantDb
+):
+    """
+    Moves an application to a different hiring stage.
+    """
+    from datetime import datetime, timezone, timedelta
+    from models.enums import UserRole
+    from core.workflows import transition_candidate_stage
+
+    application = db.scalar(
+        select(Application)
+        .options(selectinload(Application.candidate), selectinload(Application.job))
+        .where(Application.id == application_id)
+    )
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    # 1. Optimistic Concurrency Check
+    if body.client_updated_at is not None:
+        db_updated = application.updated_at
+        client_updated = body.client_updated_at
+        if db_updated and client_updated:
+            db_u_naive = db_updated.astimezone(timezone.utc).replace(tzinfo=None) if db_updated.tzinfo else db_updated
+            cl_u_naive = client_updated.astimezone(timezone.utc).replace(tzinfo=None) if client_updated.tzinfo else client_updated
+            if db_u_naive > cl_u_naive + timedelta(milliseconds=1):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Application has been modified by another user. Please reload and try again."
+                )
+
+    # 2. Ownership Restriction Check
+    if application.owner_id is not None:
+        if current_user.id != application.owner_id and current_user.role != UserRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Only the application owner or a Company Owner can edit this application."
+            )
+
+    try:
+        transition_candidate_stage(
+            db=db,
+            company_id=current_user.company_id,
+            application_id=application.id,
+            target_stage_id=body.target_stage_id,
+            actor_id=current_user.id
+        )
+    except ValueError as val_err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
+
+    return _application_response(application)
+
+
+@router.post("/{application_id}/assign", response_model=ApplicationResponse)
+def assign_application_owner(
+    application_id: uuid.UUID,
+    body: AssignBody,
+    current_user: CurrentUser,
+    db: TenantDb
+):
+    """
+    Assigns or updates the primary owner of an application.
+    """
+    from datetime import datetime, timezone, timedelta
+    from models.enums import UserRole
+    from core.application_events import ApplicationEventService
+
+    application = db.scalar(
+        select(Application)
+        .options(selectinload(Application.candidate), selectinload(Application.job))
+        .where(Application.id == application_id)
+    )
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    # 1. Optimistic Concurrency Check
+    if body.client_updated_at is not None:
+        db_updated = application.updated_at
+        client_updated = body.client_updated_at
+        if db_updated and client_updated:
+            db_u_naive = db_updated.astimezone(timezone.utc).replace(tzinfo=None) if db_updated.tzinfo else db_updated
+            cl_u_naive = client_updated.astimezone(timezone.utc).replace(tzinfo=None) if client_updated.tzinfo else client_updated
+            if db_u_naive > cl_u_naive + timedelta(milliseconds=1):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Application has been modified by another user. Please reload and try again."
+                )
+
+    # 2. Ownership Restriction Check
+    if application.owner_id is not None:
+        if current_user.id != application.owner_id and current_user.role != UserRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Only the application owner or a Company Owner can edit this application."
+            )
+
+    if body.owner_id is not None:
+        target_user = db.scalar(select(User).where(User.id == body.owner_id, User.company_id == current_user.company_id))
+        if not target_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned owner must belong to the same company.")
+
+    with db.begin_nested():
+        old_owner_id = str(application.owner_id) if application.owner_id else None
+        new_owner_id = str(body.owner_id) if body.owner_id else None
+        if old_owner_id != new_owner_id:
+            application.owner_id = body.owner_id
+            db.flush()
+            # Log timeline event
+            ApplicationEventService.record_event(
+                db=db,
+                company_id=current_user.company_id,
+                application_id=application.id,
+                event_type="application.owner_assigned",
+                actor_id=current_user.id,
+                previous_value=old_owner_id,
+                new_value=new_owner_id,
+                metadata={
+                    "previous_owner": old_owner_id,
+                    "new_owner": new_owner_id
+                }
+            )
+
+    db.commit()
+    db.refresh(application)
+    return _application_response(application)
+
+
+@router.get("/{application_id}/timeline", response_model=list[ApplicationEventResponse])
+def get_application_timeline(
+    application_id: uuid.UUID,
+    db: TenantDb,
+    current_user: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    """
+    Returns the paginated chronological timeline history of events for a candidate's application.
+    """
+    from models.ats_models import ApplicationEvent
+
+    # Verify candidate belongs to the company
+    app = db.scalar(
+        select(Application).where(
+            Application.id == application_id,
+            Application.company_id == current_user.company_id
+        )
+    )
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    offset = (page - 1) * page_size
+    stmt = (
+        select(ApplicationEvent)
+        .where(ApplicationEvent.application_id == application_id)
+        .order_by(ApplicationEvent.created_at.asc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    return list(db.scalars(stmt).all())
 
 
 

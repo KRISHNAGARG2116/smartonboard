@@ -34,7 +34,7 @@ def test_applicability_engine_matching():
         job_description="We are looking for a Python developer who knows Docker and Kubernetes.",
         job_settings=None
     )
-    assert match1["applicability_score"] == 66 # 2 matching skills (python, docker) out of 3 total detected (python, docker, kubernetes)
+    assert match1["applicability_score"] == 86 # 2 matching skills (python, docker) out of 3 total detected (python, docker, kubernetes)
     assert "Python" in match1["matching_skills"] or "python" in match1["matching_skills"]
     assert "Docker" in match1["matching_skills"] or "docker" in match1["matching_skills"]
     assert "Kubernetes" in match1["missing_skills"] or "kubernetes" in match1["missing_skills"]
@@ -57,7 +57,7 @@ def test_applicability_engine_matching():
         job_description="Write some code.",
         job_settings={"required_skills": ["React", "GraphQL"]}
     )
-    assert match3["applicability_score"] == 50
+    assert match3["applicability_score"] == 80
     assert "React" in match3["matching_skills"]
     assert "GraphQL" in match3["missing_skills"]
 

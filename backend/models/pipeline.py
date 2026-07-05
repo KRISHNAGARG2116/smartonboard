@@ -75,6 +75,20 @@ class StageDefinition(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    # Job-specific pipeline properties
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    color: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sla_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sla_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true', nullable=False)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    is_terminal: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    allowed_next_stage_ids: Mapped[list | None] = mapped_column(JSONB, default=list, server_default='[]', nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     __table_args__ = (
         UniqueConstraint("pipeline_id", "sequence", name="uq_pipeline_stage_seq"),
         UniqueConstraint("pipeline_template_id", "sequence", name="uq_template_stage_seq"),
@@ -82,4 +96,5 @@ class StageDefinition(Base):
 
     pipeline_template: Mapped["PipelineTemplate | None"] = relationship("PipelineTemplate", back_populates="stages")
     pipeline: Mapped["Pipeline | None"] = relationship("Pipeline", back_populates="stages")
+    job: Mapped["Job | None"] = relationship("Job")
     company: Mapped["Company"] = relationship()

@@ -11,7 +11,7 @@ from models.interview import Interview
 from models.scorecard import Scorecard
 from models.offer import Offer
 from models.candidate_embedding import CandidateEmbedding
-from models.stage_transition import CandidateStageTransition
+from models.stage_transition import CandidateStageTransition, CandidateStageHistory
 from models.funnel_aggregate import FunnelAggregate
 from models.recruiter_productivity import RecruiterProductivityAggregate
 from models.recruiter_insight import AIRecruiterInsight
@@ -86,6 +86,7 @@ __all__ = [
     "Offer",
     "CandidateEmbedding",
     "CandidateStageTransition",
+    "CandidateStageHistory",
     "FunnelAggregate",
     "RecruiterProductivityAggregate",
     "AIRecruiterInsight",

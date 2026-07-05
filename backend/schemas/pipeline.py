@@ -63,8 +63,62 @@ class StageDefinitionResponse(BaseModel):
     automation_rules: list[dict]
     created_at: datetime
     updated_at: datetime
+    job_id: uuid.UUID | None = None
+    color: str | None = None
+    icon: str | None = None
+    position: int | None = None
+    sla_hours: int | None = None
+    sla_enabled: bool = True
+    is_default: bool = False
+    is_terminal: bool = False
+    allowed_next_stage_ids: list[uuid.UUID] | None = None
+    deleted_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class StageDefinitionJobCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    base_category: str = Field(...)
+    color: str | None = None
+    icon: str | None = None
+    position: int | None = None
+    sla_hours: int | None = None
+    sla_enabled: bool = True
+    is_default: bool = False
+    is_terminal: bool = False
+    allowed_next_stage_ids: list[uuid.UUID] | None = Field(default_factory=list)
+
+    @field_validator('base_category')
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        supported_categories = {'applied', 'screening', 'interviewing', 'offered', 'hired', 'rejected'}
+        if v not in supported_categories:
+            raise ValueError(f"Unsupported base category '{v}'. Supported: {supported_categories}")
+        return v
+
+
+class StageDefinitionJobUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    base_category: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    position: int | None = None
+    sla_hours: int | None = None
+    sla_enabled: bool | None = None
+    is_default: bool | None = None
+    is_terminal: bool | None = None
+    allowed_next_stage_ids: list[uuid.UUID] | None = None
+
+    @field_validator('base_category')
+    @classmethod
+    def validate_category(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        supported_categories = {'applied', 'screening', 'interviewing', 'offered', 'hired', 'rejected'}
+        if v not in supported_categories:
+            raise ValueError(f"Unsupported base category '{v}'. Supported: {supported_categories}")
+        return v
 
 
 class PipelineResponse(BaseModel):

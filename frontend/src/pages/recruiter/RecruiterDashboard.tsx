@@ -15,6 +15,7 @@ import {
   fetchApplications,
   createJob,
   fetchCompany,
+  fetchDashboardSummary,
   type Job,
   type Application,
   type Company,
@@ -36,7 +37,7 @@ export default function RecruiterDashboard() {
   const [company, setCompany] = useState<Company | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [applications, setApplications] = useState<Application[]>([])
-  const [interviews, setInterviews] = useState<any[]>([])
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   // 2. Modals state triggers
@@ -84,31 +85,16 @@ export default function RecruiterDashboard() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [co, jobList, appList] = await Promise.all([
+      const [co, jobList, appList, summaryData] = await Promise.all([
         fetchCompany().catch(() => null),
         fetchJobs().catch(() => []),
         fetchApplications().catch(() => []),
+        fetchDashboardSummary().catch(() => null),
       ])
       setCompany(co)
       setJobs(jobList)
       setApplications(appList)
-
-      // Fetch interviews for each application in parallel
-      const ivPromises = appList.map(async (app) => {
-        try {
-          const ivs = await api.get(`/v1/applications/${app.id}/interviews`).then(r => r.data)
-          return ivs.map((iv: any) => ({
-            ...iv,
-            candidate_name: app.candidate?.full_name || 'Candidate',
-            job_title: app.job?.title || 'Position',
-            application: app
-          }))
-        } catch {
-          return []
-        }
-      })
-      const ivResults = await Promise.all(ivPromises)
-      setInterviews(ivResults.flat())
+      setDashboardSummary(summaryData)
       
       // Auto select the first application with match score for AI details if none selected
       if (appList.length > 0 && !selectedAppForAi) {
@@ -266,15 +252,8 @@ export default function RecruiterDashboard() {
   // --- Calculations for "What requires my attention today?" ---
 
   const todayInterviews = useMemo(() => {
-    const today = new Date()
-    return interviews.filter((iv) => {
-      if (iv.is_cancelled) return false
-      const ivDate = new Date(iv.scheduled_at)
-      return ivDate.getDate() === today.getDate() &&
-             ivDate.getMonth() === today.getMonth() &&
-             ivDate.getFullYear() === today.getFullYear()
-    })
-  }, [interviews])
+    return dashboardSummary?.interviews || []
+  }, [dashboardSummary])
 
   const recentApplications = useMemo(() => {
     const fortyEightHoursAgo = Date.now() - (48 * 3600 * 1000)
@@ -286,12 +265,14 @@ export default function RecruiterDashboard() {
   }, [applications])
 
   const jobsNeedingAttention = useMemo(() => {
-    return jobs.filter((job) => {
-      if (job.status !== 'open') return false
-      const appCount = applications.filter((app) => app.job_id === job.id).length
-      return appCount === 0
-    })
-  }, [jobs, applications])
+    if (!dashboardSummary?.jobs_needing_attention) return []
+    return dashboardSummary.jobs_needing_attention.map((j: any) => ({
+      id: j.job_id,
+      title: j.job_title,
+      department: j.department,
+      unreviewed_count: j.unreviewed_count
+    }))
+  }, [dashboardSummary])
 
   const aiDetails = useMemo(() => {
     if (!selectedAppForAi) return null
@@ -374,7 +355,7 @@ export default function RecruiterDashboard() {
         </header>
 
         {/* Action Center Block (Warnings & DNS Verification warnings - Warm Apricot Wash) */}
-        <section style={{ marginBottom: 'var(--spacing-24)' }}>
+        <section style={{ marginBottom: 'var(--spacing-24)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-16)' }}>
           <SteepCard variant="warm">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-12)' }}>
               <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: 'var(--color-rust)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -398,6 +379,26 @@ export default function RecruiterDashboard() {
               )}
             </div>
           </SteepCard>
+
+          {/* SLA Alerts Center */}
+          {dashboardSummary?.overdue && dashboardSummary.overdue.length > 0 && (
+            <SteepCard style={{ border: '1px solid #fee2e2', background: '#fffbfb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-12)' }}>
+                <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: '#ef4444', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  🔥 Active SLA Alerts ({dashboardSummary.overdue.length})
+                </span>
+                <SteepBadge variant="danger">SLA Overdue</SteepBadge>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {dashboardSummary.overdue.map((ov: any) => (
+                  <div key={ov.application_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '8px 16px', background: '#fee2e2', borderRadius: '8px', color: '#b91c1c' }}>
+                    <span><strong>{ov.candidate_name}</strong> has breached SLA in <strong>{ov.stage_name}</strong> stage</span>
+                    <span>Entered: {new Date(ov.entered_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </SteepCard>
+          )}
         </section>
 
         {/* MAIN SPLIT GRID: Left (What requires attention) & Right (Quick Actions & AI Insights) */}
@@ -417,7 +418,7 @@ export default function RecruiterDashboard() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {todayInterviews.length > 0 ? (
-                  todayInterviews.map((iv) => (
+                  todayInterviews.map((iv: any) => (
                     <div key={iv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{iv.candidate_name}</div>
@@ -525,6 +526,34 @@ export default function RecruiterDashboard() {
               </div>
             </SteepCard>
 
+            {/* 3B. My Assigned Candidates Widget */}
+            <SteepCard>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                  My Assigned Candidates ({dashboardSummary?.my_candidates?.length || 0})
+                </h3>
+                <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {dashboardSummary?.my_candidates && dashboardSummary.my_candidates.length > 0 ? (
+                  dashboardSummary.my_candidates.map((mc: any) => (
+                    <div key={mc.application_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{mc.candidate_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{mc.job_title} · {mc.stage_name}</div>
+                      </div>
+                      <SteepButton variant="secondary" size="sm" onClick={() => navigate(`/recruiter/pipeline`)}>Board</SteepButton>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                    No candidates currently assigned to you.
+                  </div>
+                )}
+              </div>
+            </SteepCard>
+
             {/* 4. Jobs Needing Attention Widget */}
             <SteepCard>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
@@ -536,13 +565,13 @@ export default function RecruiterDashboard() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {jobsNeedingAttention.length > 0 ? (
-                  jobsNeedingAttention.map((job) => (
+                  jobsNeedingAttention.map((job: any) => (
                     <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
                         <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Dept: {job.department}</div>
                       </div>
-                      <SteepBadge variant="danger">0 Applicants</SteepBadge>
+                      <SteepBadge variant="danger">{job.unreviewed_count} Pending</SteepBadge>
                     </div>
                   ))
                 ) : (

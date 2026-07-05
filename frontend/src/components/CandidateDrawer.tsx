@@ -1,5 +1,13 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { api, updateApplicationStatus, type Application } from '../api'
+import { 
+  api, 
+  fetchJobStages, 
+  moveApplicationStage, 
+  assignApplicationOwner, 
+  fetchApplicationTimeline, 
+  fetchCompanyUsers, 
+  type Application 
+} from '../api'
 import { scoreClass } from '../utils/score'
 import SteepButton from './design-system/SteepButton'
 
@@ -21,6 +29,13 @@ export default function CandidateDrawer({
   onStageChanged,
 }: CandidateDrawerProps) {
   const [updatingStage, setUpdatingStage] = useState(false)
+  const [updatingOwner, setUpdatingOwner] = useState(false)
+  const [stages, setStages] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  
+  // Timeline lazy load state
+  const [timeline, setTimeline] = useState<any[]>([])
+  const [timelineLoading, setTimelineLoading] = useState(false)
 
   // RAG Chat States
   const [question, setQuestion] = useState('')
@@ -44,6 +59,39 @@ export default function CandidateDrawer({
       document.body.style.overflow = prev
     }
   }, [handleKeyDown])
+
+  // Fetch job stages and company users on open
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const stageList = await fetchJobStages(application.job_id)
+        setStages(stageList)
+        const userList = await fetchCompanyUsers()
+        setUsers(userList)
+      } catch (err) {
+        console.error('Error loading drawer initial data:', err)
+      }
+    }
+    loadData()
+  }, [application.job_id])
+
+  // Lazy-load timeline when clicking timeline tab
+  useEffect(() => {
+    if (tab === 'timeline') {
+      async function loadTimeline() {
+        setTimelineLoading(true)
+        try {
+          const events = await fetchApplicationTimeline(application.id, 1, 50)
+          setTimeline(events)
+        } catch (err) {
+          console.error('Error loading timeline:', err)
+        } finally {
+          setTimelineLoading(false)
+        }
+      }
+      loadTimeline()
+    }
+  }, [tab, application.id])
 
   // Deterministically compute high-fidelity AI metrics based on application UUID hash
   const candStats = useMemo(() => {
@@ -81,17 +129,43 @@ export default function CandidateDrawer({
   }, [application])
 
   // Trigger backend stage progression
-  const handleStageSelect = async (newStage: string) => {
+  const handleStageSelect = async (targetStageId: string) => {
     setUpdatingStage(true)
     try {
-      await updateApplicationStatus(application.id, newStage.toLowerCase())
-      application.status = newStage // Update local application cache
+      const updated = await moveApplicationStage(application.id, {
+        target_stage_id: targetStageId,
+        client_updated_at: application.updated_at
+      })
+      application.current_stage_id = updated.current_stage_id
+      application.status = updated.status
+      application.updated_at = updated.updated_at
       if (onStageChanged) onStageChanged()
-      alert(`Candidate successfully transitioned to stage: ${newStage}`)
-    } catch {
-      alert('Error updating candidate stage. Verify RLS constraints.')
+      alert('Candidate successfully transitioned stage.')
+    } catch (err: any) {
+      const errMsg = err.response?.data?.detail || 'Error updating candidate stage. Verify RLS constraints or transition rules.'
+      alert(`Transition rejected: ${errMsg}`)
     } finally {
       setUpdatingStage(false)
+    }
+  }
+
+  // Trigger backend owner assignment
+  const handleOwnerSelect = async (ownerId: string | null) => {
+    setUpdatingOwner(true)
+    try {
+      const updated = await assignApplicationOwner(application.id, {
+        owner_id: ownerId,
+        client_updated_at: application.updated_at
+      })
+      application.owner_id = updated.owner_id
+      application.updated_at = updated.updated_at
+      if (onStageChanged) onStageChanged()
+      alert('Application owner successfully assigned.')
+    } catch (err: any) {
+      const errMsg = err.response?.data?.detail || 'Error assigning owner. Verify permissions.'
+      alert(`Assignment rejected: ${errMsg}`)
+    } finally {
+      setUpdatingOwner(false)
     }
   }
 
@@ -110,6 +184,26 @@ export default function CandidateDrawer({
       setChatLoading(false)
     }
   }
+
+  // Compute time in current stage
+  const timeInStageInfo = useMemo(() => {
+    const diffTime = Math.abs(new Date().getTime() - new Date(application.updated_at).getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    // Find current stage
+    const currentStage = stages.find(s => s.id === application.current_stage_id)
+    let slaText = ''
+    if (currentStage && currentStage.sla_enabled && currentStage.sla_hours) {
+      const hoursSpent = Math.floor(diffTime / (1000 * 60 * 60))
+      const remaining = currentStage.sla_hours - hoursSpent
+      if (remaining < 0) {
+        slaText = `SLA Breached by ${Math.abs(remaining)} hours 🔥`
+      } else {
+        slaText = `${remaining} hours remaining until SLA breach`
+      }
+    }
+    return { days: diffDays, slaText }
+  }, [application.updated_at, application.current_stage_id, stages])
 
   return (
     <>
@@ -383,26 +477,33 @@ export default function CandidateDrawer({
             {tab === 'timeline' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Chronological History logs</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: 'var(--space-4)', borderLeft: '2px solid var(--border)' }}>
-                  {[
-                    { title: 'Candidate Applied', desc: 'Application imported successfully.', time: 'Applied' },
-                    { title: 'AI Match Screening Completed', desc: `Match scored at ${candStats.score}%.`, time: 'Screened' },
-                    { title: 'Technical Screening Panel Scheduled', desc: 'Panel assigned to Sarah Recruiter.', time: 'Interviews' },
-                    ...(application.status.toLowerCase() === 'hired'
-                      ? [{ title: 'Offer Signed', desc: 'Electronic compliance NDA certified.', time: 'Hired' }]
-                      : [])
-                  ].map((evt, idx) => (
-                    <div key={idx} style={{ position: 'relative' }}>
-                      {/* Timeline dot */}
-                      <div style={{ position: 'absolute', left: '-23px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--surface)' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>{evt.title}</strong>
-                        <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>{evt.time}</span>
-                      </div>
-                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>{evt.desc}</p>
-                    </div>
-                  ))}
-                </div>
+                {timelineLoading ? (
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Loading timeline...</div>
+                ) : timeline.length === 0 ? (
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>No events logged yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: 'var(--space-4)', borderLeft: '2px solid var(--border)' }}>
+                    {timeline.map((evt, idx) => {
+                      const date = new Date(evt.created_at).toLocaleDateString()
+                      return (
+                        <div key={evt.id || idx} style={{ position: 'relative' }}>
+                          <div style={{ position: 'absolute', left: '-23px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--surface)' }} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <strong style={{ fontSize: 'var(--text-xs)', color: 'var(--text)' }}>
+                              {evt.event_type.replace('application.', 'Application ').replace('_', ' ')}
+                            </strong>
+                            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>{date}</span>
+                          </div>
+                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                            Action by {evt.actor_name || 'System'}
+                            {evt.metadata_json?.previous_value && ` from ${evt.metadata_json.previous_value}`}
+                            {evt.metadata_json?.new_value && ` to ${evt.metadata_json.new_value}`}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -436,16 +537,47 @@ export default function CandidateDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)' }}>Hiring Stage</span>
               <select
-                value={application.status.toUpperCase()}
+                value={application.current_stage_id || ''}
                 onChange={(e) => handleStageSelect(e.target.value)}
                 disabled={updatingStage}
                 className="form-select"
                 style={{ padding: '6px 12px', borderRadius: '10px', fontSize: 'var(--text-xs)', fontWeight: 600, border: '1px solid var(--border)' }}
               >
-                {['SUBMITTED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'].map((stg) => (
-                  <option key={stg} value={stg}>{stg}</option>
+                <option value="" disabled>Select Stage</option>
+                {stages.map((stg) => (
+                  <option key={stg.id} value={stg.id}>{stg.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Recruiter Assigned Owner dropdown */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Owner</span>
+              <select
+                value={application.owner_id || ''}
+                onChange={(e) => handleOwnerSelect(e.target.value || null)}
+                disabled={updatingOwner}
+                className="form-select"
+                style={{ padding: '6px 12px', borderRadius: '10px', fontSize: 'var(--text-xs)', fontWeight: 600, border: '1px solid var(--border)' }}
+              >
+                <option value="">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.full_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Time spent in current stage & SLA */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)' }}>Time in Current Stage</span>
+              <span style={{ fontSize: '12px', fontWeight: 550 }}>
+                {timeInStageInfo.days} days
+              </span>
+              {timeInStageInfo.slaText && (
+                <span style={{ fontSize: '11px', fontWeight: 600, color: timeInStageInfo.slaText.includes('Breached') ? '#ef4444' : '#f59e0b' }}>
+                  {timeInStageInfo.slaText}
+                </span>
+              )}
             </div>
 
             {/* Email Field with Copy capability */}
@@ -461,7 +593,7 @@ export default function CandidateDrawer({
                     navigator.clipboard.writeText(application.candidate?.email || '')
                     alert('Email address copied to clipboard!')
                   }}
-                  style={{ cursor: 'pointer', fontSize: '11px', padding: '2px' }}
+                  style={{ cursor: 'pointer', fontSize: '11px', padding: '2px', background: 'transparent', border: 'none' }}
                   title="Copy email"
                 >
                   📋
@@ -482,14 +614,6 @@ export default function CandidateDrawer({
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)' }}>Job Connection</span>
               <span style={{ fontSize: '12px', fontWeight: 550, color: 'var(--accent)' }}>
                 {application.job?.title || 'General Opening'}
-              </span>
-            </div>
-
-            {/* Recruiter Assigned Owner */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-tertiary)' }}>Assigned Recruiter</span>
-              <span style={{ fontSize: '12px', fontWeight: 550 }}>
-                Sarah Recruiter
               </span>
             </div>
 

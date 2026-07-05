@@ -82,9 +82,12 @@ def transition_candidate_stage(
 ) -> Application:
     """
     Transitions a candidate's application to a new stage definition.
+    - Validates allowed stage transition rules and prevents invalid terminal transitions.
     - Updates application.current_stage_id and syncs application.status.
+    - Record movement to CandidateStageHistory.
     - Marks active in-stage SLA trackers as 'completed'.
-    - Instantiates a new SLA tracker for the target stage if defined.
+    - Instantiates a new SLA tracker for the target stage if defined & enabled.
+    - Logs timeline events via the centralized ApplicationEventService.
     - Logs audit events.
     """
     # 1. Fetch Application
@@ -98,10 +101,6 @@ def transition_candidate_stage(
         raise ValueError("Application not found")
         
     from_stage_id = application.current_stage_id
-    if from_stage_id:
-        current_stage = db.get(StageDefinition, from_stage_id)
-        if current_stage:
-            validate_stage_exit_requirements(db, application, current_stage)
     
     # 2. Fetch Target Stage
     target_stage = db.scalar(
@@ -112,13 +111,37 @@ def transition_candidate_stage(
     )
     if not target_stage:
         raise ValueError("Target stage definition not found")
-        
+
+    # Validate Transitions
+    if from_stage_id:
+        current_stage = db.get(StageDefinition, from_stage_id)
+        if current_stage:
+            # Block moving out of terminal stages unless user is owner
+            if current_stage.is_terminal:
+                is_owner = False
+                if actor_id:
+                    from models.user import User
+                    from models.enums import UserRole
+                    actor = db.get(User, actor_id)
+                    if actor and actor.role == UserRole.OWNER:
+                        is_owner = True
+                if not is_owner:
+                    raise ValueError("Only a Company Owner can move a candidate out of a terminal stage.")
+            
+            # Check allowed workflow transitions
+            if current_stage.allowed_next_stage_ids:
+                allowed_uuids = [uuid.UUID(str(x)) for x in current_stage.allowed_next_stage_ids]
+                if target_stage_id not in allowed_uuids:
+                    raise ValueError(f"Transition from stage '{current_stage.name}' to '{target_stage.name}' is not allowed by the workflow rules.")
+            
+            validate_stage_exit_requirements(db, application, current_stage)
+    
     # 3. Complete existing SLA trackers
     db.execute(
         update(CandidateStageSLATracker)
         .where(
             CandidateStageSLATracker.application_id == application_id,
-            CandidateStageSLATracker.status.in_(["active", "breached"])
+            CandidateStageSLATracker.status.in_(["active", "breached", "paused"])
         )
         .values(status="completed")
     )
@@ -128,31 +151,62 @@ def transition_candidate_stage(
     # Sync status with target stage's base category
     new_status = MAP_BASE_CATEGORY_TO_STATUS.get(target_stage.base_category, ApplicationStatus.SCREENING)
     application.status = new_status
+    
+    # Write to CandidateStageHistory
+    from models.stage_transition import CandidateStageHistory
+    history = CandidateStageHistory(
+        company_id=company_id,
+        application_id=application_id,
+        previous_stage_id=from_stage_id,
+        new_stage_id=target_stage_id,
+        changed_by=actor_id,
+        reason="API transitioned stage" if not is_auto else "Auto-progression rule matched"
+    )
+    db.add(history)
     db.flush()
     
-    # 5. Instantiate new SLA tracker if configured
-    sla = db.scalar(
-        select(StageSLA).where(
-            StageSLA.stage_definition_id == target_stage_id,
-            StageSLA.company_id == company_id
+    # 5. Instantiate new SLA tracker if configured and enabled
+    if target_stage.sla_enabled:
+        sla = db.scalar(
+            select(StageSLA).where(
+                StageSLA.stage_definition_id == target_stage_id,
+                StageSLA.company_id == company_id
+            )
         )
-    )
-    if sla:
-        now = datetime.now(timezone.utc)
-        tracker = CandidateStageSLATracker(
-            company_id=company_id,
-            application_id=application_id,
-            stage_definition_id=target_stage_id,
-            entered_at=now,
-            expires_at=now + timedelta(seconds=sla.duration_seconds),
-            status="active",
-            escalation_count=0
-        )
-        db.add(tracker)
-        db.flush()
+        duration_seconds = None
+        if sla:
+            duration_seconds = sla.duration_seconds
+        elif target_stage.sla_hours is not None:
+            duration_seconds = target_stage.sla_hours * 3600
+
+        if duration_seconds is not None:
+            now = datetime.now(timezone.utc)
+            tracker = CandidateStageSLATracker(
+                company_id=company_id,
+                application_id=application_id,
+                stage_definition_id=target_stage_id,
+                entered_at=now,
+                expires_at=now + timedelta(seconds=duration_seconds),
+                status="active",
+                escalation_count=0
+            )
+            db.add(tracker)
+            db.flush()
 
     # 6. Apply SLA pausing checks
     check_and_update_sla_timers(db, application_id)
+    
+    # Log event to centralized timeline
+    from core.application_events import ApplicationEventService
+    ApplicationEventService.record_event(
+        db=db,
+        company_id=company_id,
+        application_id=application_id,
+        event_type="application.stage_changed",
+        actor_id=actor_id,
+        previous_value=str(from_stage_id) if from_stage_id else None,
+        new_value=str(target_stage_id)
+    )
         
     # 7. Log Audit Events
     log_audit_event(
@@ -213,9 +267,14 @@ def check_and_update_sla_timers(db: Session, application_id: uuid.UUID):
     )
 
     stage = db.get(StageDefinition, tracker.stage_definition_id)
+    stage_name = stage.name.lower() if (stage and stage.name) else ""
     should_pause = (
         scheduled_interviews_count > 0 or
-        (stage and stage.settings.get("pause_sla") is True)
+        (stage and stage.settings.get("pause_sla") is True) or
+        "waiting for candidate" in stage_name or
+        "waiting for hiring manager" in stage_name or
+        "waiting for interview" in stage_name or
+        "waiting" in stage_name
     )
 
     now = datetime.now(timezone.utc)
@@ -371,4 +430,54 @@ def validate_stage_exit_requirements(db: Session, application: Application, curr
         )
         if not resume:
             raise ValueError(f"Exit requirement failed: A candidate resume is required for the stage '{current_stage.name}' before moving the candidate.")
+
+
+def ensure_job_stages(db: Session, job_id: uuid.UUID, company_id: uuid.UUID) -> list[StageDefinition]:
+    """
+    Checks if active stages exist for a job, and if not, initializes the default 8 stages.
+    """
+    stages = db.scalars(
+        select(StageDefinition)
+        .where(
+            StageDefinition.job_id == job_id,
+            StageDefinition.company_id == company_id,
+            StageDefinition.deleted_at.is_(None)
+        )
+        .order_by(StageDefinition.position.asc())
+    ).all()
+    if stages:
+        return list(stages)
+
+    defaults = [
+        ("Applied", "applied", "#3b82f6", "inbox", 10, True, False),
+        ("Screening", "screening", "#f59e0b", "search", 20, False, False),
+        ("Interview", "interviewing", "#8b5cf6", "calendar", 30, False, False),
+        ("Technical", "screening", "#6366f1", "code", 40, False, False),
+        ("Final Interview", "interviewing", "#a855f7", "users", 50, False, False),
+        ("Offer", "offered", "#10b981", "document", 60, False, False),
+        ("Hired", "hired", "#10b981", "check", 70, False, True),
+        ("Rejected", "rejected", "#ef4444", "x", 80, False, True),
+    ]
+
+    created_stages = []
+    for name, category, color, icon, position, is_default, is_terminal in defaults:
+        stage = StageDefinition(
+            company_id=company_id,
+            job_id=job_id,
+            name=name,
+            base_category=category,
+            color=color,
+            icon=icon,
+            position=position,
+            sequence=position,
+            is_active=True,
+            is_default=is_default,
+            is_terminal=is_terminal,
+            sla_enabled=True,
+            sla_hours=24 if name == "Applied" else None
+        )
+        db.add(stage)
+        created_stages.append(stage)
+    db.flush()
+    return created_stages
 

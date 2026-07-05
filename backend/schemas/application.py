@@ -14,6 +14,9 @@ class ApplicationCreateRequest(BaseModel):
 
 class ApplicationUpdateRequest(BaseModel):
     status: str | None = None
+    current_stage_id: uuid.UUID | None = None
+    owner_id: uuid.UUID | None = None
+    client_updated_at: datetime | None = None
 
 
 class CandidateBrief(BaseModel):
@@ -45,6 +48,20 @@ class ApplicationResponse(BaseModel):
     match_score: float | None = None
     candidate: CandidateBrief | None = None
     job: JobBrief | None = None
+    current_stage_id: uuid.UUID | None = None
+    owner_id: uuid.UUID | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApplicationEventResponse(BaseModel):
+    id: uuid.UUID
+    application_id: uuid.UUID
+    event_type: str
+    actor_id: uuid.UUID | None = None
+    actor_name: str | None = None
+    metadata_json: dict = {}
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 

@@ -343,3 +343,118 @@ class TestCoreWorkflowFunctions:
     def test_timeline_logger_exists(self):
         from core.timeline import log_application_event
         assert callable(log_application_event)
+
+    def test_terminal_stage_cannot_move(self):
+        from core.workflows import transition_candidate_stage
+        from models.enums import UserRole
+        from models import User
+        import pytest
+
+        # Mock DB
+        db = MagicMock()
+        company_id = uuid.uuid4()
+        app_id = uuid.uuid4()
+        current_stage_id = uuid.uuid4()
+        target_stage_id = uuid.uuid4()
+        actor_id = uuid.uuid4()
+
+        # Mock Application
+        app = MagicMock()
+        app.id = app_id
+        app.company_id = company_id
+        app.current_stage_id = current_stage_id
+        app.updated_at = datetime.now()
+
+        # Mock StageDefinition (Terminal)
+        terminal_stage = MagicMock()
+        terminal_stage.id = current_stage_id
+        terminal_stage.is_terminal = True
+        terminal_stage.name = "Rejected"
+        terminal_stage.allowed_next_stage_ids = []
+
+        # Mock Target Stage
+        target_stage = MagicMock()
+        target_stage.id = target_stage_id
+        target_stage.name = "Interview"
+        target_stage.is_terminal = False
+        target_stage.allowed_next_stage_ids = []
+
+        # Mock Recruiter User (not OWNER)
+        recruiter = MagicMock()
+        recruiter.role = UserRole.RECRUITER
+
+        # Configure DB mock scalar to return correct mocked objects sequentially
+        stage_calls = []
+        def mock_scalar(query):
+            q_str = str(query).lower()
+            if "application" in q_str or "applications" in q_str:
+                return app
+            if "stagedefinition" in q_str or "stage_definitions" in q_str:
+                if not stage_calls:
+                    stage_calls.append(True)
+                    return target_stage
+                else:
+                    return terminal_stage
+            return None
+
+        db.scalar = mock_scalar
+        db.get.side_effect = lambda model, oid: recruiter
+
+        # Call transition: should fail for RECRUITER
+        with pytest.raises(ValueError) as excinfo:
+            transition_candidate_stage(db, company_id, app_id, target_stage_id, actor_id=actor_id)
+        assert "move a candidate out of a terminal stage" in str(excinfo.value)
+
+        # Mock Owner User
+        owner = MagicMock()
+        owner.role = UserRole.OWNER
+
+        # Reset stateful calls and set db.get to return owner
+        stage_calls.clear()
+        db.get.side_effect = lambda model, oid: owner
+
+        # Call transition: should succeed (or proceed past terminal checks) without ValueError for terminal stage
+        try:
+            transition_candidate_stage(db, company_id, app_id, target_stage_id, actor_id=actor_id)
+        except ValueError as e:
+            # We only expect errors on exit requirements, not terminal stage check
+            assert "move a candidate out of a terminal stage" not in str(e)
+
+    def test_dashboard_summary_matches_pipeline_counts(self):
+        from api.dashboard import get_dashboard_summary
+        from models import Application
+        from api.deps import TenantDb
+
+        # Mock DB
+        db = MagicMock(spec=TenantDb)
+        current_user = MagicMock()
+        current_user.company_id = uuid.uuid4()
+        current_user.id = uuid.uuid4()
+
+        app1 = MagicMock()
+        app1.id = uuid.uuid4()
+        app1.candidate_id = uuid.uuid4()
+        app1.job_id = uuid.uuid4()
+        app1.current_stage_id = uuid.uuid4()
+        app1.status = "submitted"
+        app1.updated_at = datetime.now()
+
+        # Mock db.scalars to return correct results
+        def mock_scalars(query):
+            q_str = str(query).lower()
+            mock_res = MagicMock()
+            if "application" in q_str:
+                mock_res.all.return_value = [app1]
+            else:
+                mock_res.all.return_value = []
+            return mock_res
+
+        db.scalars = mock_scalars
+        db.get.return_value = None
+
+        # Mock job access checks
+        with patch("api.dashboard.has_job_access", return_value=True):
+            res = get_dashboard_summary(db, current_user)
+            # Counts in pipeline stage map should align with total applications
+            assert res["summary"]["total_applications"] == 1
+            assert res["pipeline"][str(app1.current_stage_id)] == 1

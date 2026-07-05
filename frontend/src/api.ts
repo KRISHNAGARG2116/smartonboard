@@ -224,6 +224,8 @@ export interface Application {
   match_score?: number | null
   candidate?: { id: string; full_name: string; email: string; phone: string | null }
   job?: { id: string; title: string; department: string }
+  current_stage_id?: string | null
+  owner_id?: string | null
 }
 
 export const register = (data: {
@@ -317,6 +319,21 @@ export const createApplication = (data: {
 
 export const updateApplicationStatus = (id: string, status: string) =>
   api.patch<Application>(`/v1/applications/${id}`, { status }).then(r => r.data)
+
+export const fetchJobStages = (jobId: string) =>
+  api.get<any[]>(`/v1/pipelines/${jobId}`).then(r => r.data)
+
+export const moveApplicationStage = (applicationId: string, data: { target_stage_id: string, client_updated_at?: string }) =>
+  api.post<Application>(`/v1/applications/${applicationId}/move-stage`, data).then(r => r.data)
+
+export const assignApplicationOwner = (applicationId: string, data: { owner_id: string | null, client_updated_at?: string }) =>
+  api.post<Application>(`/v1/applications/${applicationId}/assign`, data).then(r => r.data)
+
+export const fetchApplicationTimeline = (applicationId: string, page?: number, pageSize?: number) =>
+  api.get<any[]>(`/v1/applications/${applicationId}/timeline`, { params: { page, page_size: pageSize } }).then(r => r.data)
+
+export const fetchDashboardSummary = () =>
+  api.get<any>('/v1/dashboard/summary').then(r => r.data)
 
 // --- Phase B Platform additions ---
 
