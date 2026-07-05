@@ -68,6 +68,8 @@ from models.application_snapshot import ApplicationSnapshot
 from models.candidate_resume import CandidateResume
 from models.rbac import Role, Permission, UserJobAccess
 from models.ats_models import ApplicationEvent, InterviewKit, BulkOperationLog, SavedSearch, CandidateTag, Notification, DuplicateWarning
+from models.report_export import ReportExport
+
 
 
 __all__ = [
@@ -154,6 +156,7 @@ __all__ = [
     "CandidateTag",
     "Notification",
     "DuplicateWarning",
+    "ReportExport",
 ]
 
 

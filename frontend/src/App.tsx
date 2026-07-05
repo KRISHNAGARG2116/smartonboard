@@ -28,6 +28,13 @@ import RecruiterJobBuilder from './pages/recruiter/RecruiterJobBuilder'
 import RecruiterInterviews from './pages/recruiter/RecruiterInterviews'
 import RecruiterSettings from './pages/recruiter/RecruiterSettings'
 
+// Executive Analytics Pages (B.3C)
+import ExecutiveDashboard from './pages/recruiter/ExecutiveDashboard'
+import ExecutiveRecruiters from './pages/recruiter/ExecutiveRecruiters'
+import ExecutiveForecast from './pages/recruiter/ExecutiveForecast'
+import ExecutiveReports from './pages/recruiter/ExecutiveReports'
+
+
 // Candidate Workspace Pages
 import CandidateDashboard from './pages/candidate/CandidateDashboard'
 import ResumeLibrary from './pages/ResumeLibrary'
@@ -149,7 +156,42 @@ function AppRoutes() {
           }
         />
 
+        {/* Executive Analytics Routes (B.3C) */}
+        <Route
+          path="/recruiter/executive"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><ExecutiveDashboard /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/executive/recruiters"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><ExecutiveRecruiters /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/executive/forecast"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><ExecutiveForecast /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/executive/reports"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><ExecutiveReports /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Candidate Workspace Routes (Prefixed with /candidate/) */}
+
         <Route
           path="/candidate/dashboard"
           element={

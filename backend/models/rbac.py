@@ -14,6 +14,8 @@ class UserPermission:
     CREATE_JOB = "create_job"
     PUBLISH_JOB = "publish_job"
     VIEW_ANALYTICS = "view_analytics"
+    VIEW_EXECUTIVE_ANALYTICS = "view_executive_analytics"
+    EXPORT_EXECUTIVE_REPORTS = "export_executive_reports"
     REJECT_CANDIDATES = "reject_candidates"
     CREATE_OFFERS = "create_offers"
 

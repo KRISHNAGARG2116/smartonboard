@@ -559,3 +559,36 @@ Please return the corrected JSON object matching the required schema:"""
                 "languages": ["English"]
             }
 
+    @classmethod
+    def generate_executive_summary(cls, metrics_summary: str) -> str:
+        """
+        Generates a markdown executive talent summary briefing from aggregated metrics.
+        Guarantees strict privacy: no candidate names, resumes, or details are passed.
+        """
+        prompt = f"""You are a premium executive talent consultant. Analyze these aggregated hiring metrics and write a concise, professional markdown executive briefing.
+        
+        Focus on:
+        • Hiring velocity trends
+        • Recruitment bottlenecks
+        • Recruiter workload and productivity
+        • Strategic actionable recommendations
+        
+        Aggregated Metrics:
+        {metrics_summary}
+        
+        Mitigate bias:
+        - Do not infer, mention, or speculate on protected characteristics (such as age, gender, race, or prestige).
+        - Do not speculate beyond the provided statistics.
+        - Ensure a neutral, fact-based professional tone.
+        
+        Executive Briefing Markdown:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            import logging
+            logging.getLogger("smartonboard.intelligence").error(f"AI executive summary generation failed: {e}")
+            return f"**Hiring Executive Briefing**\n\nUnable to generate AI analysis: {str(e)}."
+
+

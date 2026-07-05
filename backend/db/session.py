@@ -73,6 +73,24 @@ def set_rls_context_on_execute(conn, cursor, statement, parameters, context, exe
     _apply_rls_context(conn)
 
 
+@event.listens_for(Session, "after_flush")
+def invalidate_analytics_cache_on_flush(session, flush_context):
+    try:
+        companies_to_invalidate = set()
+        for obj in session.new | session.dirty | session.deleted:
+            name = obj.__class__.__name__
+            if name in ("Application", "Interview", "Scorecard", "CandidateStageTransition"):
+                cid = getattr(obj, "company_id", None)
+                if cid:
+                    companies_to_invalidate.add(cid)
+        if companies_to_invalidate:
+            from core.cache import analytics_cache
+            for cid in companies_to_invalidate:
+                analytics_cache.invalidate_company(cid)
+    except Exception:
+        pass
+
+
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
