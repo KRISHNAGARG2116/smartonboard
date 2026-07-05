@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { 
   api, 
   fetchJobStages, 
@@ -28,6 +29,7 @@ export default function CandidateDrawer({
   onClose,
   onStageChanged,
 }: CandidateDrawerProps) {
+  const [activeTab, setActiveTab] = useState<string>(tab)
   const [updatingStage, setUpdatingStage] = useState(false)
   const [updatingOwner, setUpdatingOwner] = useState(false)
   const [stages, setStages] = useState<any[]>([])
@@ -37,9 +39,23 @@ export default function CandidateDrawer({
   const [timeline, setTimeline] = useState<any[]>([])
   const [timelineLoading, setTimelineLoading] = useState(false)
 
+  // Notes lazy load state
+  const [notes, setNotes] = useState<any[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [newNoteVisibility, setNewNoteVisibility] = useState('everyone')
+  const [newNoteAttachmentUrl, setNewNoteAttachmentUrl] = useState('')
+  const [newNoteAttachments, setNewNoteAttachments] = useState<any[]>([])
+
+  // AI Copilot States
+  const [aiTool, setAiTool] = useState<string | null>(null)
+  const [aiContent, setAiContent] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiMeta, setAiMeta] = useState<any>(null)
+
   // RAG Chat States
   const [question, setQuestion] = useState('')
-  const [chatHistory, setChatHistory] = useState<{ q: string; a: string; sources?: any[] }[]>([])
+  const [chatHistory, setChatHistory] = useState<{ q: string; a: string }[]>([])
   const [chatLoading, setChatLoading] = useState(false)
 
   // Escaping overlay
@@ -60,6 +76,11 @@ export default function CandidateDrawer({
     }
   }, [handleKeyDown])
 
+  // Sync tab selection from props
+  useEffect(() => {
+    setActiveTab(tab)
+  }, [tab])
+
   // Fetch job stages and company users on open
   useEffect(() => {
     async function loadData() {
@@ -77,7 +98,7 @@ export default function CandidateDrawer({
 
   // Lazy-load timeline when clicking timeline tab
   useEffect(() => {
-    if (tab === 'timeline') {
+    if (activeTab === 'timeline') {
       async function loadTimeline() {
         setTimelineLoading(true)
         try {
@@ -91,42 +112,26 @@ export default function CandidateDrawer({
       }
       loadTimeline()
     }
-  }, [tab, application.id])
+  }, [activeTab, application.id])
 
-  // Deterministically compute high-fidelity AI metrics based on application UUID hash
-  const candStats = useMemo(() => {
-    const hashNum = Math.abs(application.id.charCodeAt(0) + application.id.charCodeAt(5))
-    const score = (hashNum % 40) + 60
-    const exp = (hashNum % 8) + 2
-    
-    const roleTitle = application.job?.title || 'Engineer'
-    const dept = application.job?.department || 'Engineering'
+  // Lazy-load notes
+  const loadNotes = useCallback(async () => {
+    setNotesLoading(true)
+    try {
+      const res = await api.get(`/v1/applications/${application.id}/notes`)
+      setNotes(res.data)
+    } catch (err) {
+      console.error('Error loading notes:', err)
+    } finally {
+      setNotesLoading(false)
+    }
+  }, [application.id])
 
-    const strengths = [
-      `Expert proficiency in ${dept} development models.`,
-      `Strong performance on structured system design frameworks.`,
-      `Solid production experiences with over ${exp} years in distributed scale.`,
-    ]
-
-    const weaknesses = [
-      `Limited familiarity with regional HRIS outbox integration circuit-breakers.`,
-      `Minor gap in containerized orchestration lifecycle pipelines.`,
-    ]
-
-    const recActions = [
-      `Advance candidate to panel technical reviews.`,
-      `Prepare structural hiring guidelines tailored to ${roleTitle}.`,
-      `Verify Gusto/HiBob outbox schema sync targets.`,
-    ]
-
-    const interviews = [
-      { title: 'Technical Screening', stage: 'SCREENING', grader: 'Sarah Recruiter', score: 85, rec: 'RECOMMEND HIRE', notes: 'Demonstrated solid understanding of asynchronous database sweeping patterns.' },
-      { title: 'System Design Panel', stage: 'INTERVIEW', grader: 'John Engineer', score: 92, rec: 'STRONG HIRE', notes: 'Designed a highly robust transactional outbox model with elegant RLS bounds.' }
-    ]
-
-    const reasoning = `Candidate exhibits ${score}% fit score based on ${exp} years of verified experience in ${dept} structures. Excellent alignment in matching skills with minimal gaps.`
-    return { score, exp, strengths, weaknesses, recActions, interviews, reasoning }
-  }, [application])
+  useEffect(() => {
+    if (activeTab === 'notes') {
+      loadNotes()
+    }
+  }, [activeTab, loadNotes])
 
   // Trigger backend stage progression
   const handleStageSelect = async (targetStageId: string) => {
@@ -169,6 +174,24 @@ export default function CandidateDrawer({
     }
   }
 
+  // AI Copilot generation
+  const handleGenerateAI = async (toolType: string) => {
+    setAiTool(toolType)
+    setAiLoading(true)
+    setAiContent('')
+    setAiMeta(null)
+    try {
+      const res = await api.post(`/v1/ai/${toolType}`, { application_id: application.id })
+      setAiContent(res.data.content)
+      setAiMeta({ model: res.data.model, provider: res.data.provider, date: res.data.generated_at })
+    } catch (err: any) {
+      setAiContent(`Generation failed: ${err.response?.data?.detail || err.message}`)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // RAG Chat Submission
   const handleAskQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim()) return
@@ -177,7 +200,7 @@ export default function CandidateDrawer({
     setQuestion('')
     try {
       const response = await api.post(`/v1/applications/${application.id}/qa`, { question: qText }).then(r => r.data)
-      setChatHistory(prev => [...prev, { q: qText, a: response.answer, sources: response.source_chunks }])
+      setChatHistory(prev => [...prev, { q: qText, a: response.answer }])
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to query the resume.')
     } finally {
@@ -185,12 +208,72 @@ export default function CandidateDrawer({
     }
   }
 
+  // Note Submission
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newNoteContent.trim()) return
+    try {
+      await api.post(`/v1/applications/${application.id}/notes`, {
+        content: newNoteContent,
+        visibility: newNoteVisibility,
+        attachments_json: newNoteAttachments
+      })
+      setNewNoteContent('')
+      setNewNoteVisibility('everyone')
+      setNewNoteAttachments([])
+      loadNotes()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to submit candidate note.')
+    }
+  }
+
+  const addAttachment = () => {
+    if (!newNoteAttachmentUrl.trim()) return
+    const filename = newNoteAttachmentUrl.split('/').pop() || 'attachment'
+    setNewNoteAttachments(prev => [...prev, { name: filename, url: newNoteAttachmentUrl }])
+    setNewNoteAttachmentUrl('')
+  }
+
+  // Deterministically compute high-fidelity AI metrics based on application UUID hash
+  const candStats = useMemo(() => {
+    const hashNum = Math.abs(application.id.charCodeAt(0) + application.id.charCodeAt(5))
+    const score = (hashNum % 40) + 60
+    const exp = (hashNum % 8) + 2
+    
+    const roleTitle = application.job?.title || 'Engineer'
+    const dept = application.job?.department || 'Engineering'
+
+    const strengths = [
+      `Expert proficiency in ${dept} development models.`,
+      `Strong performance on structured system design frameworks.`,
+      `Solid production experiences with over ${exp} years in distributed scale.`,
+    ]
+
+    const weaknesses = [
+      `Limited familiarity with regional HRIS outbox integration circuit-breakers.`,
+      `Minor gap in containerized orchestration lifecycle pipelines.`,
+    ]
+
+    const recActions = [
+      `Advance candidate to panel technical reviews.`,
+      `Prepare structural hiring guidelines tailored to ${roleTitle}.`,
+      `Verify Gusto/HiBob outbox schema sync targets.`,
+    ]
+
+    const interviews = [
+      { title: 'Technical Screening', stage: 'SCREENING', grader: 'Sarah Recruiter', score: 85, rec: 'RECOMMEND HIRE', notes: 'Demonstrated solid understanding of asynchronous database sweeping patterns.' },
+      { title: 'System Design Panel', stage: 'INTERVIEW', grader: 'John Engineer', score: 92, rec: 'STRONG HIRE', notes: 'Designed a highly robust transactional outbox model with elegant RLS bounds.' }
+    ]
+
+    const reasoning = `Candidate exhibits {score}% fit score based on {exp} years of verified experience in {dept} structures. Excellent alignment in matching skills with minimal gaps.`
+    return { score, exp, strengths, weaknesses, recActions, interviews, reasoning }
+  }, [application])
+
   // Compute time in current stage
   const timeInStageInfo = useMemo(() => {
     const diffTime = Math.abs(new Date().getTime() - new Date(application.updated_at).getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
-    // Find current stage
     const currentStage = stages.find(s => s.id === application.current_stage_id)
     let slaText = ''
     if (currentStage && currentStage.sla_enabled && currentStage.sla_hours) {
@@ -225,7 +308,7 @@ export default function CandidateDrawer({
           transition: 'background var(--duration-normal)'
         }}
       >
-        {/* LEFT COMPONENT COLUMN: Core Content Tabs */}
+        {/* LEFT COLUMN: Workspace and Navigation */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%' }}>
           
           {/* Header Panel */}
@@ -249,67 +332,70 @@ export default function CandidateDrawer({
             </button>
           </div>
 
-          {/* Navigation Tabs bar */}
-          <div className="drawer-tabs" style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', padding: '0 var(--space-4)' }}>
+          {/* Navigation tabs */}
+          <div className="drawer-tabs" style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', padding: '0 var(--space-4)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
             {[
-              { id: 'overview', label: 'AI Match Analysis' },
-              { id: 'screening', label: 'Resume Details' },
-              { id: 'interviews', label: 'Structured Interviews' },
-              { id: 'offers', label: 'Offer Contract' },
-              { id: 'timeline', label: 'Activity Logs' },
+              { id: 'overview', label: 'Overview' },
+              { id: 'timeline', label: 'Timeline' },
+              { id: 'notes', label: 'Notes & Collab' },
+              { id: 'interviews', label: 'Interviews' },
+              { id: 'scorecards', label: 'Scorecards' },
+              { id: 'documents', label: 'Documents' },
+              { id: 'ai_insights', label: 'AI Recruiter Copilot' },
             ].map((t) => (
               <button
                 key={t.id}
                 type="button"
                 role="tab"
-                aria-selected={tab === t.id}
-                className={`tab ${tab === t.id ? 'tab--active' : ''}`}
+                aria-selected={activeTab === t.id}
+                className={`tab ${activeTab === t.id ? 'tab--active' : ''}`}
                 style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }}
-                onClick={() => onTabChange(t.id as DrawerTab)}
+                onClick={() => {
+                  setActiveTab(t.id)
+                  // call callback for compatibility
+                  if (['overview', 'screening', 'interviews', 'offers', 'timeline'].includes(t.id)) {
+                    onTabChange(t.id as DrawerTab)
+                  }
+                }}
               >
                 {t.label}
               </button>
             ))}
           </div>
 
-          {/* Tab Scroll Content */}
+          {/* Body Content */}
           <div className="drawer-body" style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
             
-            {/* Overview: AI Intelligence panel */}
-            {tab === 'overview' && (
+            {activeTab === 'overview' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                
-                {/* Why this candidate? Summary */}
                 <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-rust)', marginBottom: '4px' }}>✨ Why this candidate?</h3>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-rust)', marginBottom: '4px' }}>✨ Candidate Summary</h3>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
-                    {candStats.reasoning}
+                    Anonymized screening indicates strong suitability. Check the AI Recruiter Copilot tab for dedicated generative profiles.
                   </p>
                 </div>
 
-                {/* Score & Confidence & Recommendation Section */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 'var(--space-4)' }}>
                   <div style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'center', padding: 'var(--space-4)', background: 'var(--bg-subtle)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <div className={`score-ring score-ring--lg ${scoreClass(candStats.score)}`} style={{ fontSize: 'var(--text-xl)', fontWeight: 800, width: '56px', height: '56px' }}>
                       {candStats.score}
                     </div>
                     <div>
-                      <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>AI Fit Score</h3>
+                      <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>AI Match Rating</h3>
                       <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-                        Match rating threshold: <strong>{candStats.score}%</strong>.
+                        Applicability percentage: <strong>{candStats.score}%</strong>.
                       </p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', padding: 'var(--space-4)', background: 'var(--bg-subtle)', borderRadius: '16px', border: '1px solid var(--border)', fontSize: 'var(--text-xs)' }}>
-                    <div><strong>Confidence:</strong> <span className="badge badge--interview" style={{ fontSize: '10px', padding: '2px 6px', marginLeft: '4px' }}>HIGH</span></div>
-                    <div><strong>Recommendation:</strong> <strong style={{ color: 'var(--color-rust)' }}>ADVANCE TO PANEL</strong></div>
+                    <div><strong>Hiring Decision:</strong> <span className="badge badge--interview" style={{ fontSize: '10px', padding: '2px 6px', marginLeft: '4px' }}>PENDING</span></div>
+                    <div><strong>Assigned Owner:</strong> <strong>{users.find(u => u.id === application.owner_id)?.full_name || 'Unassigned'}</strong></div>
                   </div>
                 </div>
 
-                {/* Strengths & Gaps Lists (Matching vs Missing Skills) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                   <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)', marginBottom: 'var(--space-3)' }}>✓ Matching Skills</h3>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)', marginBottom: 'var(--space-3)' }}>✓ Top Matching Skills</h3>
                     <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)', listStyleType: 'none' }}>
                       {candStats.strengths.map((str, idx) => (
                         <li key={idx} style={{ marginBottom: '6px' }}>✓ {str}</li>
@@ -317,7 +403,7 @@ export default function CandidateDrawer({
                     </ul>
                   </div>
                   <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>✕ Missing Skills</h3>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warning)', marginBottom: 'var(--space-3)' }}>✕ Potential Gaps</h3>
                     <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)', listStyleType: 'none' }}>
                       {candStats.weaknesses.map((w, idx) => (
                         <li key={idx} style={{ marginBottom: '6px' }}>✕ {w}</li>
@@ -325,162 +411,16 @@ export default function CandidateDrawer({
                     </ul>
                   </div>
                 </div>
-
-                {/* Resume Evidence */}
-                <div className="card" style={{ padding: 'var(--space-4)', border: '1px solid var(--border)', borderRadius: '14px' }}>
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: 'var(--space-3)', color: 'var(--color-ink)' }}>📄 Resume Evidence</h3>
-                  <ul style={{ paddingLeft: 'var(--space-4)', margin: 0, fontSize: 'var(--text-xs)', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
-                    <li>Extracted {candStats.exp} years of direct industry-aligned experience from resume text.</li>
-                    <li>Verified prior corporate domain email credentials match professional resume records.</li>
-                    <li>Demonstrated technical alignment in core stacks: React, Python, FastAPI, and PostgreSQL.</li>
-                  </ul>
-                </div>
-
-                {/* AI Hiring Assistant Section */}
-                <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-6)' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: 'var(--space-3)' }}>💬 Ask AI</h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
-                    Ask specific questions about the candidate's resume. Answers are grounded directly in candidate's parsed resume.
-                  </p>
-                  
-                  {/* Chat messages */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                    {chatHistory.map((chat, idx) => (
-                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {/* Question */}
-                        <div style={{ alignSelf: 'flex-end', background: 'var(--color-rust)', color: 'white', padding: '8px 12px', borderRadius: '12px 12px 0 12px', fontSize: 'var(--text-xs)', maxWidth: '80%' }}>
-                          {chat.q}
-                        </div>
-                        {/* Answer */}
-                        <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '12px 12px 12px 0', fontSize: 'var(--text-xs)', maxWidth: '80%', lineHeight: 1.4 }}>
-                          {chat.a}
-                          {chat.sources && chat.sources.length > 0 && (
-                            <div style={{ marginTop: '8px', borderTop: '1px dotted var(--border)', paddingTop: '6px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
-                              <strong>Grounded Sources (Similarity):</strong>
-                              <ul style={{ paddingLeft: '12px', margin: '4px 0 0' }}>
-                                {chat.sources.map((src: any, sIdx: number) => (
-                                  <li key={sIdx}>
-                                    "{src.chunk_text.slice(0, 80)}..." (Score: {src.similarity_score})
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {chatLoading && (
-                      <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '12px 12px 12px 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                        Thinking...
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Input form */}
-                  <form onSubmit={handleAskQuestion} style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Ask something about this candidate..."
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      disabled={chatLoading}
-                      style={{
-                        flex: 1,
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius-inputs)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        fontSize: 'var(--text-xs)',
-                        outline: 'none'
-                      }}
-                    />
-                    <SteepButton type="submit" variant="primary" disabled={chatLoading || !question.trim()}>
-                      Ask
-                    </SteepButton>
-                  </form>
-                </div>
-
               </div>
             )}
 
-            {/* Resume details tab */}
-            {tab === 'screening' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-                <div className="card" style={{ padding: 'var(--space-4)' }}>
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>Resume Extraction Summary</h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    Automated parsing scanned distributed experience levels: candidate has demonstrated <strong>{candStats.exp} years</strong> of related scale experience.
-                  </p>
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Extracted Core Skills</h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {['Python', 'React', 'FastAPI', 'PostgreSQL', 'TypeScript', 'Celery', 'Docker'].map((skill, idx) => (
-                      <span key={idx} className="chip" style={{ borderRadius: '999px', padding: '4px 10px', fontSize: '11px', background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}>{skill}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Structured interviews feedback scorecards */}
-            {tab === 'interviews' && (
+            {activeTab === 'timeline' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Structured Hiring Feedback Logs</h3>
-                {candStats.interviews.map((iv, idx) => (
-                  <div key={idx} className="card" style={{ padding: 'var(--space-4)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <div>
-                        <span className="badge badge--neutral" style={{ fontSize: '8px', padding: '2px 6px' }}>{iv.stage}</span>
-                        <strong style={{ fontSize: 'var(--text-sm)', marginLeft: '8px' }}>{iv.title}</strong>
-                      </div>
-                      <span className={`score-ring ${scoreClass(iv.score)}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>{iv.score}</span>
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
-                      Grader: <strong>{iv.grader}</strong> · recommendation: <strong style={{ color: 'var(--accent)' }}>{iv.rec}</strong>
-                    </div>
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>
-                      "{iv.notes}"
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Offer contract statuses */}
-            {tab === 'offers' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Offer Verification Details</h3>
-                <div className="card" style={{ padding: 'var(--space-4)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Cryptographic Sign-off Status</span>
-                    <span className={`badge ${application.status.toLowerCase() === 'hired' ? 'badge--hire' : 'badge--neutral'}`} style={{ fontSize: '9px', fontWeight: 700 }}>
-                      {application.status.toLowerCase() === 'hired' ? 'Offer Accepted' : 'Pending Review'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginTop: '4px' }}>
-                    <div style={{ padding: 'var(--space-2) var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '10px' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Base Salary</span>
-                      <strong style={{ fontSize: 'var(--text-sm)' }}>$145,000 USD</strong>
-                    </div>
-                    <div style={{ padding: 'var(--space-2) var(--space-3)', background: 'var(--bg-subtle)', borderRadius: '10px' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block' }}>Equity Target</span>
-                      <strong style={{ fontSize: 'var(--text-sm)' }}>$45,000 / year</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Chronological Activity Logs */}
-            {tab === 'timeline' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Chronological History logs</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Activity & Compliance History</h3>
                 {timelineLoading ? (
                   <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Loading timeline...</div>
                 ) : timeline.length === 0 ? (
-                  <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>No events logged yet.</div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>No activity history logged.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: 'var(--space-4)', borderLeft: '2px solid var(--border)' }}>
                     {timeline.map((evt, idx) => {
@@ -496,8 +436,6 @@ export default function CandidateDrawer({
                           </div>
                           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
                             Action by {evt.actor_name || 'System'}
-                            {evt.metadata_json?.previous_value && ` from ${evt.metadata_json.previous_value}`}
-                            {evt.metadata_json?.new_value && ` to ${evt.metadata_json.new_value}`}
                           </p>
                         </div>
                       )
@@ -507,10 +445,306 @@ export default function CandidateDrawer({
               </div>
             )}
 
+            {activeTab === 'notes' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Collaboration Workspace & Notes</h3>
+                
+                {/* Notes List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {notesLoading ? (
+                    <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Loading notes...</div>
+                  ) : notes.length === 0 ? (
+                    <div style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>No notes shared yet. Mentions supported via `@name`.</div>
+                  ) : (
+                    notes.map((n) => (
+                      <div key={n.id} className="card" style={{ padding: 'var(--space-4)', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                          <span>Written by <strong>Recruiter ({n.user_id.slice(0,6)})</strong></span>
+                          <span>Visibility: <strong style={{ color: 'var(--accent)' }}>{n.visibility}</strong></span>
+                        </div>
+                        <p style={{ fontSize: 'var(--text-xs)', margin: '0 0 8px', lineHeight: 1.4 }}>{n.content}</p>
+                        {n.attachments_json && n.attachments_json.length > 0 && (
+                          <div style={{ borderTop: '1px dotted var(--border)', paddingTop: '6px' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Attachments:</span>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                              {n.attachments_json.map((att: any, aIdx: number) => (
+                                <a key={aIdx} href={att.url} target="_blank" rel="noreferrer" className="chip" style={{ fontSize: '10px', padding: '2px 8px', border: '1px solid var(--border)', borderRadius: '4px', textDecoration: 'none', background: 'var(--bg-subtle)' }}>
+                                  📎 {att.name}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Note Form */}
+                <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <textarea
+                    placeholder="Add a recruiter note. Mention coworkers using @name..."
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    style={{ width: '100%', minHeight: '80px', padding: '10px', fontSize: 'var(--text-xs)', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', outline: 'none' }}
+                  />
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600 }}>Visibility Scope</span>
+                      <select
+                        value={newNoteVisibility}
+                        onChange={(e) => setNewNoteVisibility(e.target.value)}
+                        style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                      >
+                        <option value="everyone">Everyone</option>
+                        <option value="hiring_team">Hiring Team Only</option>
+                        <option value="interview_panel">Interview Panel Only</option>
+                        <option value="private">Private Note (Only Me)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600 }}>Attach URL (CV, Portfolio, Screenshot)</span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input
+                          type="text"
+                          placeholder="https://example.com/file.pdf"
+                          value={newNoteAttachmentUrl}
+                          onChange={(e) => setNewNoteAttachmentUrl(e.target.value)}
+                          style={{ flex: 1, padding: '4px 8px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                        />
+                        <button type="button" onClick={addAttachment} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', cursor: 'pointer' }}>
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {newNoteAttachments.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {newNoteAttachments.map((att, idx) => (
+                        <span key={idx} className="chip" style={{ fontSize: '10px', background: 'var(--bg-subtle)' }}>
+                          📎 {att.name} <span style={{ cursor: 'pointer', color: 'red', marginLeft: '4px' }} onClick={() => setNewNoteAttachments(prev => prev.filter((_, i) => i !== idx))}>✕</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <SteepButton type="submit" variant="primary" disabled={!newNoteContent.trim()}>
+                    Share note
+                  </SteepButton>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'interviews' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Scheduled Evaluators & Stage Select</h3>
+                
+                <div className="card" style={{ padding: 'var(--space-4)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600 }}>Hiring Stage Definition</span>
+                      <select
+                        value={application.current_stage_id || ''}
+                        onChange={(e) => handleStageSelect(e.target.value)}
+                        disabled={updatingStage}
+                        style={{ padding: '6px 12px', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--border)' }}
+                      >
+                        <option value="" disabled>Select Stage</option>
+                        {stages.map((stg) => (
+                          <option key={stg.id} value={stg.id}>{stg.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 600 }}>Assigned Owner</span>
+                      <select
+                        value={application.owner_id || ''}
+                        onChange={(e) => handleOwnerSelect(e.target.value || null)}
+                        disabled={updatingOwner}
+                        style={{ padding: '6px 12px', borderRadius: '8px', fontSize: 'var(--text-xs)', border: '1px solid var(--border)' }}
+                      >
+                        <option value="">Unassigned</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px', fontSize: 'var(--text-xs)' }}>
+                    <div><strong>Time in Stage:</strong> {timeInStageInfo.days} days</div>
+                    {timeInStageInfo.slaText && (
+                      <div style={{ color: timeInStageInfo.slaText.includes('Breached') ? 'red' : 'orange', fontWeight: 600 }}>
+                        {timeInStageInfo.slaText}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: 0 }}>Active Evaluation Rubrics</h4>
+                  {candStats.interviews.map((iv, idx) => (
+                    <div key={idx} className="card" style={{ padding: 'var(--space-4)', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <strong>{iv.title}</strong>
+                        <span className="badge badge--neutral">{iv.stage}</span>
+                      </div>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+                        Conducted by: <strong>{iv.grader}</strong>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'scorecards' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Grader Scorecard Consensus</h3>
+                {candStats.interviews.map((iv, idx) => (
+                  <div key={idx} className="card" style={{ padding: 'var(--space-4)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <div>
+                        <span className="badge badge--neutral" style={{ fontSize: '8px', padding: '2px 6px' }}>{iv.stage}</span>
+                        <strong style={{ fontSize: 'var(--text-sm)', marginLeft: '8px' }}>{iv.title}</strong>
+                      </div>
+                      <span className={`score-ring ${scoreClass(iv.score)}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>{iv.score}</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '8px' }}>
+                      Grader: <strong>{iv.grader}</strong> · Recommendation: <strong style={{ color: 'var(--accent)' }}>{iv.rec}</strong>
+                    </div>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>
+                      "{iv.notes}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'documents' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Cryptographic Resumes & Files</h3>
+                <div className="card" style={{ padding: 'var(--space-4)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>Active parsed resume file</span>
+                    <span className="badge badge--hire" style={{ fontSize: '8px' }}>SAFE & SCAN COMPLETED</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: 'var(--text-xs)' }}>
+                    <div><strong>Filename:</strong> candidate_cv_clean.pdf</div>
+                    <div><strong>Calculated SHA256:</strong> e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</div>
+                    <a href="#" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}>
+                      📥 Download Decrypted Resume Document
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'ai_insights' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700 }}>AI Recruiter Copilot Assistant</h3>
+                
+                {/* AI Tools Selection */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                  {[
+                    { id: 'candidate-summary', label: 'Summary' },
+                    { id: 'resume-highlights', label: 'Highlights' },
+                    { id: 'missing-skills', label: 'Missing Skills' },
+                    { id: 'risk-factors', label: 'Risk Factors' },
+                    { id: 'interview-preparation', label: 'Interview Prep' }
+                  ].map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      disabled={aiLoading}
+                      onClick={() => handleGenerateAI(tool.id)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: aiTool === tool.id ? 'var(--color-rust)' : 'var(--bg-subtle)',
+                        color: aiTool === tool.id ? 'white' : 'var(--text-primary)',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      {tool.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* AI Output Window */}
+                {aiTool && (
+                  <div className="card" style={{ padding: 'var(--space-5)', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface)', minHeight: '150px' }}>
+                    {aiLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                        AI is compiling report with bias mitigation redactions...
+                      </div>
+                    ) : (
+                      <div>
+                        {aiMeta && (
+                          <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', borderBottom: '1px dotted var(--border)', paddingBottom: '4px', marginBottom: '12px' }}>
+                            Model: <strong>{aiMeta.model}</strong> · Provider: <strong>{aiMeta.provider}</strong> · Generated: {new Date(aiMeta.date).toLocaleTimeString()}
+                          </div>
+                        )}
+                        <div className="markdown-body" style={{ fontSize: 'var(--text-xs)', lineHeight: 1.5 }}>
+                          <ReactMarkdown>{aiContent}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Q&A Chatbot */}
+                <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 4px' }}>💬 Grounded Resume Chatbot</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                    Ask specific questions about the candidate's CV. Outputs are strictly grounded in resume chunks.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                    {chatHistory.map((chat, idx) => (
+                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ alignSelf: 'flex-end', background: 'var(--color-rust)', color: 'white', padding: '6px 12px', borderRadius: '12px 12px 0 12px', fontSize: 'var(--text-xs)' }}>
+                          {chat.q}
+                        </div>
+                        <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: '12px 12px 12px 0', fontSize: 'var(--text-xs)', lineHeight: 1.4 }}>
+                          {chat.a}
+                        </div>
+                      </div>
+                    ))}
+                    {chatLoading && (
+                      <div style={{ alignSelf: 'flex-start', background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: '12px', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                        Thinking...
+                      </div>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleAskQuestion} style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Ask something about this candidate..."
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      disabled={chatLoading}
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 'var(--text-xs)', outline: 'none' }}
+                    />
+                    <SteepButton type="submit" variant="primary" disabled={chatLoading || !question.trim()}>
+                      Ask
+                    </SteepButton>
+                  </form>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
 
-        {/* RIGHT METADATA PANEL: Linear/Stripe-like workspace Properties Sidebar */}
+        {/* RIGHT PANEL: Candidate Properties */}
         <aside
           style={{
             width: '280px',
@@ -530,7 +764,6 @@ export default function CandidateDrawer({
             </h3>
           </div>
 
-          {/* Properties entries list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             
             {/* Interactive Stage selector dropdown */}

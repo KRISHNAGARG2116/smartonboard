@@ -39,9 +39,38 @@ def create_note(
         company_id=current_user.company_id,
         application_id=application_id,
         user_id=current_user.id,
-        content=body.content
+        content=body.content,
+        visibility=body.visibility or "everyone",
+        attachments_json=body.attachments_json or []
     )
     db.add(note)
+    db.flush()
+
+    # Parse mentions and create notifications
+    import re
+    from models.user import User
+    from models.ats_models import Notification
+    
+    mentions = re.findall(r"@([a-zA-Z0-9_\.\-]+)", body.content)
+    unique_mentions = set(mentions)
+    for mention_name in unique_mentions:
+        mentioned_user = db.scalar(
+            select(User).where(
+                User.company_id == current_user.company_id,
+                (User.email.ilike(f"{mention_name}%") | User.full_name.ilike(f"%{mention_name}%"))
+            )
+        )
+        if mentioned_user and mentioned_user.id != current_user.id:
+            notif = Notification(
+                company_id=current_user.company_id,
+                user_id=mentioned_user.id,
+                title=f"New mention by {current_user.full_name}",
+                message=f"{current_user.full_name} mentioned you in a note: '{body.content[:100]}...'",
+                type="mention",
+                status="unread"
+            )
+            db.add(notif)
+
     db.commit()
     db.refresh(note)
 
@@ -76,9 +105,12 @@ def list_notes(
     # Verify application exists
     _get_application(application_id, db, current_user)
 
+    # Filter out private notes of other recruiters
     stmt = select(CandidateNote).where(
         CandidateNote.application_id == application_id,
         CandidateNote.company_id == current_user.company_id
+    ).where(
+        (CandidateNote.visibility != "private") | (CandidateNote.user_id == current_user.id)
     ).order_by(CandidateNote.created_at.asc())
     
     return list(db.scalars(stmt).all())
@@ -105,8 +137,16 @@ def update_note(
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
 
-    old_content = note.content
+    # Author check for updates
+    if note.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot edit note written by another user")
+
     note.content = body.content
+    if body.visibility is not None:
+        note.visibility = body.visibility
+    if body.attachments_json is not None:
+        note.attachments_json = body.attachments_json
+        
     db.commit()
     db.refresh(note)
 

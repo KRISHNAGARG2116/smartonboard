@@ -33,6 +33,29 @@ def list_notifications(
     return db.scalars(stmt).all()
 
 
+@router.post("/read-all")
+def mark_all_notifications_read(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    """
+    Marks all unread notifications for the current recruiter as read.
+    """
+    from sqlalchemy import update
+    now = datetime.now(timezone.utc)
+    db.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == current_user.id,
+            Notification.company_id == current_user.company_id,
+            Notification.status == "unread"
+        )
+        .values(status="read", read_at=now)
+    )
+    db.commit()
+    return {"status": "success", "message": "All notifications marked as read"}
+
+
 @router.post("/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_read(
     notification_id: uuid.UUID,

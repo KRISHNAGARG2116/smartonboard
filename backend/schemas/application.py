@@ -71,6 +71,9 @@ class BulkUpdatePreviewPayload(BaseModel):
     target_stage_id: uuid.UUID | None = None
     target_status: str | None = None
     target_owner_id: uuid.UUID | None = None
+    add_tags: list[str] | None = None
+    remove_tags: list[str] | None = None
+    archive: bool | None = None
 
 
 class BulkUpdatePayload(BaseModel):
@@ -78,6 +81,9 @@ class BulkUpdatePayload(BaseModel):
     target_stage_id: uuid.UUID | None = None
     target_status: str | None = None
     target_owner_id: uuid.UUID | None = None
+    add_tags: list[str] | None = None
+    remove_tags: list[str] | None = None
+    archive: bool | None = None
 
 
 class BulkPreviewWarning(BaseModel):
@@ -90,4 +96,4 @@ class BulkPreviewWarning(BaseModel):
 class BulkUpdatePreviewResponse(BaseModel):
     total_applications: int
     warnings: list[BulkPreviewWarning]
-
+    actions: list[str] = Field(default_factory=list, description="Text summaries of the actions to be executed")

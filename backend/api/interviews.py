@@ -407,11 +407,29 @@ def submit_scorecard_final(
             detail="Scorecard already submitted and locked for this interview"
         )
 
-    # 1. Fetch Job criteria template rules from Job.settings
-    job = db.scalar(select(Job).where(Job.id == app_record.job_id))
+    # 1. Fetch stage definition and InterviewKit competencies
+    from models.pipeline import StageDefinition
+    from models.ats_models import InterviewKit
+    stage_def = db.scalar(
+        select(StageDefinition)
+        .where(
+            StageDefinition.job_id == app_record.job_id,
+            StageDefinition.name == interview.stage
+        )
+    )
     configured_criteria = None
-    if job and job.settings:
-        configured_criteria = job.settings.get("scorecard_criteria")
+    if stage_def:
+        kit = db.scalar(
+            select(InterviewKit)
+            .where(InterviewKit.stage_definition_id == stage_def.id)
+        )
+        if kit and kit.competencies:
+            configured_criteria = kit.competencies
+
+    if not configured_criteria:
+        job = db.scalar(select(Job).where(Job.id == app_record.job_id))
+        if job and job.settings:
+            configured_criteria = job.settings.get("scorecard_criteria")
 
     if not configured_criteria:
         configured_criteria = ["coding", "system_design", "communication"]

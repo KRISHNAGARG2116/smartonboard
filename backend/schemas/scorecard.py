@@ -12,9 +12,9 @@ class ScorecardSubmitRequest(BaseModel):
     @field_validator("overall_recommendation")
     @classmethod
     def validate_recommendation(cls, v: str) -> str:
-        allowed = {"strong_yes", "yes", "no", "strong_no"}
+        allowed = {"strong_yes", "yes", "no", "strong_no", "strong_hire", "hire", "lean_hire", "lean_no", "no_hire"}
         if v.lower() not in allowed:
-            raise ValueError("overall_recommendation must be one of: strong_yes, yes, no, strong_no")
+            raise ValueError("overall_recommendation must be one of: strong_yes, yes, no, strong_no, strong_hire, hire, lean_hire, lean_no, no_hire")
         return v.lower()
 
     @field_validator("criteria_scores")

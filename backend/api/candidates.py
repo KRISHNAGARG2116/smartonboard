@@ -1,5 +1,6 @@
 import uuid
 from typing import Annotated
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select, text
 
@@ -11,6 +12,9 @@ from schemas.candidate import (
     CandidateAssignmentPayload,
     CandidateTagsPayload,
     CandidateMergePayload,
+    CandidateTagCreate,
+    CandidateTagUpdate,
+    CandidateTagResponse,
 )
 from core.audit import log_audit_event, pseudonymize_audit_logs
 from core.embeddings import EmbeddingService
@@ -373,8 +377,8 @@ def get_candidate_duplicates(
     db: TenantDb,
 ):
     """
-    Checks for duplicate candidates based on email, phone, and resume hashes,
-    returning confidence warnings.
+    Checks for duplicate candidates, saves findings to the duplicate_warnings table,
+    and returns matched fields evidence.
     """
     candidate = db.scalar(
         select(Candidate).where(
@@ -385,33 +389,30 @@ def get_candidate_duplicates(
     if not candidate:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
 
-    duplicates = []
+    from models.ats_models import DuplicateWarning
+    from models.candidate_resume import CandidateResume
 
-    # 1. Exact email match
+    duplicates = []
+    
+    # 1. Email check
     if candidate.email:
         email_matches = db.scalars(
             select(Candidate).where(
                 Candidate.email == candidate.email,
                 Candidate.id != candidate.id,
-                Candidate.company_id == current_user.company_id
+                Candidate.company_id == candidate.company_id
             )
         ).all()
         for c in email_matches:
-            duplicates.append({
-                "candidate_id": str(c.id),
-                "full_name": c.full_name,
-                "email": c.email,
-                "phone": c.phone,
-                "confidence": "exact",
-                "reason": "Email address matches exactly."
-            })
+            confidence = 100
+            fields = {"email": True, "phone": False, "resume_hash": False, "name_similarity": 1.0}
+            reason = "Email address matches exactly."
+            duplicates.append((c, confidence, fields, reason))
 
-    # 2. Exact resume file hash match
-    from models.candidate_resume import CandidateResume
+    # 2. Resume file hash check
     candidate_resumes = db.scalars(
         select(CandidateResume).where(CandidateResume.user_id == candidate.id, CandidateResume.is_active == True)
     ).all()
-    
     hashes = [r.file_hash for r in candidate_resumes if r.file_hash]
     if hashes:
         hash_matches = db.scalars(
@@ -422,63 +423,119 @@ def get_candidate_duplicates(
         ).all()
         for r in hash_matches:
             c = db.get(Candidate, r.user_id)
-            if c and c.company_id == current_user.company_id:
-                if not any(d["candidate_id"] == str(c.id) for d in duplicates):
-                    duplicates.append({
-                        "candidate_id": str(c.id),
-                        "full_name": c.full_name,
-                        "email": c.email,
-                        "phone": c.phone,
-                        "confidence": "exact",
-                        "reason": f"Resume file hash matches exactly ({r.filename})."
-                    })
+            if c and c.company_id == candidate.company_id:
+                confidence = 100
+                fields = {"email": False, "phone": False, "resume_hash": True, "name_similarity": 1.0}
+                reason = f"Resume file hash matches exactly ({r.filename})."
+                duplicates.append((c, confidence, fields, reason))
 
-    # 3. Check high confidence phone match
+    # 3. Phone check
     if candidate.phone:
         phone_matches = db.scalars(
             select(Candidate).where(
                 Candidate.phone == candidate.phone,
                 Candidate.id != candidate.id,
-                Candidate.company_id == current_user.company_id
+                Candidate.company_id == candidate.company_id
             )
         ).all()
         for c in phone_matches:
-            if not any(d["candidate_id"] == str(c.id) for d in duplicates):
-                duplicates.append({
-                    "candidate_id": str(c.id),
-                    "full_name": c.full_name,
-                    "email": c.email,
-                    "phone": c.phone,
-                    "confidence": "high",
-                    "reason": "Phone number matches exactly."
-                })
+            confidence = 90
+            fields = {"email": False, "phone": True, "resume_hash": False, "name_similarity": 1.0}
+            reason = "Phone number matches exactly."
+            duplicates.append((c, confidence, fields, reason))
 
-    # 4. Check possible duplicate
-    if candidate.email:
-        domain = candidate.email.split("@")[-1]
-        if domain not in {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"}:
-            domain_matches = db.scalars(
-                select(Candidate).where(
-                    Candidate.email.like(f"%@{domain}"),
-                    Candidate.id != candidate.id,
-                    Candidate.company_id == current_user.company_id
+    # Save to database
+    for dup_candidate, confidence, fields, reason in duplicates:
+        existing = db.scalar(
+            select(DuplicateWarning).where(
+                DuplicateWarning.company_id == candidate.company_id,
+                (
+                    (DuplicateWarning.candidate_id == candidate.id) & (DuplicateWarning.duplicate_candidate_id == dup_candidate.id)
+                ) | (
+                    (DuplicateWarning.candidate_id == dup_candidate.id) & (DuplicateWarning.duplicate_candidate_id == candidate.id)
                 )
-            ).all()
-            for c in domain_matches:
-                if not any(d["candidate_id"] == str(c.id) for d in duplicates):
-                    c_first = c.full_name.split()[0].lower() if c.full_name else ""
-                    cand_first = candidate.full_name.split()[0].lower() if candidate.full_name else ""
-                    if c_first == cand_first and c_first:
-                        duplicates.append({
-                            "candidate_id": str(c.id),
-                            "full_name": c.full_name,
-                            "email": c.email,
-                            "phone": c.phone,
-                            "confidence": "possible",
-                            "reason": f"First name ('{c.full_name}') and corporate email domain ('{domain}') match."
-                        })
+            )
+        )
+        if not existing:
+            warning = DuplicateWarning(
+                company_id=candidate.company_id,
+                candidate_id=candidate.id,
+                duplicate_candidate_id=dup_candidate.id,
+                confidence_score=confidence,
+                matched_fields=fields,
+                reason=reason,
+                status="pending"
+            )
+            db.add(warning)
+            
+    db.commit()
 
-    return duplicates
+    # Query resolved/pending duplicate warnings for this candidate
+    warnings = db.scalars(
+        select(DuplicateWarning).where(
+            DuplicateWarning.company_id == current_user.company_id,
+            (DuplicateWarning.candidate_id == candidate_id) | (DuplicateWarning.duplicate_candidate_id == candidate_id)
+        )
+    ).all()
+
+    response = []
+    for w in warnings:
+        other_id = w.duplicate_candidate_id if w.candidate_id == candidate_id else w.candidate_id
+        other_cand = db.get(Candidate, other_id)
+        if other_cand:
+            response.append({
+                "id": str(w.id),
+                "candidate_id": str(other_cand.id),
+                "full_name": other_cand.full_name,
+                "email": other_cand.email,
+                "phone": other_cand.phone,
+                "confidence_score": w.confidence_score,
+                "matched_fields": w.matched_fields,
+                "reason": w.reason,
+                "status": w.status,
+                "resolved_at": w.resolved_at.isoformat() if w.resolved_at else None,
+                "resolved_by": str(w.resolved_by) if w.resolved_by else None
+            })
+
+    return response
+
+
+class DuplicateResolvePayload(BaseModel):
+    status: str = Field(..., description="Target status: ignored, reviewed, merged")
+
+
+@router.post("/{candidate_id}/duplicates/{warning_id}/resolve")
+def resolve_candidate_duplicate(
+    candidate_id: uuid.UUID,
+    warning_id: uuid.UUID,
+    payload: DuplicateResolvePayload,
+    current_user: Annotated[User, Depends(RequirePermission(UserPermission.MOVE_CANDIDATES))],
+    db: TenantDb,
+):
+    """
+    Sets resolved status (ignored, reviewed, merged) on a candidate duplicate warning.
+    """
+    from models.ats_models import DuplicateWarning
+    warning = db.scalar(
+        select(DuplicateWarning).where(
+            DuplicateWarning.id == warning_id,
+            DuplicateWarning.company_id == current_user.company_id,
+            (DuplicateWarning.candidate_id == candidate_id) | (DuplicateWarning.duplicate_candidate_id == candidate_id)
+        )
+    )
+    if not warning:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Duplicate warning not found")
+
+    allowed_status = {"ignored", "reviewed", "merged"}
+    if payload.status not in allowed_status:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Status must be one of: {allowed_status}")
+
+    warning.status = payload.status
+    warning.resolved_at = datetime.now(timezone.utc)
+    warning.resolved_by = current_user.id
+    db.commit()
+
+    return {"status": "success", "message": "Duplicate warning resolved successfully"}
 
 
 @router.post("/{candidate_id}/merge")
@@ -555,5 +612,92 @@ def merge_candidate(
         "status": "success",
         "message": f"Candidate {merged.id} successfully merged into candidate {surviving.id}."
     }
+
+
+@router.get("/tags", response_model=list[CandidateTagResponse])
+def list_company_tags(
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    from models.ats_models import CandidateTag
+    return list(db.scalars(select(CandidateTag).where(CandidateTag.company_id == current_user.company_id)).all())
+
+
+@router.post("/tags", response_model=CandidateTagResponse, status_code=status.HTTP_201_CREATED)
+def create_company_tag(
+    body: CandidateTagCreate,
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    from models.ats_models import CandidateTag
+    # Enforce tag uniqueness per company
+    existing = db.scalar(
+        select(CandidateTag).where(
+            CandidateTag.company_id == current_user.company_id,
+            CandidateTag.name.ilike(body.name)
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Tag '{body.name}' already exists.")
+
+    tag = CandidateTag(
+        company_id=current_user.company_id,
+        name=body.name,
+        color=body.color,
+        icon=body.icon
+    )
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.patch("/tags/{tag_id}", response_model=CandidateTagResponse)
+def update_company_tag(
+    tag_id: uuid.UUID,
+    body: CandidateTagUpdate,
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    from models.ats_models import CandidateTag
+    tag = db.scalar(
+        select(CandidateTag).where(
+            CandidateTag.id == tag_id,
+            CandidateTag.company_id == current_user.company_id
+        )
+    )
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found.")
+
+    if body.name is not None:
+        tag.name = body.name
+    if body.color is not None:
+        tag.color = body.color
+    if body.icon is not None:
+        tag.icon = body.icon
+
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_company_tag(
+    tag_id: uuid.UUID,
+    db: TenantDb,
+    current_user: RequireRecruiter,
+):
+    from models.ats_models import CandidateTag
+    tag = db.scalar(
+        select(CandidateTag).where(
+            CandidateTag.id == tag_id,
+            CandidateTag.company_id == current_user.company_id
+        )
+    )
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found.")
+
+    db.delete(tag)
+    db.commit()
 
 

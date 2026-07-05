@@ -67,7 +67,7 @@ from models.verification_token import VerificationToken
 from models.application_snapshot import ApplicationSnapshot
 from models.candidate_resume import CandidateResume
 from models.rbac import Role, Permission, UserJobAccess
-from models.ats_models import ApplicationEvent, InterviewKit, BulkOperationLog, SavedSearch, CandidateTag, Notification
+from models.ats_models import ApplicationEvent, InterviewKit, BulkOperationLog, SavedSearch, CandidateTag, Notification, DuplicateWarning
 
 
 __all__ = [
@@ -153,6 +153,7 @@ __all__ = [
     "SavedSearch",
     "CandidateTag",
     "Notification",
+    "DuplicateWarning",
 ]
 
 

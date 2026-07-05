@@ -721,8 +721,30 @@ def bulk_update_preview(
     ).all()
 
     warnings = []
+    actions = []
+    
+    if payload.target_stage_id:
+        stage = db.get(StageDefinition, payload.target_stage_id)
+        stage_name = stage.name if stage else "unknown"
+        actions.append(f"Move {len(payload.application_ids)} candidates to stage '{stage_name}'")
+    if payload.target_status:
+        actions.append(f"Set status of {len(payload.application_ids)} candidates to '{payload.target_status}'")
+    if payload.target_owner_id:
+        actions.append(f"Assign {len(payload.application_ids)} candidates to new owner")
+    if payload.add_tags:
+        actions.append(f"Add tag(s): {', '.join(payload.add_tags)}")
+    if payload.remove_tags:
+        actions.append(f"Remove tag(s): {', '.join(payload.remove_tags)}")
+    if payload.archive is True:
+        actions.append(f"Archive {len(payload.application_ids)} candidates")
+    elif payload.archive is False:
+        actions.append(f"Restore {len(payload.application_ids)} candidates")
+
+    if actions:
+        actions.append("Undo available for 5 minutes.")
+
     for app in apps:
-        if app.status == ApplicationStatus.REJECTED:
+        if app.status == ApplicationStatus.REJECTED and payload.target_stage_id:
             warnings.append(
                 BulkPreviewWarning(
                     application_id=app.id,
@@ -740,7 +762,7 @@ def bulk_update_preview(
                 Interview.status == "scheduled"
             )
         ) or 0
-        if scheduled_count > 0:
+        if scheduled_count > 0 and payload.target_stage_id:
             warnings.append(
                 BulkPreviewWarning(
                     application_id=app.id,
@@ -768,7 +790,8 @@ def bulk_update_preview(
 
     return BulkUpdatePreviewResponse(
         total_applications=len(apps),
-        warnings=warnings
+        warnings=warnings,
+        actions=actions
     )
 
 
@@ -779,7 +802,7 @@ def bulk_update_applications(
     db: TenantDb,
 ):
     """
-    Executes bulk updates (stage change, status change, owner change) as a single transaction,
+    Executes bulk updates (stage change, status change, owner change, tags add/remove, archiving/restoring) as a single transaction,
     logging previous states for potential Undos.
     """
     apps = db.scalars(
@@ -804,6 +827,10 @@ def bulk_update_applications(
             "current_stage_id": str(app.current_stage_id) if app.current_stage_id else None,
             "status": app.status.value if app.status else None,
             "owner_id": str(app.owner_id) if app.owner_id else None,
+            "is_archived": app.is_archived,
+            "archived_at": app.archived_at.isoformat() if app.archived_at else None,
+            "archived_by": str(app.archived_by) if app.archived_by else None,
+            "tag_ids": [str(t.id) for t in app.candidate.tags] if (app.candidate and app.candidate.tags) else []
         }
 
     from models.ats_models import BulkOperationLog
@@ -819,6 +846,7 @@ def bulk_update_applications(
 
     from core.workflows import transition_candidate_stage
     from core.timeline import log_application_event
+    from models.ats_models import CandidateTag
 
     for app in apps:
         if payload.target_stage_id:
@@ -843,6 +871,33 @@ def bulk_update_applications(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target owner user not found")
             app.owner_id = payload.target_owner_id
 
+        if payload.add_tags and app.candidate:
+            for tag_name in payload.add_tags:
+                tag = db.scalar(
+                    select(CandidateTag).where(
+                        CandidateTag.company_id == current_user.company_id,
+                        CandidateTag.name.ilike(tag_name)
+                    )
+                )
+                if not tag:
+                    tag = CandidateTag(company_id=current_user.company_id, name=tag_name, color="#6b7280")
+                    db.add(tag)
+                    db.flush()
+                if tag not in app.candidate.tags:
+                    app.candidate.tags.append(tag)
+
+        if payload.remove_tags and app.candidate:
+            app.candidate.tags = [t for t in app.candidate.tags if t.name.lower() not in {rt.lower() for rt in payload.remove_tags}]
+
+        if payload.archive is True:
+            app.is_archived = True
+            app.archived_at = datetime.now(timezone.utc)
+            app.archived_by = current_user.id
+        elif payload.archive is False:
+            app.is_archived = False
+            app.archived_at = None
+            app.archived_by = None
+
         log_application_event(
             db=db,
             application_id=app.id,
@@ -854,6 +909,9 @@ def bulk_update_applications(
                 "target_stage_id": str(payload.target_stage_id) if payload.target_stage_id else None,
                 "target_status": payload.target_status,
                 "target_owner_id": str(payload.target_owner_id) if payload.target_owner_id else None,
+                "add_tags": payload.add_tags,
+                "remove_tags": payload.remove_tags,
+                "archive": payload.archive
             }
         )
 
@@ -872,6 +930,7 @@ def bulk_undo_operation(
     """
     from models.ats_models import BulkOperationLog
     from core.timeline import log_application_event
+    from models.ats_models import CandidateTag
 
     if operation_id:
         op_log = db.scalar(
@@ -906,7 +965,9 @@ def bulk_undo_operation(
     for app_id_str, prev_state in op_log.previous_states.items():
         app_id = uuid.UUID(app_id_str)
         app = db.scalar(
-            select(Application).where(
+            select(Application)
+            .options(selectinload(Application.candidate))
+            .where(
                 Application.id == app_id,
                 Application.company_id == current_user.company_id
             )
@@ -915,6 +976,21 @@ def bulk_undo_operation(
             app.current_stage_id = uuid.UUID(prev_state["current_stage_id"]) if prev_state["current_stage_id"] else None
             app.status = _parse_application_status(prev_state["status"]) if prev_state["status"] else None
             app.owner_id = uuid.UUID(prev_state["owner_id"]) if prev_state["owner_id"] else None
+            
+            if "is_archived" in prev_state:
+                app.is_archived = prev_state["is_archived"]
+                app.archived_at = datetime.fromisoformat(prev_state["archived_at"]) if prev_state["archived_at"] else None
+                app.archived_by = uuid.UUID(prev_state["archived_by"]) if prev_state["archived_by"] else None
+                
+            if "tag_ids" in prev_state and app.candidate:
+                tags = db.scalars(
+                    select(CandidateTag).where(
+                        CandidateTag.id.in_([uuid.UUID(tid) for tid in prev_state["tag_ids"]]),
+                        CandidateTag.company_id == current_user.company_id
+                    )
+                ).all()
+                app.candidate.tags = list(tags)
+
             reverted_count += 1
 
             log_application_event(

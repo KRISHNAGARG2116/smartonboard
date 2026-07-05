@@ -81,6 +81,25 @@ export default function RecruiterDashboard() {
   // E. Selected Candidate for first-class AI Command Center Hub
   const [selectedAppForAi, setSelectedAppForAi] = useState<Application | null>(null)
 
+  // Widget Customization Settings
+  const [visibleWidgets, setVisibleWidgets] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('dashboard_widgets')
+    return saved ? JSON.parse(saved) : {
+      interviews: true,
+      recentApps: true,
+      review: true,
+      myCandidates: true,
+      jobsAttention: true,
+      slaAlerts: true
+    }
+  })
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false)
+  const toggleWidget = (key: string) => {
+    const updated = { ...visibleWidgets, [key]: !visibleWidgets[key] }
+    setVisibleWidgets(updated)
+    localStorage.setItem('dashboard_widgets', JSON.stringify(updated))
+  }
+
   // Load platform data
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -344,13 +363,22 @@ export default function RecruiterDashboard() {
                 Review live alerts, today's schedule, new applicants, and pending jobs to manage your workspace efficiently.
               </p>
             </div>
-            <SteepButton
-              variant="secondary"
-              size="sm"
-              onClick={loadData}
-            >
-              🔄 Refresh Command Center
-            </SteepButton>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <SteepButton
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsCustomizeOpen(true)}
+              >
+                ⚙️ Customize Layout
+              </SteepButton>
+              <SteepButton
+                variant="secondary"
+                size="sm"
+                onClick={loadData}
+              >
+                🔄 Refresh Command Center
+              </SteepButton>
+            </div>
           </div>
         </header>
 
@@ -381,7 +409,7 @@ export default function RecruiterDashboard() {
           </SteepCard>
 
           {/* SLA Alerts Center */}
-          {dashboardSummary?.overdue && dashboardSummary.overdue.length > 0 && (
+          {visibleWidgets.slaAlerts && dashboardSummary?.overdue && dashboardSummary.overdue.length > 0 && (
             <SteepCard style={{ border: '1px solid #fee2e2', background: '#fffbfb' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-12)' }}>
                 <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600, color: '#ef4444', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -408,179 +436,189 @@ export default function RecruiterDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-24)' }}>
             
             {/* 1. Today's Interviews Widget */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                  Today's Interviews ({todayInterviews.length})
-                </h3>
-                <Link to="/recruiter/interviews" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Calendar</Link>
-              </div>
+            {visibleWidgets.interviews && (
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                    Today's Interviews ({todayInterviews.length})
+                  </h3>
+                  <Link to="/recruiter/interviews" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Calendar</Link>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {todayInterviews.length > 0 ? (
-                  todayInterviews.map((iv: any) => (
-                    <div key={iv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{iv.candidate_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>
-                          {iv.title} · {new Date(iv.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {todayInterviews.length > 0 ? (
+                    todayInterviews.map((iv: any) => (
+                      <div key={iv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{iv.candidate_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>
+                            {iv.title} · {new Date(iv.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
+                        <a href={iv.video_link} target="_blank" rel="noreferrer">
+                          <SteepButton variant="primary" size="sm">Join Meet</SteepButton>
+                        </a>
                       </div>
-                      <a href={iv.video_link} target="_blank" rel="noreferrer">
-                        <SteepButton variant="primary" size="sm">Join Meet</SteepButton>
-                      </a>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                      No interviews scheduled for today.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
-                    No interviews scheduled for today.
-                  </div>
-                )}
-              </div>
-            </SteepCard>
+                  )}
+                </div>
+              </SteepCard>
+            )}
 
             {/* 2. Recent Applications Widget */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                  Recent Applications (Last 48h: {recentApplications.length})
-                </h3>
-                <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
-              </div>
+            {visibleWidgets.recentApps && (
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                    Recent Applications (Last 48h: {recentApplications.length})
+                  </h3>
+                  <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {recentApplications.length > 0 ? (
-                  recentApplications.map((app) => (
-                    <div 
-                      key={app.id} 
-                      onClick={() => setSelectedAppForAi(app)}
-                      style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        padding: '12px var(--spacing-16)', 
-                        borderRadius: 'var(--radius-inputs)', 
-                        border: '1px solid var(--border)', 
-                        background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
-                        cursor: 'pointer' 
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Role: {app.job?.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {recentApplications.length > 0 ? (
+                    recentApplications.map((app) => (
+                      <div 
+                        key={app.id} 
+                        onClick={() => setSelectedAppForAi(app)}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '12px var(--spacing-16)', 
+                          borderRadius: 'var(--radius-inputs)', 
+                          border: '1px solid var(--border)', 
+                          background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Role: {app.job?.title}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {app.match_score && (
+                            <span className={`score-ring ${scoreClass(app.match_score)}`} style={{ width: '22px', height: '22px', fontSize: '10px' }}>{app.match_score}</span>
+                          )}
+                          <SteepBadge variant="neutral">{app.status}</SteepBadge>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {app.match_score && (
-                          <span className={`score-ring ${scoreClass(app.match_score)}`} style={{ width: '22px', height: '22px', fontSize: '10px' }}>{app.match_score}</span>
-                        )}
-                        <SteepBadge variant="neutral">{app.status}</SteepBadge>
-                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                      No applications received in the last 48 hours.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
-                    No applications received in the last 48 hours.
-                  </div>
-                )}
-              </div>
-            </SteepCard>
+                  )}
+                </div>
+              </SteepCard>
+            )}
 
             {/* 3. Candidates Waiting for Review Widget */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                  Candidates Waiting for Review ({reviewApplications.length})
-                </h3>
-                <Link to="/recruiter/candidates" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Directory</Link>
-              </div>
+            {visibleWidgets.review && (
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                    Candidates Waiting for Review ({reviewApplications.length})
+                  </h3>
+                  <Link to="/recruiter/candidates" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Directory</Link>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {reviewApplications.length > 0 ? (
-                  reviewApplications.slice(0, 5).map((app) => (
-                    <div 
-                      key={app.id} 
-                      onClick={() => setSelectedAppForAi(app)}
-                      style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        padding: '12px var(--spacing-16)', 
-                        borderRadius: 'var(--radius-inputs)', 
-                        border: '1px solid var(--border)', 
-                        background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
-                        cursor: 'pointer' 
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Email: {app.candidate?.email}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {reviewApplications.length > 0 ? (
+                    reviewApplications.slice(0, 5).map((app) => (
+                      <div 
+                        key={app.id} 
+                        onClick={() => setSelectedAppForAi(app)}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '12px var(--spacing-16)', 
+                          borderRadius: 'var(--radius-inputs)', 
+                          border: '1px solid var(--border)', 
+                          background: selectedAppForAi?.id === app.id ? 'var(--color-fog)' : 'var(--color-pure-white)',
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{app.candidate?.full_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Email: {app.candidate?.email}</div>
+                        </div>
+                        <SteepBadge variant="warning">Waiting Review</SteepBadge>
                       </div>
-                      <SteepBadge variant="warning">Waiting Review</SteepBadge>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                      All applicants have been reviewed!
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
-                    All applicants have been reviewed!
-                  </div>
-                )}
-              </div>
-            </SteepCard>
+                  )}
+                </div>
+              </SteepCard>
+            )}
 
             {/* 3B. My Assigned Candidates Widget */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                  My Assigned Candidates ({dashboardSummary?.my_candidates?.length || 0})
-                </h3>
-                <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
-              </div>
+            {visibleWidgets.myCandidates && (
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                    My Assigned Candidates ({dashboardSummary?.my_candidates?.length || 0})
+                  </h3>
+                  <Link to="/recruiter/pipeline" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Pipeline</Link>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {dashboardSummary?.my_candidates && dashboardSummary.my_candidates.length > 0 ? (
-                  dashboardSummary.my_candidates.map((mc: any) => (
-                    <div key={mc.application_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{mc.candidate_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{mc.job_title} · {mc.stage_name}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {dashboardSummary?.my_candidates && dashboardSummary.my_candidates.length > 0 ? (
+                    dashboardSummary.my_candidates.map((mc: any) => (
+                      <div key={mc.application_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{mc.candidate_name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>{mc.job_title} · {mc.stage_name}</div>
+                        </div>
+                        <SteepButton variant="secondary" size="sm" onClick={() => navigate(`/recruiter/pipeline`)}>Board</SteepButton>
                       </div>
-                      <SteepButton variant="secondary" size="sm" onClick={() => navigate(`/recruiter/pipeline`)}>Board</SteepButton>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                      No candidates currently assigned to you.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
-                    No candidates currently assigned to you.
-                  </div>
-                )}
-              </div>
-            </SteepCard>
+                  )}
+                </div>
+              </SteepCard>
+            )}
 
             {/* 4. Jobs Needing Attention Widget */}
-            <SteepCard>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
-                <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
-                  Jobs Needing Attention ({jobsNeedingAttention.length})
-                </h3>
-                <Link to="/recruiter/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Openings</Link>
-              </div>
+            {visibleWidgets.jobsAttention && (
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-16)' }}>
+                  <h3 style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>
+                    Jobs Needing Attention ({jobsNeedingAttention.length})
+                  </h3>
+                  <Link to="/recruiter/jobs" style={{ fontSize: 'var(--text-caption)', color: 'var(--color-ash)', textDecoration: 'underline', textUnderlineOffset: 3 }}>View Openings</Link>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {jobsNeedingAttention.length > 0 ? (
-                  jobsNeedingAttention.map((job: any) => (
-                    <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Dept: {job.department}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {jobsNeedingAttention.length > 0 ? (
+                    jobsNeedingAttention.map((job: any) => (
+                      <div key={job.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px var(--spacing-16)', borderRadius: 'var(--radius-inputs)', border: '1px solid var(--border)', background: 'var(--color-pure-white)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)' }}>{job.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-ash)', marginTop: '2px' }}>Dept: {job.department}</div>
+                        </div>
+                        <SteepBadge variant="danger">{job.unreviewed_count} Pending</SteepBadge>
                       </div>
-                      <SteepBadge variant="danger">{job.unreviewed_count} Pending</SteepBadge>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
+                      No job postings currently require urgent sourcing attention.
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-ash)', fontSize: '13px', background: 'var(--color-fog)', borderRadius: 'var(--radius-inputs)' }}>
-                    No job postings currently require urgent sourcing attention.
-                  </div>
-                )}
-              </div>
-            </SteepCard>
+                  )}
+                </div>
+              </SteepCard>
+            )}
 
           </div>
 
@@ -959,6 +997,44 @@ export default function RecruiterDashboard() {
                     </SteepButton>
                   </div>
                 </form>
+              </SteepCard>
+            </div>
+          </div>
+        )}
+
+        {/* 6. Configure Dashboard Widgets Modal */}
+        {isCustomizeOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 250, display: 'grid', placeItems: 'center', padding: 'var(--spacing-24)' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(93, 42, 26, 0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setIsCustomizeOpen(false)} />
+            <div style={{ zIndex: 260, width: '100%', maxWidth: '400px' }}>
+              <SteepCard>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-20)' }}>
+                  <h3 className="font-signifier" style={{ fontSize: 'var(--text-body-lg)', fontWeight: 500, color: 'var(--color-ink)', margin: 0 }}>Configure Dashboard Widgets</h3>
+                  <SteepButton variant="ghost" onClick={() => setIsCustomizeOpen(false)} style={{ padding: 4 }}>✕</SteepButton>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {Object.entries({
+                    slaAlerts: 'SLA Alerts Center',
+                    interviews: "Today's Interviews",
+                    recentApps: 'Recent Applications',
+                    review: 'Candidates Waiting for Review',
+                    myCandidates: 'My Assigned Candidates',
+                    jobsAttention: 'Jobs Needing Attention',
+                  }).map(([key, label]) => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', cursor: 'pointer', color: 'var(--color-ink)' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleWidgets[key]}
+                        onChange={() => toggleWidget(key)}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--color-rust)' }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                    <SteepButton variant="primary" onClick={() => setIsCustomizeOpen(false)}>Done</SteepButton>
+                  </div>
+                </div>
               </SteepCard>
             </div>
           </div>

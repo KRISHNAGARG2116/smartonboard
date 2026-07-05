@@ -43,6 +43,13 @@ class InterviewKit(Base):
     coding_challenge: Mapped[str | None] = mapped_column(Text, nullable=True)
     rubric_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default='{}', nullable=False)
     prohibited_questions: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
+    estimated_duration_minutes: Mapped[int] = mapped_column(Integer, default=45, server_default='45', nullable=False)
+    behavioral_questions: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
+    technical_questions: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
+    scoring_criteria: Mapped[str | None] = mapped_column(Text, nullable=True)
+    red_flags_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    attachments_json: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
+    competencies: Mapped[list] = mapped_column(JSONB, default=list, server_default='[]', nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -79,6 +86,10 @@ class SavedSearch(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     filters: Mapped[dict] = mapped_column(JSONB, default=dict, server_default='{}', nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    default_view: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    is_shared: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
@@ -91,11 +102,34 @@ class CandidateTag(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     color: Mapped[str] = mapped_column(String(50), default="#6b7280", nullable=False)
+    icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     candidates: Mapped[list["Candidate"]] = relationship(
         "Candidate", secondary=candidate_tag_associations, back_populates="tags"
     )
+
+
+class DuplicateWarning(Base):
+    __tablename__ = "duplicate_warnings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    duplicate_candidate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    confidence_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    matched_fields: Mapped[dict] = mapped_column(JSONB, default=dict, server_default='{}', nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="pending", server_default="'pending'", nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Notification(Base):
