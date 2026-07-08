@@ -156,6 +156,7 @@ def get_slots_availability(
                 user_agent=request.headers.get("user-agent"),
                 metadata={"interview_id": str(link.interview_id), "cause": "TTL Exceeded"}
             )
+            db.commit()
             raise HTTPException(
                 status_code=status.HTTP_410_GONE,
                 detail="This scheduling link has expired"
@@ -293,6 +294,7 @@ def book_schedule_slot(
                 user_agent=request.headers.get("user-agent"),
                 metadata={"interview_id": str(link.interview_id), "cause": "TTL Exceeded"}
             )
+            db.commit()
             raise HTTPException(
                 status_code=status.HTTP_410_GONE,
                 detail="Scheduling link has expired"
@@ -388,6 +390,11 @@ def book_schedule_slot(
                     db.add(slot)
                     db.commit()
 
+                    # Emit billing event
+                    from core.workflow_engine import emit_billing_event
+                    emit_billing_event(db, link.company_id, "calendar.booking.created", str(slot.id))
+
+
                     log_audit_event(
                         db=db,
                         action="schedule.calendar_event_created",
@@ -425,6 +432,7 @@ def book_schedule_slot(
                 company_id=link.company_id,
                 metadata={"interview_id": str(interview.id), "delivery_channel": "email"}
             )
+            db.commit()
 
             return BookResponse(
                 status="confirmed",
@@ -509,6 +517,7 @@ def cancel_schedule_booking(
                 "reason": body.reason or "Cancelled by candidate"
             }
         )
+        db.commit()
 
     return {"status": "cancelled", "message": "Interview successfully cancelled."}
 
@@ -632,6 +641,11 @@ def reschedule_schedule_booking(
                     db.add(slot)
                     db.commit()
 
+                    # Emit billing event
+                    from core.workflow_engine import emit_billing_event
+                    emit_billing_event(db, interviewer.company_id, "calendar.booking.created", str(slot.id))
+
+
                     log_audit_event(
                         db=db,
                         action="schedule.calendar_event_created",
@@ -661,6 +675,7 @@ def reschedule_schedule_booking(
                     "new_start_time": new_start.isoformat()
                 }
             )
+            db.commit()
 
         finally:
             release_sync_lock(f"book:{interview.id}")

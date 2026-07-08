@@ -135,8 +135,7 @@ def instantiate_pipeline_from_template(
         db.add(stage)
 
     job.pipeline_id = pipeline.id
-    db.commit()
-    db.refresh(pipeline)
+    db.flush()
 
     # Log audit event
     log_audit_event(
@@ -150,6 +149,8 @@ def instantiate_pipeline_from_template(
         metadata={"job_id": str(job_id), "template_id": str(template_id)},
     )
 
+    db.commit()
+    db.refresh(pipeline)
     return pipeline
 
 

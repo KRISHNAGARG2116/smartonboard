@@ -1310,10 +1310,14 @@ def google_auth(
             db.commit()
             db.refresh(user)
     else:
-        # User does not exist, perform registration checks
         if role_requested == "recruiter":
-            # Public emails are allowed via Google OAuth, will be marked pending on setup-company
-            pass
+            if is_public_mail_host(email):
+                record_google_failed_attempt(ip)
+                log_google_auth_audit(db, None, email_or_token=email, action="auth.google_login_failed", success=False, ip=ip, reason="Public email domain is not allowed for recruiters")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Public email domains are not allowed for recruiters. Please use your corporate email address."
+                )
 
             # Create recruiter user with company_id = None
             with tenant_context(auth_mode="true"):

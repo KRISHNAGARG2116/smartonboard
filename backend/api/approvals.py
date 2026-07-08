@@ -262,7 +262,7 @@ def action_approval_step(
         step.rejection_reason = payload.rejection_reason
 
         chain.status = "rejected"
-        db.commit()
+        db.flush()
 
         # Log audit event
         log_audit_event(
@@ -276,6 +276,7 @@ def action_approval_step(
             metadata={"chain_id": str(chain.id), "reason": payload.rejection_reason},
         )
 
+        db.commit()
         return step
 
     # payload.action == "approve"

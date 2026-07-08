@@ -197,6 +197,8 @@ def schedule_interview(
             }
         )
 
+    db.commit()
+
     # 4. Generate notification draft
     draft = _generate_notification_draft(app_record, interview.id, body, interviewer)
 
@@ -302,6 +304,7 @@ def update_interview(
             "new_status": app_record.status.value
         }
     )
+    db.commit()
 
     return interview
 
@@ -374,6 +377,7 @@ def save_scorecard_draft(
             "interview_id": str(interview_id),
         }
     )
+    db.commit()
     return scorecard
 
 
@@ -559,6 +563,7 @@ def submit_scorecard_final(
             "overall_recommendation": body.overall_recommendation
         }
     )
+    db.commit()
 
     return scorecard
 

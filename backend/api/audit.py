@@ -98,6 +98,7 @@ def export_audit_logs(
         user_agent=request.headers.get("user-agent"),
         metadata={"format": format, "log_count": len(logs)}
     )
+    db.commit()
     
     if format.lower() == "json":
         # Stream JSON

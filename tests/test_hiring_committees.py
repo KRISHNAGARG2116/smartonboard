@@ -588,7 +588,7 @@ def test_configurable_veto_logic(api_client, db_session):
     # Average score meets the minimum threshold (3.0 >= 3.0), and SD is 0.0 (single user).
     # But because Coding is 1, a veto is triggered, routing the review status to disputed!
     api_client.post(
-        f"/api/v1/applications/{app_id}/interviews/{int_id}/scorecard",
+        f"/api/v1/applications/{app_id}/interviews/{int_id}/scorecard/submit",
         headers=headers_owner,
         json={"criteria_scores": {"coding": 1, "communication": 5}, "overall_recommendation": "no"}
     )

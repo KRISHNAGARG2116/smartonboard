@@ -39,7 +39,7 @@ def api_client(db_session):
     app.dependency_overrides.clear()
 
 
-def test_automation_rules_and_stages_schema_validation(api_client):
+def test_automation_rules_and_stages_schema_validation(api_client, db_session):
     """
     Verify Pydantic schema validation at the API boundary:
     - Enforces valid base categories.
@@ -54,8 +54,28 @@ def test_automation_rules_and_stages_schema_validation(api_client):
         "full_name": "Recruiter Schema"
     })
     assert resp.status_code == 201
-    token = resp.json()["access_token"]
+    reg = resp.json()
+    token = reg["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+
+    u_id = uuid.UUID(reg["user"]["id"])
+    c_id = uuid.UUID(reg["user"]["company_id"])
+    with tenant_context(auth_mode="true"):
+        user = db_session.get(User, u_id)
+        if user:
+            user.email_verified = True
+            db_session.add(user)
+        comp = db_session.get(Company, c_id)
+        if comp:
+            comp.settings = {
+                "website": "https://corp.com",
+                "domain": "corp.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp)
+        db_session.commit()
+
 
     # 2. Try to create a pipeline template with invalid base_category
     resp = api_client.post(
@@ -125,6 +145,7 @@ def test_dynamic_pipeline_cloning_lifecycle(api_client, db_session):
     token_a = reg_a["access_token"]
     headers_a = {"Authorization": f"Bearer {token_a}"}
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
+    owner_a_id = uuid.UUID(reg_a["user"]["id"])
 
     # Register Company B (isolation check)
     resp_b = api_client.post("/api/v1/auth/register", json={
@@ -137,8 +158,41 @@ def test_dynamic_pipeline_cloning_lifecycle(api_client, db_session):
     reg_b = resp_b.json()
     token_b = reg_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
+    comp_b_id = uuid.UUID(reg_b["user"]["company_id"])
+    owner_b_id = uuid.UUID(reg_b["user"]["id"])
+
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, owner_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+        comp_a = db_session.get(Company, comp_a_id)
+        if comp_a:
+            comp_a.settings = {
+                "website": "https://corp-a.com",
+                "domain": "corp-a.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp_a)
+
+        user_b = db_session.get(User, owner_b_id)
+        if user_b:
+            user_b.email_verified = True
+            db_session.add(user_b)
+        comp_b = db_session.get(Company, comp_b_id)
+        if comp_b:
+            comp_b.settings = {
+                "website": "https://corp-b.com",
+                "domain": "corp-b.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp_b)
+        db_session.commit()
 
     # 2. Setup job inside Company A
+
     with tenant_context(auth_mode="true"):
         db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp_a_id)})
         job_a = Job(
@@ -248,9 +302,26 @@ def test_approval_chain_target_integrity_and_sequential_parallel_execution(api_c
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
     manager_a_id = uuid.UUID(reg_a["user"]["id"])
 
+    with tenant_context(auth_mode="true"):
+        user_a = db_session.get(User, manager_a_id)
+        if user_a:
+            user_a.email_verified = True
+            db_session.add(user_a)
+        comp_a = db_session.get(Company, comp_a_id)
+        if comp_a:
+            comp_a.settings = {
+                "website": "https://corp-a.com",
+                "domain": "corp-a.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp_a)
+        db_session.commit()
+
     # 2. Setup job & offer in database under bypass context
     with tenant_context(auth_mode="true"):
         db_session.execute(text("SELECT set_config('app.company_id', :c_id, true)"), {"c_id": str(comp_a_id)})
+
         
         job_a = Job(
             company_id=comp_a_id,

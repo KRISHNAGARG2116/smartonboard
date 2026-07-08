@@ -84,6 +84,7 @@ def create_ip_whitelist(
             "description": body.description,
         }
     )
+    db.commit()
 
     return whitelist
 
@@ -138,6 +139,7 @@ def delete_ip_whitelist(
             "cidr_block": whitelist.cidr_block,
         }
     )
+    db.commit()
 
 
 # =========================================================================
@@ -375,6 +377,7 @@ def test_smtp_settings(
                 "error": str(e),
             }
         )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"SMTP handshake verification failed: {str(e)}"

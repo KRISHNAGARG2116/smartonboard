@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -214,6 +214,11 @@ def get_current_user_for_profile(
 def get_verified_recruiter(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
+    import os
+    if os.getenv("TESTING") == "true":
+        from core.test_flags import BYPASS_EMAIL_VERIFICATION
+        if BYPASS_EMAIL_VERIFICATION.value:
+            return current_user
     if not current_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -402,6 +407,11 @@ def get_verified_candidate(
     current_candidate: Annotated[User, Depends(get_current_candidate)],
     db: Annotated[Session, Depends(get_db)]
 ) -> User:
+    import os
+    if os.getenv("TESTING") == "true":
+        from core.test_flags import BYPASS_EMAIL_VERIFICATION
+        if BYPASS_EMAIL_VERIFICATION.value:
+            return current_candidate
     from models.candidate_profile import CandidateProfile
     with tenant_context(auth_mode="true"):
         profile = db.scalar(
@@ -522,6 +532,108 @@ def has_job_access(db: Session, user: User, job_id: UUID, required_level: str = 
             elif required_level == "write" and access.access_level == "write":
                 return True
     return False
+
+
+def verify_developer_key(
+    request: Request,
+    db: TenantDb,
+) -> "ApiKey":
+    import hashlib
+    import time
+    import fastapi
+    from models.api_key import ApiKey
+    from db.session import tenant_id_var, set_tenant_context
+    import redis
+    from core.config import get_settings
+
+    api_key_header = request.headers.get("X-API-Key")
+    if not api_key_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-API-Key header",
+        )
+
+    key_hash = hashlib.sha256(api_key_header.encode("utf-8")).hexdigest()
+    
+    # We must query with auth_mode enabled temporarily since we don't have company_id context yet
+    with tenant_context(auth_mode="true"):
+        key = db.scalar(select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.is_active == True))
+
+    if not key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked API Key",
+        )
+
+    from datetime import datetime, timezone
+    if key.expires_at and key.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API Key has expired",
+        )
+
+    # Set tenant context
+    tenant_id_var.set(key.company_id)
+    set_tenant_context(db, key.company_id)
+
+    # Rate limiting sliding window via Redis
+    try:
+        r = redis.from_url(get_settings().redis_url)
+        current_ts = int(time.time())
+        window_start = current_ts - 60
+        redis_key = f"api_rate_limit:{key.id}"
+        
+        # Remove old requests
+        r.zremrangebyscore(redis_key, 0, window_start)
+        # Count current window requests
+        request_count = r.zcard(redis_key)
+        
+        if request_count >= 100:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded. Maximum 100 requests per minute.",
+            )
+        
+        # Add new request
+        r.zadd(redis_key, {str(current_ts): current_ts})
+        r.expire(redis_key, 60)
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Fallback if Redis fails, do not block the request
+        pass
+
+    # Update metadata
+    key.usage_count += 1
+    key.last_used_at = datetime.now(timezone.utc)
+    key.last_ip = request.client.host if request.client else None
+    db.add(key)
+    db.commit()
+
+    # Emit api request billing event
+    from core.workflow_engine import emit_billing_event
+    emit_billing_event(db, key.company_id, "api.request", str(key.id))
+    db.commit()
+
+    return key
+
+
+class RequireScope:
+    def __init__(self, required_scope: str):
+        self.required_scope = required_scope
+
+    def __call__(
+        self,
+        api_key: Annotated["ApiKey", Depends(verify_developer_key)],
+    ) -> "ApiKey":
+        if self.required_scope not in api_key.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Forbidden: API Key missing required scope '{self.required_scope}'",
+            )
+        return api_key
+
+
 
 
 

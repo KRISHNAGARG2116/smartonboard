@@ -405,6 +405,7 @@ async def recruit(
                     user_agent=request.headers.get("user-agent"),
                     metadata={"filename": file.filename, "size": len(pdf_bytes)}
                 )
+                db.commit()
 
         except Exception:
             # Clean up quarantine if any step fails
@@ -431,6 +432,7 @@ async def recruit(
                     "filename": file.filename
                 }
             )
+            db.commit()
 
         result = process_candidate(
             pdf_bytes=pdf_bytes,
@@ -454,6 +456,7 @@ async def recruit(
                 user_agent=request.headers.get("user-agent"),
                 metadata={"evaluation_id": evaluation_id, "score": score}
             )
+            db.commit()
             
         # 3. Audit log evaluation completed (compact storage constraint)
         with SessionLocal() as db:
@@ -472,6 +475,7 @@ async def recruit(
                     "summary": f"Candidate processed for {job_role} in {department}. Fit: {result.get('scoring_result', {}).get('overall_fit', 'N/A')}"
                 }
             )
+            db.commit()
 
         response = {
             "success": True,

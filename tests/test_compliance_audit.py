@@ -44,7 +44,7 @@ def test_audit_log_immutability(db_session):
         db_session.commit()
         db_session.refresh(user)
 
-    # 2. Write an audit log entry
+    # 2. Write an audit log entry and commit so it's fully persisted
     log = log_audit_event(
         db=db_session,
         action="test.immutability",
@@ -53,6 +53,8 @@ def test_audit_log_immutability(db_session):
         company_id=company.id,
         metadata={"info": "this should not change"}
     )
+    db_session.commit()  # Must commit so the log is fully persisted before trigger tests
+    log_id = log.id
     
     # 3. Attempt to UPDATE the record under normal context (without bypass)
     # The DB trigger check_audit_log_immutability should block this!
@@ -67,6 +69,10 @@ def test_audit_log_immutability(db_session):
 
     # 4. Attempt to DELETE the record under normal context
     # The DB trigger should block this!
+    # Re-fetch after rollback since the object is detached/expired after rollback
+    with tenant_context(auth_mode="true"):
+        log = db_session.get(AuditLog, log_id)
+    
     with pytest.raises((ProgrammingError, InternalError)) as exc_info:
         with tenant_context(auth_mode="true"):
             db_session.delete(log)
@@ -74,6 +80,7 @@ def test_audit_log_immutability(db_session):
     assert "immutable append-only records" in str(exc_info.value).lower()
     
     db_session.rollback()
+
 
 
 def test_audit_log_rls_isolation(db_session):

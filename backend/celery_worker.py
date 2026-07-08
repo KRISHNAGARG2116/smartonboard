@@ -30,8 +30,14 @@ from models import Candidate, Application, Job, CandidateEmbedding
 from models.enums import ApplicationStatus
 from core.embeddings import EmbeddingService
 from core.audit import log_audit_event
+from core.workflow_engine import execute_workflow_run_task
+from core.integration_health import check_integration_health_task
+from api.hris_imports import run_hris_import_task
 
 logger = logging.getLogger("celery")
+
+
+
 
 
 def invalidate_insights(db, application_id: uuid.UUID, insight_types: list[str]):
@@ -502,6 +508,15 @@ def generate_recruiter_insight_async(self, company_id: str, application_id: str,
             insight.generated_at = datetime.now(timezone.utc)
             insight.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
             db.commit()
+
+            # Emit billing usage events
+            from core.workflow_engine import emit_billing_event
+            if insight_type == "candidate_summary":
+                emit_billing_event(db, company_uuid, "ai.candidate_summary.generated", str(insight.id))
+            else:
+                emit_billing_event(db, company_uuid, "ai.description.generated", str(insight.id))
+            db.commit()
+
             
             # Log audit event
             action_map = {
@@ -521,6 +536,7 @@ def generate_recruiter_insight_async(self, company_id: str, application_id: str,
                     "confidence_score": result["confidence_score"]
                 }
             )
+            db.commit()
             
         except Exception as exc:
             db.rollback()

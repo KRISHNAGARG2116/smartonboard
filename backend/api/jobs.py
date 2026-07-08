@@ -64,8 +64,6 @@ def create_job(
     db.commit()
     db.refresh(job)
     
-    # Audit log job creation
-    from core.audit import log_audit_event
     log_audit_event(
         db=db,
         action="job.created",
@@ -82,7 +80,7 @@ def create_job(
             "status": job.status.value
         }
     )
-    
+    db.commit()
     return job
 
 
@@ -191,7 +189,6 @@ def update_job(
     db.commit()
     db.refresh(job)
     
-    # Audit log edit or archival
     if changes:
         from core.audit import log_audit_event
         action = "job.edited"
@@ -210,6 +207,7 @@ def update_job(
             user_agent=request.headers.get("user-agent"),
             metadata=changes
         )
+        db.commit()
         
     return job
 
@@ -243,6 +241,7 @@ def delete_job(
             user_agent=request.headers.get("user-agent"),
             metadata={"status": {"old": old_status.value, "new": "closed"}}
         )
+        db.commit()
 
 
 @router.post("/{job_id}/candidate-matches")
@@ -332,6 +331,7 @@ def get_candidate_matches(
             "candidate_match_count": len(matches)
         }
     )
+    db.commit()
 
     return matches
 
@@ -476,6 +476,7 @@ def generate_job_description(
         actor_id=current_user.id,
         metadata=audit_metadata
     )
+    db.commit()
 
     # 6. Save Caches
     if result.get("success", False):

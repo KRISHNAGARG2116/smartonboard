@@ -25,6 +25,13 @@ from api.search import router as search_router
 from api.ai_copilot import router as ai_copilot_router
 from api.dashboard import router as dashboard_router
 from api.executive_analytics import router as executive_analytics_router
+from api.workflows import router as workflows_router
+from api.api_keys import router as api_keys_router
+from api.emails import router as emails_router
+from api.slack_teams import router as slack_teams_router
+from api.background_checks import router as background_checks_router
+from api.hris_imports import router as hris_imports_router
+
 
 
 # Dedicated Candidate Routers
@@ -69,6 +76,13 @@ v1_router.include_router(search_router)
 v1_router.include_router(ai_copilot_router)
 v1_router.include_router(dashboard_router)
 v1_router.include_router(executive_analytics_router)
+v1_router.include_router(workflows_router)
+v1_router.include_router(api_keys_router)
+v1_router.include_router(emails_router)
+v1_router.include_router(slack_teams_router)
+v1_router.include_router(background_checks_router)
+v1_router.include_router(hris_imports_router)
+
 
 
 

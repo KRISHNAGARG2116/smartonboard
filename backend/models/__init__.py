@@ -69,7 +69,15 @@ from models.candidate_resume import CandidateResume
 from models.rbac import Role, Permission, UserJobAccess
 from models.ats_models import ApplicationEvent, InterviewKit, BulkOperationLog, SavedSearch, CandidateTag, Notification, DuplicateWarning
 from models.report_export import ReportExport
-
+from models.workflow import WorkflowRule, WorkflowRun
+from models.email import EmailTemplate, SentEmail
+from models.api_key import ApiKey
+from models.slack_teams import SlackTeamsIntegration
+from models.background_check import BackgroundCheckRecord
+from models.hris_import import GreenhouseLeverImport
+from models.integration_audit_log import IntegrationAuditLog
+from models.integration_health import IntegrationHealth
+from models.usage_billing_event import UsageBillingEvent
 
 
 __all__ = [
@@ -157,7 +165,19 @@ __all__ = [
     "Notification",
     "DuplicateWarning",
     "ReportExport",
+    "WorkflowRule",
+    "WorkflowRun",
+    "EmailTemplate",
+    "SentEmail",
+    "ApiKey",
+    "SlackTeamsIntegration",
+    "BackgroundCheckRecord",
+    "GreenhouseLeverImport",
+    "IntegrationAuditLog",
+    "IntegrationHealth",
+    "UsageBillingEvent",
 ]
+
 
 
 

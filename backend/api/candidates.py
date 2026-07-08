@@ -199,6 +199,7 @@ Deliver the report formatted in beautiful, readable markdown."""
             "candidate_ids": [str(c.id) for c in candidates]
         }
     )
+    db.commit()
 
     return {
         "comparison_report": report

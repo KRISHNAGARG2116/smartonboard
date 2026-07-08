@@ -174,7 +174,8 @@ def increment_quota_usage(
 
     # 5. Enforce hard limits
     if new_value > allowed_limit:
-        # Log quota.limit_exceeded compliance event
+        # Log quota.limit_exceeded compliance event and commit BEFORE raising
+        # (HTTPException aborts the request, so we must commit now or the audit is lost)
         log_audit_event(
             db=db,
             action="quota.limit_exceeded",
@@ -190,7 +191,7 @@ def increment_quota_usage(
                 "tier_name": plan.tier_name,
             }
         )
-        db.flush()
+        db.commit()  # Must commit before raising — HTTPException prevents normal session cleanup
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=f"Billing Limit Exceeded: {resource_type.replace('_', ' ').capitalize()} cap ({allowed_limit}) reached for your subscription tier."

@@ -101,7 +101,7 @@ def log_audit_event(
             timestamp=datetime.now(timezone.utc),
         )
         db.add(log_entry)
-        db.commit()
+        db.flush()
         db.refresh(log_entry)
 
     # 5. Mirror to system security logger for log collection systems (ELK, CloudWatch, etc.)

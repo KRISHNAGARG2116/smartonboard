@@ -70,6 +70,7 @@ def create_webhook_subscription(
             "active_events": body.active_events,
         }
     )
+    db.commit()
 
     # Create response with the raw secret included exactly once
     response_data = WebhookSubscriptionDetailResponse.model_validate(subscription)
@@ -123,6 +124,7 @@ def delete_webhook_subscription(
             "url": subscription.url,
         }
     )
+    db.commit()
 
 
 @router.get("/{subscription_id}/logs", response_model=List[WebhookDeliveryLogResponse])

@@ -223,7 +223,70 @@ def transition_candidate_stage(
             "is_auto": is_auto
         }
     )
-    
+
+    # candidate.stage_changed — unified signal for all stage moves (read by compliance tests)
+    log_audit_event(
+        db=db,
+        action="candidate.stage_changed",
+        actor_type="system" if is_auto else "user",
+        company_id=company_id,
+        actor_id=actor_id,
+        resource_type="application",
+        resource_id=str(application_id),
+        metadata={
+            "from_stage_id": str(from_stage_id) if from_stage_id else None,
+            "to_stage_id": str(target_stage_id),
+            "new_status": new_status.value,
+            "is_auto": is_auto,
+        }
+    )
+
+    # ai.recruiter_override — logged when a human actor manually overrides a stage
+    if not is_auto and actor_id:
+        old_status_val = MAP_BASE_CATEGORY_TO_STATUS.get(
+            db.get(StageDefinition, from_stage_id).base_category if from_stage_id and db.get(StageDefinition, from_stage_id) else None,
+            ApplicationStatus.SUBMITTED
+        ) if from_stage_id else ApplicationStatus.SUBMITTED
+        log_audit_event(
+            db=db,
+            action="ai.recruiter_override",
+            actor_type="user",
+            company_id=company_id,
+            actor_id=actor_id,
+            resource_type="application",
+            resource_id=str(application_id),
+            metadata={
+                "old_status": old_status_val.value,
+                "new_status": new_status.value,
+                "from_stage_id": str(from_stage_id) if from_stage_id else None,
+                "to_stage_id": str(target_stage_id),
+            }
+        )
+
+    # candidate.hired / candidate.rejected — milestone-specific events
+    if new_status == ApplicationStatus.HIRED:
+        log_audit_event(
+            db=db,
+            action="candidate.hired",
+            actor_type="system" if is_auto else "user",
+            company_id=company_id,
+            actor_id=actor_id,
+            resource_type="application",
+            resource_id=str(application_id),
+            metadata={"application_id": str(application_id)}
+        )
+    elif new_status == ApplicationStatus.REJECTED:
+        log_audit_event(
+            db=db,
+            action="candidate.rejected",
+            actor_type="system" if is_auto else "user",
+            company_id=company_id,
+            actor_id=actor_id,
+            resource_type="application",
+            resource_id=str(application_id),
+            metadata={"application_id": str(application_id)}
+        )
+
     if is_auto:
         log_audit_event(
             db=db,
@@ -238,9 +301,17 @@ def transition_candidate_stage(
             }
         )
         
-    db.commit()
+    db.flush()
     db.refresh(application)
+
+    # Trigger automation workflows
+    from core.workflow_engine import WorkflowEngine
+    WorkflowEngine.trigger_workflows(db, company_id, "stage.entered", application_id)
+    if target_stage.base_category == "rejected":
+        WorkflowEngine.trigger_workflows(db, company_id, "application.rejected", application_id)
+
     return application
+
 
 
 def check_and_update_sla_timers(db: Session, application_id: uuid.UUID):
@@ -262,7 +333,7 @@ def check_and_update_sla_timers(db: Session, application_id: uuid.UUID):
     scheduled_interviews_count = db.scalar(
         select(func.count(Interview.id)).where(
             Interview.application_id == application_id,
-            Interview.status == "scheduled"
+            Interview.is_cancelled.is_(False)
         )
     )
 
@@ -281,14 +352,14 @@ def check_and_update_sla_timers(db: Session, application_id: uuid.UUID):
     if should_pause and tracker.status == "active":
         tracker.paused_at = now
         tracker.status = "paused"
-        db.commit()
+        db.flush()
     elif not should_pause and tracker.status == "paused" and tracker.paused_at is not None:
         paused_duration = (now - tracker.paused_at.replace(tzinfo=timezone.utc)).total_seconds()
         tracker.total_paused_seconds += int(paused_duration)
         tracker.expires_at = tracker.expires_at.replace(tzinfo=timezone.utc) + timedelta(seconds=paused_duration)
         tracker.paused_at = None
         tracker.status = "active"
-        db.commit()
+        db.flush()
 
 
 def evaluate_auto_progression_rules(db: Session, application: Application, context: dict | None = None) -> bool:
@@ -320,8 +391,12 @@ def evaluate_auto_progression_rules(db: Session, application: Application, conte
     }
     
     # If there are scorecards associated, load them
-    if application.scorecards:
-        sorted_scorecards = sorted(application.scorecards, key=lambda s: s.created_at, reverse=True)
+    from models.scorecard import Scorecard
+    scorecards = db.scalars(
+        select(Scorecard).where(Scorecard.application_id == application.id)
+    ).all()
+    if scorecards:
+        sorted_scorecards = sorted(scorecards, key=lambda s: s.created_at, reverse=True)
         latest_scorecard = sorted_scorecards[0]
         eval_results["scorecard"] = {
             "overall_recommendation": latest_scorecard.overall_recommendation,
@@ -448,6 +523,28 @@ def ensure_job_stages(db: Session, job_id: uuid.UUID, company_id: uuid.UUID) -> 
     if stages:
         return list(stages)
 
+    from models.job import Job
+    from models.pipeline import Pipeline
+
+    job = db.get(Job, job_id)
+    if not job:
+        return []
+
+    pipeline_id = job.pipeline_id
+    if not pipeline_id:
+        pipeline = Pipeline(
+            company_id=company_id,
+            name=f"Pipeline - {job.title}",
+            description=f"Auto-generated pipeline for job: {job.title}",
+            pipeline_version=1,
+        )
+        db.add(pipeline)
+        db.flush()
+        job.pipeline_id = pipeline.id
+        db.add(job)
+        db.flush()
+        pipeline_id = pipeline.id
+
     defaults = [
         ("Applied", "applied", "#3b82f6", "inbox", 10, True, False),
         ("Screening", "screening", "#f59e0b", "search", 20, False, False),
@@ -464,6 +561,7 @@ def ensure_job_stages(db: Session, job_id: uuid.UUID, company_id: uuid.UUID) -> 
         stage = StageDefinition(
             company_id=company_id,
             job_id=job_id,
+            pipeline_id=pipeline_id,
             name=name,
             base_category=category,
             color=color,
@@ -480,4 +578,5 @@ def ensure_job_stages(db: Session, job_id: uuid.UUID, company_id: uuid.UUID) -> 
         created_stages.append(stage)
     db.flush()
     return created_stages
+
 

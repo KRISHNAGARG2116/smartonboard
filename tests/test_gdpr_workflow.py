@@ -146,7 +146,7 @@ def setup_gdpr_data(db_session, api_client):
         "notes": "Excellent encryption skills.",
         "criteria_scores": {"encryption": 5, "security_protocols": 5}
     }
-    api_client.post(f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard", json=score_payload, headers=headers_own_a)
+    api_client.post(f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard/submit", json=score_payload, headers=headers_own_a)
 
     # 9. Create draft Offer
     offer_payload = {

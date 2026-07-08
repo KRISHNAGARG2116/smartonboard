@@ -276,6 +276,7 @@ def oauth_callback(
         user_agent=request.headers.get("user-agent"),
         metadata={"provider": provider_name, "account_email": account_email}
     )
+    db.commit()
 
     return {
         "status": "connected",
@@ -399,3 +400,31 @@ def trigger_delta_sync(
         status="success",
         message="Incremental calendar sync completed successfully"
     )
+
+
+class ConnectedCalendarResponse(BaseModel):
+    id: str
+    provider: str
+    account_email: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("", response_model=list[ConnectedCalendarResponse])
+
+def list_connected_calendars(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_tenant_db)
+):
+    stmt = select(CalendarCredentials).where(CalendarCredentials.company_id == current_user.company_id)
+    creds = db.scalars(stmt).all()
+    # Convert IDs to string for JSON serialization compatibility
+    return [ConnectedCalendarResponse(
+        id=str(c.id),
+        provider=c.provider,
+        account_email=c.account_email,
+        created_at=c.created_at
+    ) for c in creds]
+

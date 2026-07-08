@@ -469,12 +469,18 @@ def _process_report_sync(db: Session, user: User, job: ReportExport, body: Expor
 
         job.status = "COMPLETED"
         job.file_path = file_path
+        
+        # Emit billing event
+        from core.workflow_engine import emit_billing_event
+        emit_billing_event(db, user.company_id, "report.exported", str(job.id))
+        
         db.commit()
 
     except Exception as e:
         job.status = "FAILED"
         db.commit()
         raise
+
 
 
 @router.get("/reports/{report_id}")

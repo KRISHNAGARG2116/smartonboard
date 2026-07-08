@@ -40,13 +40,25 @@ def setup_application(db_session, api_client):
     comp_a_id = uuid.UUID(reg_a["user"]["company_id"])
     owner_a_id = uuid.UUID(reg_a["user"]["id"])
 
-    # Mark Owner A verified in DB
+    # Mark Owner A verified and complete company onboarding in DB
     with tenant_context(auth_mode="true"):
         user_own_a = db_session.get(User, owner_a_id)
         if user_own_a:
             user_own_a.email_verified = True
             db_session.add(user_own_a)
-            db_session.commit()
+        
+        comp_a = db_session.get(Company, comp_a_id)
+        if comp_a:
+            comp_a.settings = {
+                "website": "https://offerscorp.com",
+                "domain": "offerscorp.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp_a)
+            
+        db_session.commit()
+
 
     # 2. Register Recruiter for Company A
     with tenant_context(auth_mode="true"):
@@ -115,8 +127,11 @@ def setup_application(db_session, api_client):
         "source": "referral"
     }
     app_resp = api_client.post("/api/v1/applications", json=app_payload, headers=headers_a)
+    print("DEBUG_RESPONSE_CODE:", app_resp.status_code)
+    print("DEBUG_RESPONSE_BODY:", app_resp.text)
     app_data = app_resp.json()
     app_id = uuid.UUID(app_data["id"])
+
 
     # 5. Move status to INTERVIEW
     api_client.patch(f"/api/v1/applications/{app_id}", json={"status": "interview"}, headers=headers_a)
@@ -388,12 +403,25 @@ def test_offer_rls_isolation(api_client, db_session, setup_application):
     headers_b = {"Authorization": f"Bearer {token_b}"}
     owner_b_id = uuid.UUID(resp_b.json()["user"]["id"])
 
+    comp_b_id = uuid.UUID(resp_b.json()["user"]["company_id"])
     with tenant_context(auth_mode="true"):
         user_own_b = db_session.get(User, owner_b_id)
         if user_own_b:
             user_own_b.email_verified = True
             db_session.add(user_own_b)
-            db_session.commit()
+        
+        comp_b = db_session.get(Company, comp_b_id)
+        if comp_b:
+            comp_b.settings = {
+                "website": "https://offerscorp.com",
+                "domain": "offerscorp.com",
+                "industry": "Technology",
+                "company_size": "11-50"
+            }
+            db_session.add(comp_b)
+            
+        db_session.commit()
+
 
     # Create offer in Company A
     now = datetime.now(timezone.utc)

@@ -49,6 +49,7 @@ def test_billing_gating_and_role_authorization_rbac(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner SaaS",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         recruiter = User(
             company_id=company.id,
@@ -56,6 +57,7 @@ def test_billing_gating_and_role_authorization_rbac(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Recruiter SaaS",
             role=UserRole.RECRUITER,
+            email_verified=True,
         )
         db_session.add(owner)
         db_session.add(recruiter)
@@ -145,6 +147,7 @@ def test_billing_upgrade_downgrade_lifecycles(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner Lifecycle",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         db_session.add(owner)
         db_session.commit()
@@ -214,6 +217,7 @@ def test_quota_limits_and_warning_headers(api_client, db_session):
             password_hash=hash_password("password123"),
             full_name="Owner Quota",
             role=UserRole.OWNER,
+            email_verified=True,
         )
         db_session.add(owner)
         db_session.commit()

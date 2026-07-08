@@ -92,6 +92,7 @@ def create_note(
             "note_id": str(note.id)
         }
     )
+    db.commit()
 
     return note
 
@@ -168,6 +169,7 @@ def update_note(
             "note_id": str(note.id)
         }
     )
+    db.commit()
 
     return note
 
@@ -213,3 +215,4 @@ def delete_note(
             "note_id": str(note_id)
         }
     )
+    db.commit()

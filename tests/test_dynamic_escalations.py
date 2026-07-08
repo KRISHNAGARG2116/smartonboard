@@ -333,7 +333,7 @@ def test_structured_auto_progression_and_sla_resolution_on_exit(api_client, db_s
 
     # 6. Submit scorecard with overall_recommendation = 'strong_yes'
     resp_sc = api_client.post(
-        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard",
+        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard/submit",
         headers=headers,
         json={
             "criteria_scores": {

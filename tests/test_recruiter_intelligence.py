@@ -227,7 +227,7 @@ def test_recruiter_intelligence_lifecycle(api_client, db_session):
         mock_invoke.return_value = mock_llm_sc
 
         sc_resp = api_client.post(
-            f"/api/v1/applications/{app_a_id}/interviews/{interview_id}/scorecard",
+            f"/api/v1/applications/{app_a_id}/interviews/{interview_id}/scorecard/submit",
             json={
                 "criteria_scores": {"coding": 5},
                 "overall_recommendation": "yes",

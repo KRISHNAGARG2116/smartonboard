@@ -255,7 +255,7 @@ def test_recruitment_workflow_complete_phase1(api_client, db_session):
         "notes": "Excellent coder."
     }
     bad_resp = api_client.post(
-        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard",
+        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard/submit",
         json=bad_scorecard_payload,
         headers=headers_a
     )
@@ -273,7 +273,7 @@ def test_recruitment_workflow_complete_phase1(api_client, db_session):
         "notes": "Jane is an exceptional candidate. Deep python skills, robust design choices."
     }
     good_resp = api_client.post(
-        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard",
+        f"/api/v1/applications/{app_id}/interviews/{interview_id}/scorecard/submit",
         json=good_scorecard_payload,
         headers=headers_a
     )

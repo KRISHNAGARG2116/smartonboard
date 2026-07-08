@@ -156,13 +156,20 @@ def create_application(
             user_agent=request.headers.get("user-agent"),
             metadata={"email": candidate.email, "full_name": candidate.full_name, "phone": candidate.phone}
         )
+        db.commit()
 
     application = db.scalar(
         select(Application)
         .options(selectinload(Application.candidate), selectinload(Application.job))
         .where(Application.id == application.id)
     )
+
+    # Trigger automation workflows
+    from core.workflow_engine import WorkflowEngine
+    WorkflowEngine.trigger_workflows(db, current_user.company_id, "application.created", application.id)
+
     return _application_response(application)
+
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
@@ -197,6 +204,8 @@ def update_application(
     )
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    old_status = application.status
 
     # 1. Optimistic Concurrency Check
     if body.client_updated_at is not None:
@@ -281,6 +290,27 @@ def update_application(
 
     db.commit()
     db.refresh(application)
+
+    if application.status != old_status:
+        track_stage_transition_async.delay(
+            str(current_user.company_id),
+            str(application.id),
+            old_status.value,
+            application.status.value,
+            str(current_user.id)
+        )
+        if old_status == ApplicationStatus.SUBMITTED and application.status == ApplicationStatus.SCREENING:
+            track_recruiter_productivity_async.delay(
+                str(current_user.company_id),
+                str(current_user.id),
+                "review"
+            )
+            track_recruiter_productivity_async.delay(
+                str(current_user.company_id),
+                str(current_user.id),
+                "advance"
+            )
+
     return _application_response(application)
 
 
@@ -573,6 +603,7 @@ def qa_candidate_resume(
                 "threshold_blocked": True
             }
         )
+        db.commit()
         
         return {
             "answer": answer,
@@ -619,6 +650,7 @@ Answer concisely and professionally."""
             "threshold_blocked": False
         }
     )
+    db.commit()
     
     return {
         "answer": answer,
@@ -759,7 +791,7 @@ def bulk_update_preview(
         scheduled_count = db.scalar(
             select(func.count(Interview.id)).where(
                 Interview.application_id == app.id,
-                Interview.status == "scheduled"
+                Interview.is_cancelled.is_(False)
             )
         ) or 0
         if scheduled_count > 0 and payload.target_stage_id:

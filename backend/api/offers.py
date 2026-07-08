@@ -96,9 +96,7 @@ def create_offer(
     app_record.status = ApplicationStatus.OFFER
     new_status = ApplicationStatus.OFFER.value
 
-    db.commit()
-    db.refresh(offer)
-    db.refresh(app_record)
+    db.flush()
 
     # Dispatch background tracking tasks
     track_recruiter_productivity_async.delay(
@@ -156,6 +154,9 @@ def create_offer(
         }
     )
 
+    db.commit()
+    db.refresh(offer)
+    db.refresh(app_record)
     return offer
 
 
@@ -214,8 +215,7 @@ def approve_offer(
         )
 
     offer.status = "approved"
-    db.commit()
-    db.refresh(offer)
+    db.flush()
 
     # Log audit event
     log_audit_event(
@@ -238,6 +238,8 @@ def approve_offer(
         }
     )
 
+    db.commit()
+    db.refresh(offer)
     return offer
 
 
@@ -266,8 +268,7 @@ def send_offer(
         )
 
     offer.status = "sent"
-    db.commit()
-    db.refresh(offer)
+    db.flush()
 
     # Log audit event
     log_audit_event(
@@ -290,6 +291,8 @@ def send_offer(
         }
     )
 
+    db.commit()
+    db.refresh(offer)
     return offer
 
 
@@ -337,9 +340,12 @@ def decide_offer(
             start_date=offer.start_date
         )
         
-        db.commit()
-        db.refresh(offer)
-        db.refresh(app_record)
+        db.flush()
+
+        # Trigger automation workflows
+        from core.workflow_engine import WorkflowEngine
+        WorkflowEngine.trigger_workflows(db, current_user.company_id, "offer.accepted", application_id)
+
 
         # Log offer.signed
         log_audit_event(
@@ -367,9 +373,7 @@ def decide_offer(
         app_record.status = ApplicationStatus.REJECTED
         status_changed = True
 
-        db.commit()
-        db.refresh(offer)
-        db.refresh(app_record)
+        db.flush()
 
         # Log offer.rejected
         log_audit_event(
@@ -430,6 +434,9 @@ def decide_offer(
             }
         )
 
+    db.commit()
+    db.refresh(offer)
+    db.refresh(app_record)
     resp = OfferResponse.model_validate(offer)
     if onboarding_trigger:
         resp.onboarding_trigger = onboarding_trigger
@@ -461,8 +468,7 @@ def expire_offer(
         )
 
     offer.status = "expired"
-    db.commit()
-    db.refresh(offer)
+    db.flush()
 
     # Log audit event
     log_audit_event(
@@ -485,4 +491,6 @@ def expire_offer(
         }
     )
 
+    db.commit()
+    db.refresh(offer)
     return offer
