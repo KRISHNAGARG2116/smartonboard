@@ -323,3 +323,56 @@ def reschedule_candidate_booking(
         "start_time": slot.start_time,
         "end_time": slot.end_time
     }
+
+
+@router.get("/interviews/{id}/availability")
+def get_interview_availability(
+    id: uuid.UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_candidate: VerifiedCandidate
+):
+    """Retrieve recruiter-approved availability slots/windows for a given interview."""
+    with tenant_context(auth_mode="true"):
+        # Verify candidate owns the interview
+        interview = db.scalar(
+            select(Interview)
+            .options(selectinload(Interview.application))
+            .where(Interview.id == id)
+        )
+        if not interview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Interview not found"
+            )
+
+        # Ownership check
+        app = interview.application
+        candidates = db.scalars(
+            select(Candidate).where(Candidate.email == current_candidate.email.lower())
+        ).all()
+        candidate_ids = [c.id for c in candidates]
+        if not app or app.candidate_id not in candidate_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to view availability for this interview"
+            )
+
+        # Query recruiter-approved slots (status == "available")
+        slots = db.scalars(
+            select(InterviewSlot)
+            .where(
+                InterviewSlot.interview_id == id,
+                InterviewSlot.status == "available"
+            )
+            .order_by(InterviewSlot.start_time.asc())
+        ).all()
+
+        return [
+            {
+                "id": str(slot.id),
+                "start_time": slot.start_time.isoformat(),
+                "end_time": slot.end_time.isoformat(),
+                "status": slot.status
+            }
+            for slot in slots
+        ]

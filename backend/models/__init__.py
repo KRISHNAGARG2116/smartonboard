@@ -78,6 +78,13 @@ from models.hris_import import GreenhouseLeverImport
 from models.integration_audit_log import IntegrationAuditLog
 from models.integration_health import IntegrationHealth
 from models.usage_billing_event import UsageBillingEvent
+from models.candidate_task import CandidateTask
+from models.candidate_document import CandidateDocument
+from models.candidate_message import CandidateMessage
+from models.candidate_chat_session import CandidateChatSession
+from models.candidate_ai_chat import CandidateAIChatHistory
+from models.interview_reschedule_request import InterviewRescheduleRequest
+from models.candidate_profile_revision import CandidateProfileRevision
 
 
 __all__ = [
@@ -176,6 +183,13 @@ __all__ = [
     "IntegrationAuditLog",
     "IntegrationHealth",
     "UsageBillingEvent",
+    "CandidateTask",
+    "CandidateDocument",
+    "CandidateMessage",
+    "CandidateChatSession",
+    "CandidateAIChatHistory",
+    "InterviewRescheduleRequest",
+    "CandidateProfileRevision",
 ]
 
 

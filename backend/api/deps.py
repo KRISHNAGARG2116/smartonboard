@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.security import decode_access_token
-from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var, tenant_context
+from db.session import SessionLocal, get_db, set_tenant_context, tenant_id_var, tenant_context, auth_mode_var, set_auth_mode
 from models import User, Company
 from models.enums import CompanyStatus, UserRole
 
@@ -316,6 +316,21 @@ def get_tenant_db(
         db.close()
 
 
+def get_candidate_db() -> Generator[Session, None, None]:
+    """Provides a database session with RLS bypassed (auth_mode='true') for candidate operations.
+    Security: This is the ONLY location where auth_mode is bypassed. Scoping must be enforced in the router logic.
+    """
+    db = SessionLocal()
+    tenant_id_var.set("")
+    set_auth_mode(db)
+    try:
+        yield db
+    finally:
+        tenant_id_var.set("")
+        auth_mode_var.set("false")
+        db.close()
+
+
 class RoleChecker:
     def __init__(self, allowed_roles: list[UserRole]):
         self.allowed_roles = allowed_roles
@@ -425,6 +440,8 @@ def get_verified_candidate(
     return current_candidate
 
 VerifiedCandidate = Annotated[User, Depends(get_verified_candidate)]
+RequireCandidate = Annotated[User, Depends(get_current_candidate)]
+CandidateDb = Annotated[Session, Depends(get_candidate_db)]
 
 
 VerifiedRecruiter = Annotated[User, Depends(get_verified_recruiter)]

@@ -40,6 +40,14 @@ from api.candidate_resumes import router as candidate_resumes_router
 from api.candidate_jobs import router as candidate_jobs_router
 from api.candidate_applications import router as candidate_applications_router
 from api.candidate_interviews import router as candidate_interviews_router
+from api.candidate_dashboard import router as candidate_dashboard_router
+from api.candidate_messages import router as candidate_messages_router
+from api.candidate_tasks import router as candidate_tasks_router
+from api.candidate_documents import router as candidate_documents_router
+from api.candidate_offers import router as candidate_offers_router
+from api.candidate_timeline import router as candidate_timeline_router
+from api.candidate_profile import router as candidate_profile_router
+from api.candidate_ai import router as candidate_ai_router
 
 
 v1_router = APIRouter(prefix="/api/v1")
@@ -50,6 +58,14 @@ v1_router.include_router(candidate_resumes_router)
 v1_router.include_router(candidate_jobs_router)
 v1_router.include_router(candidate_applications_router)
 v1_router.include_router(candidate_interviews_router)
+v1_router.include_router(candidate_dashboard_router)
+v1_router.include_router(candidate_messages_router)
+v1_router.include_router(candidate_tasks_router)
+v1_router.include_router(candidate_documents_router)
+v1_router.include_router(candidate_offers_router)
+v1_router.include_router(candidate_timeline_router)
+v1_router.include_router(candidate_profile_router)
+v1_router.include_router(candidate_ai_router)
 
 v1_router.include_router(auth_router)
 v1_router.include_router(companies_router)

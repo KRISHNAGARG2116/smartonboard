@@ -591,4 +591,107 @@ Please return the corrected JSON object matching the required schema:"""
             logging.getLogger("smartonboard.intelligence").error(f"AI executive summary generation failed: {e}")
             return f"**Hiring Executive Briefing**\n\nUnable to generate AI analysis: {str(e)}."
 
+    @classmethod
+    def candidate_chat(cls, message: str, history: list[dict]) -> str:
+        """AI Chatbot conversational assistant for candidates."""
+        history_str = ""
+        for msg in history:
+            role = "Candidate" if msg["role"] == "user" else "Assistant"
+            history_str += f"{role}: {msg['message']}\n"
+        
+        prompt = f"""You are a helpful and supportive AI Candidate Assistant. Assist the candidate with their queries.
+Follow these guidelines strictly:
+- Clearly distinguish platform-level guidance from company-specific information.
+- Never make assumptions or fabricate information about the hiring company or specific job internal details.
+- Provide clear, professional, and friendly answers.
+
+Conversation History:
+{history_str}
+
+Candidate: {message}
+AI Assistant:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.5)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            return f"Chatbot Assistant is temporarily offline: {str(e)}"
+
+    @classmethod
+    def resume_feedback(cls, resume_content: str) -> str:
+        """Provides objective, constructive feedback on candidate's parsed resume."""
+        prompt = f"""You are a premium career development assistant. Analyze the candidate's resume content below and provide objective, constructive feedback on technical skills formatting, resume structure, impact statements, and layout readability.
+Do not make assumptions about target jobs. Keep formatting in Markdown.
+
+Resume Content:
+{resume_content}
+
+Objective Feedback Markdown:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            return f"Resume feedback generator is temporarily offline: {str(e)}"
+
+    @classmethod
+    def interview_preparation(cls, role_title: str, job_description: str) -> str:
+        """Provides general interview prep advice based on job title and description.
+        Enforces guardrail: Never fabricate company-specific interview questions.
+        """
+        prompt = f"""You are a premium career preparation assistant. Create a comprehensive interview preparation guide for the role of "{role_title}".
+
+Job Description Context:
+{job_description}
+
+Guidelines:
+- Provide general preparation tips, technical competencies, and behavioral questions suited for this role.
+- CRITICAL GUARDRAIL: Never fabricate or claim that specific interview questions come from the target hiring company.
+- Clearly distinguish platform preparation guidance from company-specific requirements.
+
+Preparation Guide Markdown:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            return f"Interview preparation guide is temporarily offline: {str(e)}"
+
+    @classmethod
+    def offer_explanation(cls, salary: float, equity: str, benefits: str) -> str:
+        """Explains the components of an offer neutrally.
+        Enforces guardrail: Must never recommend whether the candidate should accept or decline.
+        """
+        prompt = f"""You are a neutral compensation explanation assistant. Explain the following offer parameters clearly and objectively:
+- Annual Base Salary: {salary}
+- Equity Grant: {equity or "None"}
+- Additional Benefits: {benefits or "Standard benefits package"}
+
+Guidelines:
+- Provide neutral explanations of salary tax implications, equity grant vesting terms (standard 4-year with 1-year cliff), and benefits details.
+- CRITICAL GUARDRAIL: You must NEVER advise or recommend whether the candidate should accept or reject this offer. Remain completely neutral.
+
+Neutral Offer Explanation Markdown:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.1)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            return f"Offer explanation tool is temporarily offline: {str(e)}"
+
+    @classmethod
+    def company_overview(cls, company_name: str, industry: str) -> str:
+        """Provides a neutral public profile summary of a company."""
+        prompt = f"""You are a professional business research assistant. Provide a brief, neutral overview of a company named "{company_name}" operating in the "{industry or 'General'}" industry.
+Focus on standard industry trends, typical department structures, and helpful background context for an applicant.
+Do not fabricate internal company statistics or private data.
+
+Neutral Overview Markdown:"""
+        try:
+            llm = ChatGroq(model_name=cls.MODEL_VERSION, temperature=0.3)
+            response = invoke_with_retry(llm, prompt, max_retries=2, timeout=30)
+            return response.content.strip()
+        except Exception as e:
+            return f"Company overview tool is temporarily offline: {str(e)}"
+
 

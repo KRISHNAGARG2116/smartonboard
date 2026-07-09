@@ -969,6 +969,160 @@ def scan_and_promote_resume_task(self, quarantine_file_id: str, job_id: str = No
         db.close()
 
 
+@celery_app.task(name="process_offer_acceptance_async")
+def process_offer_acceptance_async(offer_id_str: str) -> dict:
+    """Asynchronously handles offer acceptance events:
+    1. Create audit event
+    2. Dispatch notifications
+    3. Update Recruiter Dashboard indicators
+    4. Create Candidate Onboarding Tasks
+    5. Trigger HRIS Workflow
+    """
+    logger.info(f"Starting process_offer_acceptance_async for offer {offer_id_str}")
+    offer_id = uuid.UUID(offer_id_str)
+    db = SessionLocal()
+    # Bypass RLS to fetch the Offer and associated Application/Candidate/Company
+    with tenant_context(auth_mode="true"):
+        from models import Offer, Application, User, Notification, CandidateTask
+        offer = db.get(Offer, offer_id)
+        if not offer:
+            logger.error(f"Offer {offer_id} not found")
+            db.close()
+            return {"success": False, "error": "Offer not found"}
+        
+        app = db.get(Application, offer.application_id)
+        if not app:
+            logger.error(f"Application {offer.application_id} not found")
+            db.close()
+            return {"success": False, "error": "Application not found"}
+
+        candidate_user = db.scalar(
+            select(User).where(User.id == app.candidate_id)
+        )
+        if not candidate_user:
+            from models import Candidate
+            cand_rec = db.get(Candidate, app.candidate_id)
+            if cand_rec:
+                candidate_user = db.scalar(
+                    select(User).where(User.email == cand_rec.email)
+                )
+
+        if not candidate_user:
+            logger.error(f"Candidate User for candidate {app.candidate_id} not found")
+            db.close()
+            return {"success": False, "error": "Candidate not found"}
+
+        # 1. Audit Event Idempotency Check
+        from models.audit import AuditLog
+        audit_exists = db.scalar(
+            select(AuditLog).where(
+                AuditLog.action == "offer.accepted",
+                AuditLog.resource_type == "offers",
+                AuditLog.resource_id == str(offer.id)
+            )
+        )
+        if not audit_exists:
+            log_audit_event(
+                db=db,
+                action="offer.accepted",
+                actor_type="CANDIDATE",
+                actor_id=candidate_user.id,
+                company_id=offer.company_id,
+                resource_type="offers",
+                resource_id=str(offer.id),
+                metadata={
+                    "offer_id": str(offer.id),
+                    "application_id": str(offer.application_id),
+                    "salary": float(offer.salary)
+                }
+            )
+
+        # Update application status to "hired"
+        if app.status != ApplicationStatus.HIRED:
+            app.status = ApplicationStatus.HIRED
+            db.add(app)
+
+        # 2. Dispatch Notifications Idempotency Check
+        # Notify recruiter (owner/assigned)
+        recruiter_id = app.owner_id
+        if recruiter_id:
+            notif_exists = db.scalar(
+                select(Notification).where(
+                    Notification.company_id == offer.company_id,
+                    Notification.user_id == recruiter_id,
+                    Notification.title == "Offer Accepted!",
+                    Notification.type == "offer"
+                )
+            )
+            if not notif_exists:
+                notif = Notification(
+                    company_id=offer.company_id,
+                    user_id=recruiter_id,
+                    title="Offer Accepted!",
+                    message=f"Candidate {candidate_user.email} has accepted their employment offer.",
+                    type="offer",
+                    status="unread"
+                )
+                db.add(notif)
+
+        # 3. Create Candidate Onboarding Tasks Idempotency Check
+        onboarding_tasks = [
+            {"title": "Submit emergency contact details", "description": "Provide name, phone number, and relationship.", "task_type": "text"},
+            {"title": "Specify your equipment preferences", "description": "Choose between macOS (MacBook Pro) or Windows (ThinkPad).", "task_type": "choice"},
+            {"title": "Select your T-shirt size", "description": "Choose size for company swag: S, M, L, XL.", "task_type": "choice"},
+            {"title": "Upload Gov ID and tax documents", "description": "Upload a copy of your passport or driver license.", "task_type": "file_upload"}
+        ]
+        from datetime import date, timedelta
+        for task_info in onboarding_tasks:
+            task_exists = db.scalar(
+                select(CandidateTask).where(
+                    CandidateTask.company_id == offer.company_id,
+                    CandidateTask.candidate_id == candidate_user.id,
+                    CandidateTask.title == task_info["title"]
+                )
+            )
+            if not task_exists:
+                task = CandidateTask(
+                    company_id=offer.company_id,
+                    candidate_id=candidate_user.id,
+                    title=task_info["title"],
+                    description=task_info["description"],
+                    status="pending",
+                    task_type=task_info["task_type"],
+                    due_date=date.today() + timedelta(days=7)
+                )
+                db.add(task)
+
+        # 4. Trigger HRIS Workflow / integration updates & Onboarding Outbox
+        from models.employees import OnboardingEventOutbox
+        outbox_exists = db.scalar(
+            select(OnboardingEventOutbox).where(
+                OnboardingEventOutbox.company_id == offer.company_id,
+                OnboardingEventOutbox.event_type == "offer.accepted",
+                OnboardingEventOutbox.payload["offer_id"].as_string() == str(offer.id)
+            )
+        )
+        if not outbox_exists:
+            outbox = OnboardingEventOutbox(
+                company_id=offer.company_id,
+                event_type="offer.accepted",
+                payload={
+                    "offer_id": str(offer.id),
+                    "application_id": str(offer.application_id),
+                    "candidate_email": candidate_user.email,
+                    "hired_at": datetime.now(timezone.utc).isoformat()
+                },
+                status="pending"
+            )
+            db.add(outbox)
+            logger.info(f"Triggered HRIS import/export sync outbox entry for candidate {candidate_user.email} into company {offer.company_id}")
+
+        db.commit()
+        db.close()
+        return {"success": True}
+
+
+
 
 
 
