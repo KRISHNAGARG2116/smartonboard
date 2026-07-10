@@ -107,6 +107,12 @@ from models.crm_models import (
     CachedMatchScore,
     MatchScoreHistory,
 )
+from models.ai_recruiter_models import (
+    RecruiterChatSession,
+    RecruiterChatMessage,
+    AICopilotCallLog,
+    AgentPlannerTemplate,
+)
 
 
 __all__ = [
@@ -232,6 +238,10 @@ __all__ = [
     "MatchFeedback",
     "CachedMatchScore",
     "MatchScoreHistory",
+    "RecruiterChatSession",
+    "RecruiterChatMessage",
+    "AICopilotCallLog",
+    "AgentPlannerTemplate",
 ]
 
 
