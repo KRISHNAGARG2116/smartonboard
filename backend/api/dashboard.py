@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from api.deps import TenantDb, RequireRecruiter, has_job_access
 from models import Application, Job, Candidate, StageDefinition
 from models.sla import CandidateStageSLATracker
+from core.redis_cache import cached
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -98,6 +99,7 @@ def update_dashboard_preferences(
 
 
 @router.get("/widgets")
+@cached(namespace="dashboard_widgets", ttl=120)
 def get_dashboard_widgets_data(
     db: TenantDb,
     current_user: RequireRecruiter,
@@ -215,6 +217,7 @@ def get_dashboard_widgets_data(
 
 
 @router.get("/summary")
+@cached(namespace="dashboard_summary", ttl=120)
 def get_dashboard_summary(
     db: TenantDb,
     current_user: RequireRecruiter,

@@ -1,6 +1,7 @@
 import re
 import uuid
 import time
+import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
 from sqlalchemy import select
@@ -67,107 +68,124 @@ class AgentPlanningService:
     @classmethod
     def generate_plan(cls, prompt: str, session: RecruiterChatSession) -> Dict[str, Any]:
         """Parse recruiter intent and construct a branching execution graph."""
-        # 1. Prompt injection heuristic check
-        if cls.detect_prompt_injection(prompt):
-            return {
-                "error": "Potential prompt injection detected. Request blocked.",
-                "plan_confidence": 0.0,
-                "plan_confidence_reason": "Blocked by security filter."
+        try:
+            # 1. Prompt injection heuristic check
+            if cls.detect_prompt_injection(prompt):
+                return {
+                    "error": "Potential prompt injection detected. Request blocked.",
+                    "plan_confidence": 0.0,
+                    "plan_confidence_reason": "Blocked by security filter."
+                }
+
+            # 2. Estimate confidence based on keyword matches/intents
+            confidence = 95.0
+            reason = "Clear recruiter intent detected."
+            prompt_lower = prompt.lower()
+
+            # Check if prompt is too vague (low confidence)
+            vague_keywords = ["hi", "hello", "what is this", "help", "do something"]
+            if any(w == prompt_lower.strip() for w in vague_keywords) or len(prompt.strip()) < 8:
+                confidence = 55.0
+                reason = "Vague query text lacks explicit recruiting criteria parameters."
+                return {
+                    "clarifying_question": "I'm not sure which action you'd like me to perform. Would you like to search candidates, compare active profiles, or view executive analytics reports?",
+                    "plan_confidence": confidence,
+                    "plan_confidence_reason": reason
+                }
+
+            # 3. Compile branching graph nodes and dependencies
+            nodes = []
+            edges = []
+
+            if "compare" in prompt_lower:
+                nodes = [
+                    {
+                        "id": "node_search",
+                        "tool": "search_candidates",
+                        "inputs": {"query": prompt},
+                        "approval_level": "read_only"
+                    },
+                    {
+                        "id": "node_compare",
+                        "tool": "compare_candidates",
+                        "inputs": {"candidate_ids": "result.node_search.candidate_ids"},
+                        "approval_level": "read_only"
+                    }
+                ]
+                edges = [{"from": "node_search", "to": "node_compare"}]
+            elif "draft" in prompt_lower or "email" in prompt_lower:
+                nodes = [
+                    {
+                        "id": "node_search",
+                        "tool": "search_candidates",
+                        "inputs": {"query": prompt},
+                        "approval_level": "read_only"
+                    },
+                    {
+                        "id": "node_draft",
+                        "tool": "draft_outreach",
+                        "inputs": {"candidate_ids": "result.node_search.candidate_ids"},
+                        "approval_level": "draft"
+                    }
+                ]
+                edges = [{"from": "node_search", "to": "node_draft"}]
+            else:
+                # Default fallback: search candidates
+                nodes = [
+                    {
+                        "id": "node_search",
+                        "tool": "search_candidates",
+                        "inputs": {"query": prompt},
+                        "approval_level": "read_only"
+                    }
+                ]
+
+            # 4. Inject conditional branching node if we want to simulate lookalike fallback
+            if len(nodes) > 0 and nodes[0]["tool"] == "search_candidates":
+                nodes.append({
+                    "id": "node_branch",
+                    "type": "conditional",
+                    "condition": "len(result.node_search.candidate_ids) > 0",
+                    "true_next": "node_compare" if len(nodes) > 1 else None,
+                    "false_next": "node_rediscover"
+                })
+                nodes.append({
+                    "id": "node_rediscover",
+                    "tool": "search_candidates",
+                    "inputs": {"query": "similar lookalike profiles"},
+                    "approval_level": "read_only"
+                })
+
+            execution_graph = {
+                "nodes": nodes,
+                "edges": edges,
+                "estimated_tools": len(nodes),
+                "estimated_time_seconds": round(len(nodes) * 1.2, 1),
+                "estimated_tokens": len(nodes) * 1500,
+                "cache_hit_probability": 85.0
             }
 
-        # 2. Estimate confidence based on keyword matches/intents
-        confidence = 95.0
-        reason = "Clear recruiter intent detected."
-        prompt_lower = prompt.lower()
-
-        # Check if prompt is too vague (low confidence)
-        vague_keywords = ["hi", "hello", "what is this", "help", "do something"]
-        if any(w == prompt_lower.strip() for w in vague_keywords) or len(prompt.strip()) < 8:
-            confidence = 55.0
-            reason = "Vague query text lacks explicit recruiting criteria parameters."
             return {
-                "clarifying_question": "I'm not sure which action you'd like me to perform. Would you like to search candidates, compare active profiles, or view executive analytics reports?",
+                "execution_graph": execution_graph,
                 "plan_confidence": confidence,
                 "plan_confidence_reason": reason
             }
-
-        # 3. Compile branching graph nodes and dependencies
-        nodes = []
-        edges = []
-
-        if "compare" in prompt_lower:
-            nodes = [
-                {
-                    "id": "node_search",
-                    "tool": "search_candidates",
-                    "inputs": {"query": prompt},
-                    "approval_level": "read_only"
+        except Exception as e:
+            # Graceful Degradation: Fallback to deterministic candidate search graph
+            return {
+                "execution_graph": {
+                    "nodes": [
+                        {"id": "node_search", "tool": "search_candidates", "inputs": {"query": prompt}, "approval_level": "read_only"}
+                    ],
+                    "edges": [],
+                    "estimated_tools": 1,
+                    "estimated_time_seconds": 1.0,
+                    "estimated_tokens": 1000,
+                    "cache_hit_probability": 100.0
                 },
-                {
-                    "id": "node_compare",
-                    "tool": "compare_candidates",
-                    "inputs": {"candidate_ids": "result.node_search.candidate_ids"},
-                    "approval_level": "read_only"
-                }
-            ]
-            edges = [{"from": "node_search", "to": "node_compare"}]
-        elif "draft" in prompt_lower or "email" in prompt_lower:
-            nodes = [
-                {
-                    "id": "node_search",
-                    "tool": "search_candidates",
-                    "inputs": {"query": prompt},
-                    "approval_level": "read_only"
-                },
-                {
-                    "id": "node_draft",
-                    "tool": "draft_outreach",
-                    "inputs": {"candidate_ids": "result.node_search.candidate_ids"},
-                    "approval_level": "draft"
-                }
-            ]
-            edges = [{"from": "node_search", "to": "node_draft"}]
-        else:
-            # Default fallback: search candidates
-            nodes = [
-                {
-                    "id": "node_search",
-                    "tool": "search_candidates",
-                    "inputs": {"query": prompt},
-                    "approval_level": "read_only"
-                }
-            ]
-
-        # 4. Inject conditional branching node if we want to simulate lookalike fallback
-        if len(nodes) > 0 and nodes[0]["tool"] == "search_candidates":
-            nodes.append({
-                "id": "node_branch",
-                "type": "conditional",
-                "condition": "len(result.node_search.candidate_ids) > 0",
-                "true_next": "node_compare" if len(nodes) > 1 else None,
-                "false_next": "node_rediscover"
-            })
-            nodes.append({
-                "id": "node_rediscover",
-                "tool": "search_candidates",
-                "inputs": {"query": "similar lookalike profiles"},
-                "approval_level": "read_only"
-            })
-
-        execution_graph = {
-            "nodes": nodes,
-            "edges": edges,
-            "estimated_tools": len(nodes),
-            "estimated_time_seconds": round(len(nodes) * 1.2, 1),
-            "estimated_tokens": len(nodes) * 1500,
-            "cache_hit_probability": 85.0
-        }
-
-        return {
-            "execution_graph": execution_graph,
-            "plan_confidence": confidence,
-            "plan_confidence_reason": reason
-        }
+                "plan_confidence": 100.0,
+                "plan_confidence_reason": "Graceful degradation fallback template activated."
+            }
 
     @classmethod
     def validate_plan(cls, graph: Dict[str, Any], user_permissions: List[str]) -> Tuple[bool, str]:
@@ -223,7 +241,7 @@ class AgentPlanningService:
         msg.permission_snapshot = {"permissions": user_permissions}
         db.commit()
 
-        # 3. Traverse execution graph
+        # 3. Traverse execution graph in parallel where possible
         graph = msg.execution_graph or {}
         nodes = graph.get("nodes", [])
         results = {}
@@ -231,65 +249,85 @@ class AgentPlanningService:
 
         start_time = time.time()
 
-        for node in nodes:
-            node_id = node.get("id")
-            tool_name = node.get("tool")
-            if not tool_name:
-                # Conditional branch node evaluation
-                if node.get("type") == "conditional":
-                    cond_expr = node.get("condition", "True")
-                    # Evaluate condition safely based on accumulated candidate lengths
-                    search_node_results = results.get("node_search", {})
-                    found_count = len(search_node_results.get("candidate_ids", []))
-                    
-                    branch_eval = found_count > 0
-                    tool_call_statuses.append({
-                        "node_id": node_id,
-                        "status": "success",
-                        "outcome": "true_branch" if branch_eval else "false_branch"
-                    })
+        remaining_nodes = list(nodes)
+        completed_node_ids = set()
+
+        while remaining_nodes:
+            ready_nodes = []
+            for n in remaining_nodes:
+                is_ready = True
+                raw_inputs = n.get("inputs", {})
+                for k, v in raw_inputs.items():
+                    if isinstance(v, str) and v.startswith("result."):
+                        ref_node = v.split(".")[1]
+                        if ref_node not in completed_node_ids:
+                            is_ready = False
+                            break
+                if is_ready:
+                    ready_nodes.append(n)
+
+            if not ready_nodes:
+                ready_nodes = [remaining_nodes[0]]
+
+            for rn in ready_nodes:
+                remaining_nodes.remove(rn)
+
+            async def run_node(node):
+                node_id = node.get("id")
+                tool_name = node.get("tool")
+                if not tool_name:
+                    if node.get("type") == "conditional":
+                        search_node_results = results.get("node_search", {})
+                        found_count = len(search_node_results.get("candidate_ids", []))
+                        branch_eval = found_count > 0
+                        tool_call_statuses.append({
+                            "node_id": node_id,
+                            "status": "success",
+                            "outcome": "true_branch" if branch_eval else "false_branch"
+                        })
+                        completed_node_ids.add(node_id)
+                        if on_progress:
+                            on_progress(node_id, "success", {"branch": branch_eval})
+                    return
+
+                tool = ToolRegistry.get_tool(tool_name)
+                if not tool:
+                    tool_call_statuses.append({"node_id": node_id, "status": "failed", "error": "Tool not found"})
+                    completed_node_ids.add(node_id)
+                    return
+
+                raw_inputs = node.get("inputs", {})
+                inputs = {}
+                for k, v in raw_inputs.items():
+                    if isinstance(v, str) and v.startswith("result."):
+                        parts = v.split(".")
+                        ref_node = parts[1]
+                        ref_key = parts[2]
+                        inputs[k] = results.get(ref_node, {}).get(ref_key, [])
+                    else:
+                        inputs[k] = v
+
+                if on_progress:
+                    on_progress(node_id, "running", {})
+
+                try:
+                    for perm in tool.required_permissions:
+                        if perm not in user_permissions:
+                            raise PermissionError(f"Permission '{perm}' denied.")
+
+                    tool_result = await tool.execute(inputs, context_snapshot)
+                    results[node_id] = tool_result
+                    tool_call_statuses.append({"node_id": node_id, "status": "success"})
                     if on_progress:
-                        on_progress(node_id, "success", {"branch": branch_eval})
-                continue
+                        on_progress(node_id, "success", tool_result)
+                except Exception as e:
+                    tool_call_statuses.append({"node_id": node_id, "status": "failed", "error": str(e)})
+                    if on_progress:
+                        on_progress(node_id, "failed", {"error": str(e)})
+                finally:
+                    completed_node_ids.add(node_id)
 
-            tool = ToolRegistry.get_tool(tool_name)
-            if not tool:
-                tool_call_statuses.append({"node_id": node_id, "status": "failed", "error": "Tool not found"})
-                continue
-
-            # Process input dependencies (replaces tags like 'result.node_search.candidate_ids')
-            raw_inputs = node.get("inputs", {})
-            inputs = {}
-            for k, v in raw_inputs.items():
-                if isinstance(v, str) and v.startswith("result."):
-                    parts = v.split(".")
-                    # Resolves result.node_search.candidate_ids
-                    ref_node = parts[1]
-                    ref_key = parts[2]
-                    inputs[k] = results.get(ref_node, {}).get(ref_key, [])
-                else:
-                    inputs[k] = v
-
-            # Execute tool call
-            if on_progress:
-                on_progress(node_id, "running", {})
-
-            try:
-                # Enforce validation checks before run
-                for perm in tool.required_permissions:
-                    if perm not in user_permissions:
-                        raise PermissionError(f"Permission '{perm}' denied.")
-
-                tool_result = await tool.execute(inputs, context_snapshot)
-                results[node_id] = tool_result
-                tool_call_statuses.append({"node_id": node_id, "status": "success"})
-                if on_progress:
-                    on_progress(node_id, "success", tool_result)
-            except Exception as e:
-                # Failure Recovery: recover gracefully, log status, continue execution path
-                tool_call_statuses.append({"node_id": node_id, "status": "failed", "error": str(e)})
-                if on_progress:
-                    on_progress(node_id, "failed", {"error": str(e)})
+            await asyncio.gather(*(run_node(n) for n in ready_nodes))
 
         execution_duration = int((time.time() - start_time) * 1000)
 

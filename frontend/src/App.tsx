@@ -28,13 +28,16 @@ import RecruiterJobBuilder from './pages/recruiter/RecruiterJobBuilder'
 import RecruiterInterviews from './pages/recruiter/RecruiterInterviews'
 import RecruiterSettings from './pages/recruiter/RecruiterSettings'
 import TalentCRM from './pages/recruiter/TalentCRM'
-import AIRecruiterWorkspace from './pages/recruiter/AIRecruiterWorkspace'
+import React, { Suspense } from 'react'
+
+const AIRecruiterWorkspace = React.lazy(() => import('./pages/recruiter/AIRecruiterWorkspace'))
 
 // Executive Analytics Pages (B.3C)
 import ExecutiveDashboard from './pages/recruiter/ExecutiveDashboard'
 import ExecutiveRecruiters from './pages/recruiter/ExecutiveRecruiters'
 import ExecutiveForecast from './pages/recruiter/ExecutiveForecast'
 import ExecutiveReports from './pages/recruiter/ExecutiveReports'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 
 // Candidate Workspace Pages
@@ -169,7 +172,20 @@ function AppRoutes() {
           path="/recruiter/agent"
           element={
             <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
-              <AnimatedPage><AIRecruiterWorkspace /></AnimatedPage>
+              <AnimatedPage>
+                <Suspense fallback={<div className="p-8 text-center text-secondary">Loading Workspace...</div>}>
+                  <AIRecruiterWorkspace />
+                </Suspense>
+              </AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['owner']}>
+              <AnimatedPage><AdminDashboard /></AnimatedPage>
             </ProtectedRoute>
           }
         />

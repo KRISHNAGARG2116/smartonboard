@@ -287,7 +287,7 @@ def compare_candidates(
 @router.post("/draft")
 def generate_draft(
     payload: DraftRequest,
-    current_user: RequireRecruiter = Depends()
+    current_user: RequireRecruiter
 ):
     result = AIDraftingService.generate_outreach_draft(
         template_type=payload.template_type,

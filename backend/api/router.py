@@ -34,6 +34,7 @@ from api.hris_imports import router as hris_imports_router
 from api.talent_crm import router as talent_crm_router
 from api.match_api import router as match_router
 from api.ai_recruiter_api import router as ai_recruiter_router
+from api.health import router as health_router
 
 
 
@@ -110,6 +111,7 @@ v1_router.include_router(hris_imports_router)
 v1_router.include_router(talent_crm_router)
 v1_router.include_router(match_router)
 v1_router.include_router(ai_recruiter_router)
+v1_router.include_router(health_router)
 
 
 

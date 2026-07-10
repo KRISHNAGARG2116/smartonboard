@@ -96,8 +96,9 @@ async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExc
 
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
-from core.middleware import IPWhitelistMiddleware, ContentSecurityPolicyMiddleware, RequestSanitizationMiddleware
+from core.middleware import IPWhitelistMiddleware, ContentSecurityPolicyMiddleware, RequestSanitizationMiddleware, CorrelationIDMiddleware
 
+app.add_middleware(CorrelationIDMiddleware)
 app.add_middleware(IPWhitelistMiddleware)
 app.add_middleware(ContentSecurityPolicyMiddleware)
 app.add_middleware(RequestSanitizationMiddleware)

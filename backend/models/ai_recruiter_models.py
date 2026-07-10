@@ -55,7 +55,7 @@ class RecruiterChatMessage(Base):
     permission_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     execution_context_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     tool_calls: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True, server_default=func.now(), nullable=False)
 
     session = relationship("RecruiterChatSession", back_populates="messages")
 
@@ -80,7 +80,7 @@ class AICopilotCallLog(Base):
     cache_hit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     plan_complexity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     user_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)  # helpful, incorrect, incomplete, hallucinated, etc.
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True, server_default=func.now(), nullable=False)
 
     company = relationship("Company")
     recruiter = relationship("User")

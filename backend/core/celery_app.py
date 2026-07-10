@@ -29,6 +29,11 @@ celery_app.conf.update(
     result_expires=86400,  # Task result retention set to 24 hours (86400 seconds)
     task_always_eager=os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true",
     task_store_eager_result=True,  # Enables storing task results when eager is True
+    task_routes={
+        "tasks.performance.*": {"queue": "normal"},
+        "tasks.performance.send_bulk_emails_task": {"queue": "critical"},
+        "tasks.performance.bulk_recompute_match_scores_task": {"queue": "high"},
+    },
 )
 
 celery_app.conf.beat_schedule = {
