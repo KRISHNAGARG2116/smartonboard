@@ -58,12 +58,9 @@ async def lifespan(app: FastAPI):
     from core.malware import verify_clamav_connection
     verify_clamav_connection()
 
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        print("Database connection OK")
-    except Exception as exc:
-        print(f"WARNING: Database unavailable: {exc}")
+    # Perform production-ready connection validations (DB, Redis)
+    from core.startup_validation import validate_startup_connections
+    validate_startup_connections()
     yield
 
 

@@ -39,6 +39,8 @@ from api.identity import router as identity_router
 from api.scim import router as scim_router
 from api.compliance import router as compliance_router
 from api.security_audit import router as security_audit_router
+from api.notifications import router as notifications_router
+from api.demo_workspace import router as demo_workspace_router
 
 
 
@@ -120,6 +122,8 @@ v1_router.include_router(identity_router)
 v1_router.include_router(scim_router)
 v1_router.include_router(compliance_router)
 v1_router.include_router(security_audit_router)
+v1_router.include_router(notifications_router)
+v1_router.include_router(demo_workspace_router)
 
 
 

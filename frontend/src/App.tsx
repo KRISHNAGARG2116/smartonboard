@@ -40,6 +40,7 @@ import ExecutiveReports from './pages/recruiter/ExecutiveReports'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import SecurityDashboard from './pages/admin/SecurityDashboard'
 import ComplianceDashboard from './pages/admin/ComplianceDashboard'
+import GlobalSearch from './components/GlobalSearch'
 
 
 // Candidate Workspace Pages
@@ -313,6 +314,7 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <BrowserRouter>
+          <GlobalSearch />
           <AppRoutes />
         </BrowserRouter>
       </ThemeProvider>

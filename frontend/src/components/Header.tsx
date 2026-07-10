@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import RecruiterNotificationBell from './RecruiterNotificationBell'
 
 export default function Header() {
   const { pathname } = useLocation()
@@ -40,7 +41,8 @@ export default function Header() {
         <div className="header-actions">
           {user ? (
             <>
-              <span className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginRight: 'var(--space-2)' }}>
+              <RecruiterNotificationBell />
+              <span className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginRight: 'var(--space-2)', marginLeft: '8px' }}>
                 {user.full_name}
               </span>
               <button
