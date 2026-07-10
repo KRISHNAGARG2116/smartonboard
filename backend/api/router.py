@@ -31,6 +31,8 @@ from api.emails import router as emails_router
 from api.slack_teams import router as slack_teams_router
 from api.background_checks import router as background_checks_router
 from api.hris_imports import router as hris_imports_router
+from api.talent_crm import router as talent_crm_router
+from api.match_api import router as match_router
 
 
 
@@ -104,6 +106,8 @@ v1_router.include_router(emails_router)
 v1_router.include_router(slack_teams_router)
 v1_router.include_router(background_checks_router)
 v1_router.include_router(hris_imports_router)
+v1_router.include_router(talent_crm_router)
+v1_router.include_router(match_router)
 
 
 

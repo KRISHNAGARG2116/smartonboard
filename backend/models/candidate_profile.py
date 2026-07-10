@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Boolean, func
+from sqlalchemy import DateTime, ForeignKey, String, Boolean, Integer, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,6 +21,7 @@ class CandidateProfile(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     profile_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    resume_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
     skills: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     summary: Mapped[str | None] = mapped_column(String, nullable=True)
     preferences: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict, server_default='{}')

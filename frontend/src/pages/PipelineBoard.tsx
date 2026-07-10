@@ -10,10 +10,10 @@ import {
   getVerificationStatus, 
   type Application 
 } from '../api'
-import { scoreClass } from '../utils/score'
 import SteepCard from '../components/design-system/SteepCard'
 import SteepButton from '../components/design-system/SteepButton'
 import SteepBadge from '../components/design-system/SteepBadge'
+import MatchScoreBadge from '../components/MatchScoreBadge'
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
@@ -414,13 +414,7 @@ export default function PipelineBoard() {
                                   </strong>
                                 </div>
                                 
-                                {score > 0 ? (
-                                  <span className={`score-ring ${scoreClass(score)}`} style={{ width: '22px', height: '22px', fontSize: '9px' }}>
-                                    {score}
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: '10px', color: 'var(--color-ash)' }}>—</span>
-                                )}
+                                <MatchScoreBadge score={score > 0 ? score : null} size={28} strokeWidth={3} />
                               </div>
 
                               {/* Job connection & Days Badge */}

@@ -18,6 +18,11 @@ class UserPermission:
     EXPORT_EXECUTIVE_REPORTS = "export_executive_reports"
     REJECT_CANDIDATES = "reject_candidates"
     CREATE_OFFERS = "create_offers"
+    VIEW_TALENT_CRM = "view_talent_crm"
+    MANAGE_TALENT_POOLS = "manage_talent_pools"
+    MANAGE_CANDIDATE_RELATIONSHIPS = "manage_candidate_relationships"
+    RUN_AI_REDISCOVERY = "run_ai_rediscovery"
+    EXPORT_TALENT_SEARCH = "export_talent_search"
 
 
 role_permissions = Table(

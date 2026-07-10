@@ -124,6 +124,17 @@ def db_session(db_engine):
                     # Full table list — ordered to respect FK constraints (children first)
                     for table in (
                         # Leaf / child tables first
+                        "match_score_histories",
+                        "cached_match_scores",
+                        "match_feedbacks",
+                        "candidate_merge_logs",
+                        "candidate_sequence_enrollments",
+                        "outreach_sequences",
+                        "candidate_activities",
+                        "candidate_relationships",
+                        "talent_pool_memberships",
+                        "talent_pool_rule_histories",
+                        "talent_pools",
                         "verification_tokens",
                         "revoked_tokens",
                         "user_sessions",

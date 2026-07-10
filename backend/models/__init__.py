@@ -94,6 +94,19 @@ from models.employee_policy_acknowledgement import EmployeePolicyAcknowledgement
 from models.employee_buddy_assignment import EmployeeBuddyAssignment
 from models.employee_welcome_event import EmployeeWelcomeEvent
 from models.employee_onboarding_audit import EmployeeOnboardingAudit
+from models.crm_models import (
+    TalentPool,
+    TalentPoolRuleHistory,
+    TalentPoolMembership,
+    CandidateRelationship,
+    CandidateActivity,
+    OutreachSequence,
+    CandidateSequenceEnrollment,
+    CandidateMergeLog,
+    MatchFeedback,
+    CachedMatchScore,
+    MatchScoreHistory,
+)
 
 
 __all__ = [
@@ -208,6 +221,17 @@ __all__ = [
     "EmployeeBuddyAssignment",
     "EmployeeWelcomeEvent",
     "EmployeeOnboardingAudit",
+    "TalentPool",
+    "TalentPoolRuleHistory",
+    "TalentPoolMembership",
+    "CandidateRelationship",
+    "CandidateActivity",
+    "OutreachSequence",
+    "CandidateSequenceEnrollment",
+    "CandidateMergeLog",
+    "MatchFeedback",
+    "CachedMatchScore",
+    "MatchScoreHistory",
 ]
 
 

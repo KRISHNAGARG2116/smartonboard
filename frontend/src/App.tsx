@@ -27,6 +27,7 @@ import RecruiterJobs from './pages/recruiter/RecruiterJobs'
 import RecruiterJobBuilder from './pages/recruiter/RecruiterJobBuilder'
 import RecruiterInterviews from './pages/recruiter/RecruiterInterviews'
 import RecruiterSettings from './pages/recruiter/RecruiterSettings'
+import TalentCRM from './pages/recruiter/TalentCRM'
 
 // Executive Analytics Pages (B.3C)
 import ExecutiveDashboard from './pages/recruiter/ExecutiveDashboard'
@@ -152,6 +153,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
               <AnimatedPage><RecruiterSettings /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter/crm"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'recruiter']}>
+              <AnimatedPage><TalentCRM /></AnimatedPage>
             </ProtectedRoute>
           }
         />
