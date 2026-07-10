@@ -38,6 +38,8 @@ import ExecutiveRecruiters from './pages/recruiter/ExecutiveRecruiters'
 import ExecutiveForecast from './pages/recruiter/ExecutiveForecast'
 import ExecutiveReports from './pages/recruiter/ExecutiveReports'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import SecurityDashboard from './pages/admin/SecurityDashboard'
+import ComplianceDashboard from './pages/admin/ComplianceDashboard'
 
 
 // Candidate Workspace Pages
@@ -186,6 +188,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['owner']}>
               <AnimatedPage><AdminDashboard /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/security"
+          element={
+            <ProtectedRoute allowedRoles={['owner']}>
+              <AnimatedPage><SecurityDashboard /></AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/compliance"
+          element={
+            <ProtectedRoute allowedRoles={['owner']}>
+              <AnimatedPage><ComplianceDashboard /></AnimatedPage>
             </ProtectedRoute>
           }
         />

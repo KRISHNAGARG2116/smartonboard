@@ -410,12 +410,30 @@ def get_employee_db() -> Generator[Session, None, None]:
 
 
 
+ROLE_HIERARCHY = {
+    UserRole.OWNER: {UserRole.OWNER, UserRole.RECRUITER, UserRole.EMPLOYEE},
+    UserRole.RECRUITER: {UserRole.RECRUITER, UserRole.EMPLOYEE},
+}
+
+
 class RoleChecker:
     def __init__(self, allowed_roles: list[UserRole]):
         self.allowed_roles = allowed_roles
 
     def __call__(self, current_user: Annotated[User, Depends(get_onboarded_recruiter)]) -> User:
-        if current_user.role not in self.allowed_roles:
+        user_role = current_user.role
+        has_access = False
+        
+        for allowed in self.allowed_roles:
+            if user_role == allowed:
+                has_access = True
+                break
+            inherited = ROLE_HIERARCHY.get(user_role, set())
+            if allowed in inherited:
+                has_access = True
+                break
+                
+        if not has_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Forbidden: insufficient role privileges",

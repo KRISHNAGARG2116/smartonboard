@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,6 +19,9 @@ class CompanySSOSettings(Base):
     idp_entity_id: Mapped[str] = mapped_column(String(255), nullable=False)
     idp_sso_url: Mapped[str] = mapped_column(String(512), nullable=False)
     idp_x509_cert: Mapped[str | None] = mapped_column(String, nullable=True)
+    idp_x509_cert_next: Mapped[str | None] = mapped_column(String, nullable=True)
+    idp_x509_cert_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    emergency_access_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     oidc_client_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     oidc_client_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     oidc_well_known: Mapped[str | None] = mapped_column(String(512), nullable=True)

@@ -1,6 +1,8 @@
 import uuid
 import logging
 from datetime import datetime, timezone
+import hashlib
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from models.audit import AuditLog
 from db.session import tenant_context, tenant_id_var
@@ -88,6 +90,20 @@ def log_audit_event(
 
     # 4. Write to DB under tenant bypass context
     with tenant_context(auth_mode="true"):
+        prev_hash = "0" * 64
+        prev_log = db.scalars(
+            select(AuditLog).order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).limit(1)
+        ).first()
+        if prev_log and prev_log.metadata_json:
+            prev_hash = prev_log.metadata_json.get("hash_chain", "0" * 64)
+
+        timestamp_now = datetime.now(timezone.utc)
+        record_content = f"{act_uuid}|{action}|{timestamp_now.isoformat()}|{prev_hash}"
+        current_hash = hashlib.sha256(record_content.encode()).hexdigest()
+        
+        sanitized_meta["hash_chain"] = current_hash
+        sanitized_meta["prev_hash_chain"] = prev_hash
+
         log_entry = AuditLog(
             company_id=comp_uuid,
             actor_id=act_uuid,
@@ -98,7 +114,7 @@ def log_audit_event(
             ip_address=ip_address,
             user_agent=user_agent,
             metadata_json=sanitized_meta,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=timestamp_now,
         )
         db.add(log_entry)
         db.flush()

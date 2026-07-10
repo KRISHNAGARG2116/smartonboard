@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import uuid
+import base64
 from jose import jwt
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
@@ -141,21 +142,34 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
 
 class ContentSecurityPolicyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Generate CSP nonce
+        nonce = base64.b64encode(os.urandom(16)).decode("utf-8")
+        request.state.csp_nonce = nonce
+        
         response = await call_next(request)
+        
         csp_directives = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "connect-src 'self' https://api.groq.com; "
-            "frame-ancestors 'none'; "
-            "form-action 'self';"
+            f"default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
+            f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            f"img-src 'self' data: https:; "
+            f"font-src 'self' https://fonts.gstatic.com; "
+            f"connect-src 'self' https://api.groq.com; "
+            f"frame-ancestors 'none'; "
+            f"form-action 'self';"
         )
+        
         response.headers["Content-Security-Policy"] = csp_directives
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Inject HTTP Strict Transport Security (HSTS)
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        
+        # Inject Permissions-Policy
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
         return response
 
 

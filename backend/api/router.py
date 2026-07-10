@@ -35,6 +35,10 @@ from api.talent_crm import router as talent_crm_router
 from api.match_api import router as match_router
 from api.ai_recruiter_api import router as ai_recruiter_router
 from api.health import router as health_router
+from api.identity import router as identity_router
+from api.scim import router as scim_router
+from api.compliance import router as compliance_router
+from api.security_audit import router as security_audit_router
 
 
 
@@ -112,6 +116,10 @@ v1_router.include_router(talent_crm_router)
 v1_router.include_router(match_router)
 v1_router.include_router(ai_recruiter_router)
 v1_router.include_router(health_router)
+v1_router.include_router(identity_router)
+v1_router.include_router(scim_router)
+v1_router.include_router(compliance_router)
+v1_router.include_router(security_audit_router)
 
 
 
