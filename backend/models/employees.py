@@ -58,10 +58,15 @@ class Employee(Base):
     hris_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     sync_status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)  # 'pending', 'queued', 'processing', 'synced', 'retrying', 'failed', 'manual_review'
     sync_error: Mapped[str | None] = mapped_column(String, nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, server_default="now()")
 
     company: Mapped["Company"] = relationship("Company", back_populates="employees")
+    user: Mapped["User | None"] = relationship("User", foreign_keys=[user_id])
+
     candidate: Mapped["Candidate | None"] = relationship("Candidate")
     onboarding_workflow: Mapped["OnboardingWorkflow | None"] = relationship("OnboardingWorkflow", back_populates="employee", cascade="all, delete-orphan", uselist=False)
     supervisor: Mapped["Employee | None"] = relationship("Employee", remote_side=[id], backref="subordinates")
@@ -146,8 +151,11 @@ class OnboardingTask(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     meta_payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    phase: Mapped[str] = mapped_column(String(50), default="preboarding", server_default="preboarding", nullable=False)
+    is_optional: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, server_default="now()")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, server_default="now()")
+
 
     workflow: Mapped["OnboardingWorkflow"] = relationship("OnboardingWorkflow", back_populates="tasks")
     documents: Mapped[list["OnboardingDocument"]] = relationship("OnboardingDocument", back_populates="task", cascade="all, delete-orphan")

@@ -5,6 +5,8 @@ class UserRole(str, enum.Enum):
     OWNER = "owner"
     RECRUITER = "recruiter"
     CANDIDATE = "candidate"
+    EMPLOYEE = "employee"
+
 
 
 class AuthProvider(str, enum.Enum):

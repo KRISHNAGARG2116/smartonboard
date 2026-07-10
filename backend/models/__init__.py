@@ -85,6 +85,15 @@ from models.candidate_chat_session import CandidateChatSession
 from models.candidate_ai_chat import CandidateAIChatHistory
 from models.interview_reschedule_request import InterviewRescheduleRequest
 from models.candidate_profile_revision import CandidateProfileRevision
+from models.onboarding_task_dependencies import OnboardingTaskDependency
+from models.employee_onboarding import EmployeeOnboarding
+from models.employee_equipment_request import EmployeeEquipmentRequest
+from models.employee_provisioning_request import EmployeeProvisioningRequest
+from models.employee_document import EmployeeDocument
+from models.employee_policy_acknowledgement import EmployeePolicyAcknowledgement
+from models.employee_buddy_assignment import EmployeeBuddyAssignment
+from models.employee_welcome_event import EmployeeWelcomeEvent
+from models.employee_onboarding_audit import EmployeeOnboardingAudit
 
 
 __all__ = [
@@ -190,7 +199,17 @@ __all__ = [
     "CandidateAIChatHistory",
     "InterviewRescheduleRequest",
     "CandidateProfileRevision",
+    "OnboardingTaskDependency",
+    "EmployeeOnboarding",
+    "EmployeeEquipmentRequest",
+    "EmployeeProvisioningRequest",
+    "EmployeeDocument",
+    "EmployeePolicyAcknowledgement",
+    "EmployeeBuddyAssignment",
+    "EmployeeWelcomeEvent",
+    "EmployeeOnboardingAudit",
 ]
+
 
 
 

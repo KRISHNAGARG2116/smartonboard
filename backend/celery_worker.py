@@ -1093,7 +1093,242 @@ def process_offer_acceptance_async(offer_id_str: str) -> dict:
                 )
                 db.add(task)
 
+        # 3.5. Setup Phase C.2 Onboarding Platform Workspace and assets
+        # Promote candidate user to employee role
+        candidate_user.role = UserRole.EMPLOYEE
+        candidate_user.company_id = offer.company_id
+        db.add(candidate_user)
+        db.flush()
+
+        from models.employees import Employee, OnboardingWorkflow
+        employee = db.scalar(
+            select(Employee).where(
+                Employee.company_id == offer.company_id,
+                Employee.email == candidate_user.email
+            )
+        )
+        if not employee:
+            employee = Employee(
+                company_id=offer.company_id,
+                candidate_id=app.candidate_id,
+                email=candidate_user.email,
+                full_name=candidate_user.full_name,
+                job_title="Software Engineer",
+                department="Engineering",
+                employment_type="full_time",
+                status="onboarding",
+                start_date=date.today() + timedelta(days=14),
+                user_id=candidate_user.id
+            )
+            db.add(employee)
+            db.flush()
+
+        workflow = db.scalar(
+            select(OnboardingWorkflow).where(OnboardingWorkflow.employee_id == employee.id)
+        )
+        if not workflow:
+            workflow = OnboardingWorkflow(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                status="initiated",
+                started_at=datetime.utcnow()
+            )
+            db.add(workflow)
+            db.flush()
+
+        from models.employee_onboarding import EmployeeOnboarding
+        emp_onboarding = db.scalar(
+            select(EmployeeOnboarding).where(EmployeeOnboarding.employee_id == employee.id)
+        )
+        if not emp_onboarding:
+            emp_onboarding = EmployeeOnboarding(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                template_name="Engineering Onboarding Template",
+                template_version=2,
+                template_snapshot_created_at=datetime.utcnow(),
+                status="in_progress",
+                started_at=datetime.utcnow()
+            )
+            db.add(emp_onboarding)
+            db.flush()
+
+        # Snapshot template tasks into onboarding tasks grouped in phases
+        from models.onboarding_task_dependencies import OnboardingTaskDependency
+        tasks_created = {}
+        for title, phase, opt, t_type in [
+            ("Sign NDA", "preboarding", False, "document_signature"),
+            ("Upload Gov ID and tax documents", "preboarding", False, "file_upload"),
+            ("Acknowledge Code of Conduct", "day_1", False, "policy_acknowledgement"),
+            ("Request Laptop & Swag", "day_1", True, "equipment_request"),
+            ("Attend Welcome Orientation", "day_1", False, "welcome_event")
+        ]:
+            t = db.scalar(
+                select(OnboardingTask).where(
+                    OnboardingTask.workflow_id == workflow.id,
+                    OnboardingTask.title == title
+                )
+            )
+            if not t:
+                t = OnboardingTask(
+                    company_id=offer.company_id,
+                    workflow_id=workflow.id,
+                    title=title,
+                    status="pending",
+                    task_type=t_type,
+                    phase=phase,
+                    is_optional=opt,
+                    due_date=date.today() + timedelta(days=7)
+                )
+                db.add(t)
+                db.flush()
+            tasks_created[title] = t
+
+        # Set up many-to-many task dependencies
+        laptop_task = tasks_created.get("Request Laptop & Swag")
+        nda_task = tasks_created.get("Sign NDA")
+        id_task = tasks_created.get("Upload Gov ID and tax documents")
+        if laptop_task and nda_task and id_task:
+            for dep_task in [nda_task, id_task]:
+                dep_exists = db.scalar(
+                    select(OnboardingTaskDependency).where(
+                        OnboardingTaskDependency.task_id == laptop_task.id,
+                        OnboardingTaskDependency.depends_on_task_id == dep_task.id
+                    )
+                )
+                if not dep_exists:
+                    dep = OnboardingTaskDependency(
+                        task_id=laptop_task.id,
+                        depends_on_task_id=dep_task.id
+                    )
+                    db.add(dep)
+
+        # Create NDA document entry in vault
+        from models.employee_document import EmployeeDocument
+        nda_doc = db.scalar(
+            select(EmployeeDocument).where(
+                EmployeeDocument.employee_id == employee.id,
+                EmployeeDocument.document_type == "nda"
+            )
+        )
+        if not nda_doc:
+            nda_doc = EmployeeDocument(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                document_type="nda",
+                document_name="Standard Non-Disclosure Agreement",
+                document_version="1.0",
+                checksum="5a8f4c28d22ef142a7c73a71b12b5b141ea87d1ea21b8f141ea87d1ea21b8f41",
+                uploaded_by_id=candidate_user.id,
+                storage_key="templates/nda_v1.pdf"
+            )
+            db.add(nda_doc)
+
+        # Create IT provisioning requests
+        from models.employee_provisioning_request import EmployeeProvisioningRequest
+        email_pr = db.scalar(
+            select(EmployeeProvisioningRequest).where(
+                EmployeeProvisioningRequest.employee_id == employee.id,
+                EmployeeProvisioningRequest.service_name == "email"
+            )
+        )
+        if not email_pr:
+            email_pr = EmployeeProvisioningRequest(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                service_name="email",
+                status="pending",
+                notes="Pending corporate email creation"
+            )
+            db.add(email_pr)
+            db.flush()
+
+        sso_pr = db.scalar(
+            select(EmployeeProvisioningRequest).where(
+                EmployeeProvisioningRequest.employee_id == employee.id,
+                EmployeeProvisioningRequest.service_name == "sso"
+            )
+        )
+        if not sso_pr:
+            sso_pr = EmployeeProvisioningRequest(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                service_name="sso",
+                status="pending",
+                depends_on_provisioning_id=email_pr.id,
+                notes="Pending single sign-on setup"
+            )
+            db.add(sso_pr)
+            db.flush()
+
+        for svc in ["slack", "github"]:
+            svc_pr = db.scalar(
+                select(EmployeeProvisioningRequest).where(
+                    EmployeeProvisioningRequest.employee_id == employee.id,
+                    EmployeeProvisioningRequest.service_name == svc
+                )
+            )
+            if not svc_pr:
+                svc_pr = EmployeeProvisioningRequest(
+                    company_id=offer.company_id,
+                    employee_id=employee.id,
+                    service_name=svc,
+                    status="pending",
+                    depends_on_provisioning_id=sso_pr.id,
+                    notes=f"Pending {svc} workspace invitation"
+                )
+                db.add(svc_pr)
+
+        # Create welcome events & check-ins
+        from models.employee_welcome_event import EmployeeWelcomeEvent
+        for name, desc, delta_days, hour, duration in [
+            ("Orientation Day 1 Welcome", "Meet the HR team and get set up", 14, 9, 60),
+            ("Manager Check-in", "Synchronize with your direct supervisor", 14, 13, 30),
+            ("30-day Review", "First month onboarding review session", 44, 10, 30),
+            ("60-day Review", "Second month onboarding review session", 74, 10, 30),
+            ("90-day Review", "Third month onboarding review session", 104, 10, 30),
+            ("Probation Review", "Final probation review check-in", 104, 14, 45)
+        ]:
+            evt_exists = db.scalar(
+                select(EmployeeWelcomeEvent).where(
+                    EmployeeWelcomeEvent.employee_id == employee.id,
+                    EmployeeWelcomeEvent.event_name == name
+                )
+            )
+            if not evt_exists:
+                start_dt = datetime.combine(employee.start_date, datetime.min.time()) + timedelta(days=delta_days - 14) + timedelta(hours=hour)
+                evt = EmployeeWelcomeEvent(
+                    company_id=offer.company_id,
+                    employee_id=employee.id,
+                    event_name=name,
+                    description=desc,
+                    scheduled_at=start_dt.replace(tzinfo=timezone.utc),
+                    duration_minutes=duration,
+                    meeting_link="https://meet.google.com/abc-defg-hij"
+                )
+                db.add(evt)
+
+        # Logging onboarding timeline audit milestone
+        from models.employee_onboarding_audit import EmployeeOnboardingAudit
+        audit_exists = db.scalar(
+            select(EmployeeOnboardingAudit).where(
+                EmployeeOnboardingAudit.employee_id == employee.id,
+                EmployeeOnboardingAudit.action == "Offer Accepted"
+            )
+        )
+        if not audit_exists:
+            aud = EmployeeOnboardingAudit(
+                company_id=offer.company_id,
+                employee_id=employee.id,
+                actor_id=candidate_user.id,
+                actor_type="employee",
+                action="Offer Accepted",
+                details={"offer_id": str(offer.id)}
+            )
+            db.add(aud)
+
         # 4. Trigger HRIS Workflow / integration updates & Onboarding Outbox
+
         from models.employees import OnboardingEventOutbox
         outbox_exists = db.scalar(
             select(OnboardingEventOutbox).where(

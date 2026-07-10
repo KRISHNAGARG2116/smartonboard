@@ -26,10 +26,10 @@ def get_current_user(
     try:
         payload = decode_access_token(credentials.credentials)
         role = payload.get("role")
-        if role == UserRole.CANDIDATE.value:
+        if role in (UserRole.CANDIDATE.value, UserRole.EMPLOYEE.value):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Candidates are not permitted to access recruiter resources",
+                detail="Not permitted to access recruiter resources",
             )
         user_id = payload.get("sub")
         company_id = payload.get("company_id")
@@ -292,6 +292,70 @@ def get_current_candidate(
     return user
 
 
+def get_current_employee(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    """Authenticate an employee user from JWT.
+
+    Employees have user_id, company_id, and role=employee.
+    """
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = payload.get("sub")
+        role = payload.get("role")
+        jti = payload.get("jti")
+        session_id = payload.get("session_id")
+
+        if not user_id or not jti:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        if role != UserRole.EMPLOYEE.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This endpoint requires employee authentication",
+            )
+
+        # Check if access token is blacklisted
+        from models.session import RevokedToken, UserSession
+        from datetime import datetime, timezone
+        from uuid import UUID
+
+        revoked = db.scalar(select(RevokedToken).where(RevokedToken.jti == jti))
+        if revoked:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
+        # Check and update session activity
+        if session_id:
+            session = db.scalar(select(UserSession).where(UserSession.id == UUID(session_id)))
+            if not session or session.is_revoked or session.expires_at < datetime.now(timezone.utc):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has expired or is revoked")
+
+            session.last_active = datetime.now(timezone.utc)
+            db.add(session)
+            db.commit()
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+
+    # Employees bypass recruiter RLS - query under auth_mode
+    with tenant_context(auth_mode="true"):
+        user = db.scalar(
+            select(User).where(
+                User.id == UUID(user_id),
+                User.role == UserRole.EMPLOYEE,
+                User.is_active.is_(True),
+            )
+        )
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Employee not found or inactive")
+    return user
+
+
+
 def get_onboarded_recruiter(
     current_user: Annotated[User, Depends(get_verified_recruiter)],
 ) -> User:
@@ -329,6 +393,21 @@ def get_candidate_db() -> Generator[Session, None, None]:
         tenant_id_var.set("")
         auth_mode_var.set("false")
         db.close()
+
+
+def get_employee_db() -> Generator[Session, None, None]:
+    """Provides a database session with RLS bypassed (auth_mode='true') for employee operations.
+    """
+    db = SessionLocal()
+    tenant_id_var.set("")
+    set_auth_mode(db)
+    try:
+        yield db
+    finally:
+        tenant_id_var.set("")
+        auth_mode_var.set("false")
+        db.close()
+
 
 
 class RoleChecker:
@@ -442,6 +521,9 @@ def get_verified_candidate(
 VerifiedCandidate = Annotated[User, Depends(get_verified_candidate)]
 RequireCandidate = Annotated[User, Depends(get_current_candidate)]
 CandidateDb = Annotated[Session, Depends(get_candidate_db)]
+RequireEmployee = Annotated[User, Depends(get_current_employee)]
+EmployeeDb = Annotated[Session, Depends(get_employee_db)]
+
 
 
 VerifiedRecruiter = Annotated[User, Depends(get_verified_recruiter)]
