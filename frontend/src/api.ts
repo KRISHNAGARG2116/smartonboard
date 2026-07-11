@@ -340,11 +340,6 @@ export const fetchDashboardSummary = () =>
 export const fetchEmployees = () =>
   api.get<any[]>('/v1/employees').then(r => r.data)
 
-export const fetchDlqRecords = () =>
-  api.get<any[]>('/v1/employees/dlq').then(r => r.data)
-
-export const fetchSyncMetrics = () =>
-  api.get<any[]>('/v1/employees/metrics').then(r => r.data)
 
 export const resolveTaskEscalation = (taskId: string, notes: string) =>
   api.post(`/v1/employees/tasks/${taskId}/escalations/resolve`, { resolution_notes: notes }).then(r => r.data)

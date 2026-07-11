@@ -60,6 +60,16 @@ from api.candidate_profile import router as candidate_profile_router
 from api.candidate_ai import router as candidate_ai_router
 
 # Dedicated Employee Routers
+from api.employee_auth import router as employee_auth_router
+from api.employee_dashboard import router as employee_dashboard_router
+from api.employee_checklist import router as employee_checklist_router
+from api.employee_equipment import router as employee_equipment_router
+from api.employee_provisioning import router as employee_provisioning_router
+from api.employee_buddy import router as employee_buddy_router
+from api.employee_welcome import router as employee_welcome_router
+from api.employee_policies import router as employee_policies_router
+from api.employee_documents import router as employee_documents_router
+from api.manager_onboarding import router as manager_onboarding_router
 from api.hr_onboarding import router as hr_onboarding_router
 
 
@@ -79,6 +89,16 @@ v1_router.include_router(candidate_offers_router)
 v1_router.include_router(candidate_timeline_router)
 v1_router.include_router(candidate_profile_router)
 v1_router.include_router(candidate_ai_router)
+v1_router.include_router(employee_auth_router)
+v1_router.include_router(employee_dashboard_router)
+v1_router.include_router(employee_checklist_router)
+v1_router.include_router(employee_equipment_router)
+v1_router.include_router(employee_provisioning_router)
+v1_router.include_router(employee_buddy_router)
+v1_router.include_router(employee_welcome_router)
+v1_router.include_router(employee_policies_router)
+v1_router.include_router(employee_documents_router)
+v1_router.include_router(manager_onboarding_router)
 v1_router.include_router(hr_onboarding_router)
 
 

@@ -78,7 +78,6 @@ def db_engine():
             "to start the database before running RLS tests.".format(settings.database_url)
         )
     
-    # 2. Return the test engine configured to connect as the standard non-superuser role
     test_db_url = settings.database_url.replace("smartonboard:smartonboard@", "smartonboard_test_user:smartonboard@")
     return create_engine(test_db_url)
 

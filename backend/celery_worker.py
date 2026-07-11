@@ -983,7 +983,8 @@ def process_offer_acceptance_async(offer_id_str: str) -> dict:
     db = SessionLocal()
     # Bypass RLS to fetch the Offer and associated Application/Candidate/Company
     with tenant_context(auth_mode="true"):
-        from models import Offer, Application, User, Notification, CandidateTask
+        from models import Offer, Application, User, Notification, CandidateTask, OnboardingTask
+        from models.enums import UserRole
         offer = db.get(Offer, offer_id)
         if not offer:
             logger.error(f"Offer {offer_id} not found")
@@ -1072,7 +1073,7 @@ def process_offer_acceptance_async(offer_id_str: str) -> dict:
             {"title": "Select your T-shirt size", "description": "Choose size for company swag: S, M, L, XL.", "task_type": "choice"},
             {"title": "Upload Gov ID and tax documents", "description": "Upload a copy of your passport or driver license.", "task_type": "file_upload"}
         ]
-        from datetime import date, timedelta
+        from datetime import datetime, date, timedelta, timezone
         for task_info in onboarding_tasks:
             task_exists = db.scalar(
                 select(CandidateTask).where(
