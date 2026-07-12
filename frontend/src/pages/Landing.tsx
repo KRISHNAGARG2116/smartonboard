@@ -7,11 +7,15 @@ import { BusinessOutcomes } from '../components/landing/business-outcomes'
 import { EnterpriseTrust } from '../components/landing/enterprise-trust'
 import { Pricing } from '../components/landing/pricing'
 import { SiteFooter } from '../components/landing/site-footer'
+import { BlueprintGrid } from '../components/landing/blueprint-grid'
+import { StoryConnector } from '../components/landing/story-connector'
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background font-sans">
+    <div className="landing-blueprint-page min-h-screen bg-transparent font-sans">
+      <BlueprintGrid />
       <SiteHeader />
+      <StoryConnector />
       <main>
         <Hero />
         <RecruiterDashboard />
