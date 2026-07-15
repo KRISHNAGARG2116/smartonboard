@@ -1,17 +1,15 @@
 .workflow-section {
   position: relative;
-  min-height: 110vh;
 }
 .workflow-scroll-space {
-  min-height: inherit;
+  width: 100%;
 }
 .workflow-sticky {
-  position: sticky;
-  top: 3.5rem;
-  height: calc(100vh - 7rem);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 580px;
 }
 .workflow-orbit {
   position: absolute;

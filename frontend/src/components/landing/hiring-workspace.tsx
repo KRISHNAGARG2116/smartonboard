@@ -71,42 +71,192 @@ const WORKFLOW_STAGES = [
 
 export function HiringWorkspace() {
   const sectionRef = useRef<HTMLElement>(null)
-  const frameRef = useRef<number | undefined>(undefined)
-  const [progress, setProgress] = useState(0)
+  const [isPinned, setIsPinned] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  useEffect(() => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reducedMotion) return
+  const lastScrollY = useRef(0)
+  const hasCompleted = useRef(false)
+  const cooldown = useRef(false)
+  const touchStartY = useRef(0)
 
-    const update = () => {
-      frameRef.current = undefined
+  // Snap and Pin detection
+  useEffect(() => {
+    const handleScrollCheck = () => {
       const section = sectionRef.current
       if (!section) return
+
       const rect = section.getBoundingClientRect()
-      const scrollableDistance = Math.max(section.offsetHeight - window.innerHeight, 1)
-      const nextProgress = Math.min(1, Math.max(0, -rect.top / scrollableDistance))
-      setProgress(nextProgress)
-      setActiveIndex(Math.min(WORKFLOW_STAGES.length - 1, Math.round(nextProgress * (WORKFLOW_STAGES.length - 1))))
+      const currentScrollY = window.scrollY
+      const direction = currentScrollY > lastScrollY.current ? 'down' : 'up'
+      lastScrollY.current = currentScrollY
+
+      const sectionCenter = rect.top + rect.height / 2
+      const viewportCenter = window.innerHeight / 2
+      const distanceToCenter = Math.abs(sectionCenter - viewportCenter)
+
+      // Reset completed status if the user scrolls back past the top of the section
+      if (rect.top > window.innerHeight) {
+        hasCompleted.current = false
+      }
+
+      // Pin ONLY when scrolling down (forward navigation)
+      if (window.innerWidth >= 1024 && direction === 'down' && !isPinned && !hasCompleted.current) {
+        // When the section center is getting close to the viewport center
+        if (rect.top > 0 && rect.top < window.innerHeight * 0.4 && distanceToCenter < 120) {
+          // Snap scroll position to center
+          const targetScrollY = currentScrollY + rect.top - (window.innerHeight - rect.height) / 2
+          window.scrollTo({ top: targetScrollY, behavior: 'instant' })
+          setIsPinned(true)
+          setActiveIndex(0)
+        }
+      }
     }
-    const onScroll = () => {
-      if (!frameRef.current) frameRef.current = window.requestAnimationFrame(update)
+
+    window.addEventListener('scroll', handleScrollCheck, { passive: true })
+    return () => window.removeEventListener('scroll', handleScrollCheck)
+  }, [isPinned])
+
+  // Body scroll lock state coordinator
+  useEffect(() => {
+    if (isPinned) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow = 'hidden'
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`
+      }
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
     }
-    update()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
     return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-      if (frameRef.current) window.cancelAnimationFrame(frameRef.current)
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
     }
-  }, [])
+  }, [isPinned])
+
+  // Stage transition scroll interceptor
+  useEffect(() => {
+    if (!isPinned) return
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+
+      if (cooldown.current) return
+
+      const direction = e.deltaY > 0 ? 'down' : 'up'
+      if (direction === 'down') {
+        if (activeIndex < WORKFLOW_STAGES.length - 1) {
+          setActiveIndex((prev) => prev + 1)
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = true
+          triggerCooldown()
+        }
+      } else {
+        if (activeIndex > 0) {
+          setActiveIndex((prev) => prev - 1)
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = false
+          triggerCooldown()
+        }
+      }
+    }
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+
+      if (cooldown.current) return
+
+      const currentY = e.touches[0].clientY
+      const diffY = touchStartY.current - currentY
+
+      if (Math.abs(diffY) < 15) return
+
+      const direction = diffY > 0 ? 'down' : 'up'
+      if (direction === 'down') {
+        if (activeIndex < WORKFLOW_STAGES.length - 1) {
+          setActiveIndex((prev) => prev + 1)
+          touchStartY.current = currentY
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = true
+          triggerCooldown()
+        }
+      } else {
+        if (activeIndex > 0) {
+          setActiveIndex((prev) => prev - 1)
+          touchStartY.current = currentY
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = false
+          triggerCooldown()
+        }
+      }
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const keys = ['ArrowDown', 'ArrowUp', ' ', 'PageDown', 'PageUp']
+      if (!keys.includes(e.key)) return
+
+      e.preventDefault()
+
+      if (cooldown.current) return
+
+      if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+        if (activeIndex < WORKFLOW_STAGES.length - 1) {
+          setActiveIndex((prev) => prev + 1)
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = true
+          triggerCooldown()
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        if (activeIndex > 0) {
+          setActiveIndex((prev) => prev - 1)
+          triggerCooldown()
+        } else {
+          setIsPinned(false)
+          hasCompleted.current = false
+          triggerCooldown()
+        }
+      }
+    }
+
+    const triggerCooldown = () => {
+      cooldown.current = true
+      setTimeout(() => {
+        cooldown.current = false
+      }, 500)
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
+    window.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel, { capture: true })
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove, { capture: true })
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+    }
+  }, [isPinned, activeIndex])
 
   const activeStage = WORKFLOW_STAGES[activeIndex]
-  const workflowStyle = { '--workflow-progress': progress } as CSSProperties
+  const workflowStyle = { '--workflow-progress': activeIndex } as CSSProperties
 
   return (
-    <section ref={sectionRef} className="workflow-section relative flex flex-col items-center justify-start bg-transparent py-6 md:py-8" aria-labelledby="workflow-title">
+    <section ref={sectionRef} className="workflow-section relative flex flex-col items-center justify-start bg-transparent py-10 md:py-14" aria-labelledby="workflow-title">
       <div className="workflow-scroll-space w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.1fr_1.9fr] gap-8 items-center justify-between">
         {/* Left Column: Heading & Text */}
         <div className="text-left max-w-xl mb-4 lg:mb-0 lg:sticky lg:top-[35%] lg:pr-6">
@@ -159,7 +309,9 @@ export function HiringWorkspace() {
             })}
           </div>
 
-          <p className="workflow-progress" aria-hidden="true">SCROLL TO FOLLOW THE FLOW</p>
+          <p className="workflow-progress" aria-hidden="true">
+            {isPinned ? `STAGE ${activeIndex + 1} OF ${WORKFLOW_STAGES.length} · SCROLL TO ADVANCE` : 'SCROLL TO FOLLOW THE FLOW'}
+          </p>
         </div>
       </div>
 
