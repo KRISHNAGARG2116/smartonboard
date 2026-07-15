@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { SectionLabel } from '@/components/primitives'
 import { Reveal } from '@/components/reveal'
+import { ScrollFloat } from './ScrollFloat'
 
 const VELOCITY = [
   { m: 'Jan', v: 22 },
@@ -29,12 +30,7 @@ const FUNNEL = [
   { stage: 'Hired', v: 12 },
 ]
 
-const TILES = [
-  { label: 'Acceptance rate', value: '92%', trend: '+14 pts', up: true },
-  { label: 'AI accuracy', value: '98.4%', trend: 'vs. human review', up: true },
-  { label: 'Efficiency', value: '3.2×', trend: 'roles/recruiter', up: true },
-  { label: 'Cost/hire', value: '−41%', trend: 'year over year', up: true },
-]
+
 
 export function BusinessOutcomes() {
   return (
@@ -119,14 +115,22 @@ export function BusinessOutcomes() {
             </div>
           </Reveal>
 
-          <Reveal delay={0.15} className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {TILES.map((t) => (
-              <div key={t.label} className="rounded-[18px] border border-[#e4d9ce] bg-white p-4 shadow-soft">
-                <p className="text-[11.5px] text-zinc-500 font-semibold">{t.label}</p>
-                <p className="mt-1.5 font-heading text-3xl leading-none text-[#1f090b]">{t.value}</p>
-                <p className="mt-1 text-[10.5px] text-zinc-500 font-medium">{t.trend}</p>
-              </div>
-            ))}
+          {/* Lower Row: 4 Stats Tiles */}
+          <Reveal delay={0.2}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              {[
+                { label: 'Screening accuracy', val: '92%', desc: 'AI-to-human consensus' },
+                { label: 'Authenticity score', val: '98.4%', desc: 'Verified candidate signals' },
+                { label: 'Time saved', val: '3.2x', desc: 'Recruiter hours reclaimed' },
+                { label: 'Review overhead', val: '-41%', desc: 'Fewer screening iterations' }
+              ].map((stat, i) => (
+                <div key={i} className="rounded-2xl border border-[#e4d9ce] bg-white p-5 shadow-soft text-left">
+                  <p className="text-[12.5px] font-bold text-zinc-500 leading-tight">{stat.label}</p>
+                  <p className="font-heading text-3xl text-[#4a1f2c] mt-2 leading-none">{stat.val}</p>
+                  <p className="text-[11.5px] text-zinc-500 mt-2 font-medium leading-normal">{stat.desc}</p>
+                </div>
+              ))}
+            </div>
           </Reveal>
         </div>
 
@@ -135,9 +139,14 @@ export function BusinessOutcomes() {
           <SectionLabel>
             Business outcomes
           </SectionLabel>
-          <h2 className="mt-3 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+          <ScrollFloat
+            animationDuration={0.8}
+            stagger={0.015}
+            containerClassName="mt-3"
+            textClassName="text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl"
+          >
             The numbers leadership actually asks about.
-          </h2>
+          </ScrollFloat>
           <p className="mt-3 text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
             Every action in SmartOnboard rolls up into a single executive view —
             faster hiring, higher acceptance, and a pipeline you can forecast.

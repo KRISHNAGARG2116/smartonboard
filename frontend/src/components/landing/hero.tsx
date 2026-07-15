@@ -3,6 +3,7 @@
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/primitives'
+import { RotatingText } from './RotatingText'
 
 function Float({
   children,
@@ -58,8 +59,29 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-pretty text-[17px] leading-relaxed text-zinc-600 font-medium">
-            SmartOnboard reads every resume, ranks every candidate and verifies
-            every identity — so your team spends time on conversations, not
+            SmartOnboard{' '}
+            <span className="relative inline-flex flex-col items-start align-baseline select-none">
+              {['reads every resume', 'ranks every candidate', 'verifies every identity'].map((text, idx) => (
+                <span key={idx} className="invisible h-0 select-none pointer-events-none font-bold whitespace-nowrap block text-[#4a1f2c] opacity-0" aria-hidden="true">
+                  {text}
+                </span>
+              ))}
+              <span className="absolute inset-0 select-text flex items-center">
+                <RotatingText
+                  texts={['reads every resume', 'ranks every candidate', 'verifies every identity']}
+                  mainClassName="inline-flex overflow-hidden text-[#4a1f2c] font-bold"
+                  staggerFrom="first"
+                  initial={{ y: '100%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '-120%', opacity: 0 }}
+                  staggerDuration={0.02}
+                  splitLevelClassName="overflow-hidden pb-0.5"
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  rotationInterval={2500}
+                />
+              </span>
+            </span>{' '}
+            — so your team spends time on conversations, not
             screening.
           </p>
 

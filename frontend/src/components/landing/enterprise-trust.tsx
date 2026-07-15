@@ -42,9 +42,9 @@ export function EnterpriseTrust() {
 
       <Reveal delay={0.1} className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-[#e4d9ce] sm:grid-cols-2 lg:grid-cols-4">
         {ITEMS.map((item) => (
-          <div key={item.title} className="bg-white p-4.5">
-            <span className="grid size-8 place-items-center rounded-xl bg-[#faf7f2] text-[#4a1f2c] border border-[#e4d9ce]/40">
-              <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div key={item.title} className="bg-white p-6">
+            <span className="grid size-10 place-items-center rounded-xl bg-[#faf7f2] text-[#4a1f2c] border border-[#e4d9ce]/40">
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d={item.icon} />
               </svg>
             </span>

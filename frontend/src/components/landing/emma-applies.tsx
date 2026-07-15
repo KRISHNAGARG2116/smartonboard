@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react'
 import { Avatar, SectionLabel } from '@/components/primitives'
+import { ScrollFloat } from './ScrollFloat'
 
 const MATCHED = ['Figma', 'Design systems', 'Prototyping', 'User research', 'Accessibility', 'Design tokens', 'Usability testing', 'Wireframing']
 const MISSING = ['Design ops', 'Motion design']
@@ -21,9 +22,14 @@ export function EmmaApplies() {
           {/* Left Column: Heading & Text */}
           <div className="max-w-xl">
             <SectionLabel>Emma applies</SectionLabel>
-            <h2 className="mt-3 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+            <ScrollFloat
+              animationDuration={0.8}
+              stagger={0.015}
+              containerClassName="mt-3"
+              textClassName="text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl"
+            >
               A resume becomes a decision in seconds.
-            </h2>
+            </ScrollFloat>
             <p className="mt-4 text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
               The moment Emma applies, SmartOnboard reads her resume, extracts her
               skills, finds the gaps and shows its work — so you trust the score.
@@ -38,7 +44,7 @@ export function EmmaApplies() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="relative overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-white p-7 shadow-float"
+              className="relative overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-white p-6 md:p-8 shadow-float"
             >
               {/* scan line */}
               <motion.div
@@ -79,14 +85,14 @@ export function EmmaApplies() {
                 </div>
               </div>
             </motion.div>
-
+ 
             {/* AI Analysis Card */}
             <motion.div
               initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-[24px] border border-[#e4d9ce] bg-white p-7 shadow-float"
+              className="rounded-[24px] border border-[#e4d9ce] bg-white p-6 md:p-8 shadow-float"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

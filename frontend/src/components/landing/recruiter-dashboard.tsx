@@ -1,5 +1,6 @@
 import { Avatar, SectionLabel, WindowChrome } from '@/components/primitives'
 import { Reveal } from '@/components/reveal'
+import { ScrollFloat } from './ScrollFloat'
 
 const NAV = [
   { label: 'Dashboard', active: true, icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
@@ -45,9 +46,14 @@ export function RecruiterDashboard() {
         {/* Left Column: Heading & Text */}
         <Reveal className="max-w-xl lg:pr-4">
           <SectionLabel>The recruiter&apos;s morning</SectionLabel>
-          <h2 className="mt-3 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+          <ScrollFloat
+            animationDuration={0.8}
+            stagger={0.015}
+            containerClassName="mt-3"
+            textClassName="text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl"
+          >
             One workspace that already did the hard part.
-          </h2>
+          </ScrollFloat>
           <p className="mt-4 text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
             Sarah opens SmartOnboard. Overnight, the AI screened every new
             applicant, scheduled the day&apos;s interviews and surfaced the people
