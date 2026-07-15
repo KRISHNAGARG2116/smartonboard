@@ -26,15 +26,15 @@ const ITEMS = [
 
 export function EnterpriseTrust() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-4 md:py-6">
+    <section className="mx-auto w-full px-6 py-4 md:py-6">
       <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-        <div className="max-w-md">
+        <div className="max-w-xl">
           <SectionLabel>Enterprise trust</SectionLabel>
-          <h2 className="mt-5 text-balance font-heading text-2xl leading-tight text-[#1f090b] md:text-3xl">
+          <h2 className="mt-5 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
             Quietly secure, by default.
           </h2>
         </div>
-        <p className="max-w-sm text-pretty text-[14px] leading-relaxed text-zinc-600 font-medium">
+        <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-zinc-600 font-medium">
           The controls your security and compliance teams expect — without the
           friction your recruiters notice.
         </p>

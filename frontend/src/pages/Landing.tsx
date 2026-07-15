@@ -17,25 +17,25 @@ export default function Landing() {
       <SiteHeader />
       <StoryConnector />
       <main className="space-y-4 md:space-y-6 py-4 md:py-6">
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10">
           <Hero />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="product">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="product">
           <RecruiterDashboard />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10">
           <EmmaApplies />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="workspace">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="workspace">
           <HiringWorkspace />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="outcomes">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="outcomes">
           <BusinessOutcomes />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="enterprise">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="enterprise">
           <EnterpriseTrust />
         </div>
-        <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="pricing">
+        <div className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="pricing">
           <Capabilities />
         </div>
       </main>

@@ -107,17 +107,17 @@ export function HiringWorkspace() {
 
   return (
     <section ref={sectionRef} className="workflow-section relative flex flex-col items-center justify-start bg-transparent py-6 md:py-8" aria-labelledby="workflow-title">
-      <div className="workflow-scroll-space w-full max-w-6xl mx-auto px-6 flex flex-col items-center">
-        {/* Top Header */}
-        <div className="text-center max-w-2xl mb-4">
-          <SectionLabel className="justify-center">A considered hiring workflow</SectionLabel>
-          <h2 id="workflow-title" className="mt-3 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
+      <div className="workflow-scroll-space w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.1fr_1.9fr] gap-8 items-center justify-between">
+        {/* Left Column: Heading & Text */}
+        <div className="text-left max-w-xl mb-4 lg:mb-0 lg:sticky lg:top-[35%] lg:pr-6">
+          <SectionLabel>A considered hiring workflow</SectionLabel>
+          <h2 id="workflow-title" className="mt-3 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
             The system keeps moving.<br />Your team stays in control.
           </h2>
         </div>
 
         {/* Sticky viewport area for circular orbit */}
-        <div className="workflow-sticky w-full flex items-center justify-center relative min-h-[480px] md:min-h-[520px] overflow-visible" style={workflowStyle}>
+        <div className="workflow-sticky w-full flex items-center justify-center relative min-h-[550px] md:min-h-[580px] overflow-visible" style={workflowStyle}>
           
           {/* Centered Orbit */}
           <div className="workflow-orbit relative" aria-live="polite" aria-atomic="true">
@@ -161,9 +161,11 @@ export function HiringWorkspace() {
 
           <p className="workflow-progress" aria-hidden="true">SCROLL TO FOLLOW THE FLOW</p>
         </div>
+      </div>
 
-        {/* Mobile Explainer List */}
-        <ol className="workflow-mobile-list mt-8 w-full max-w-xl">
+      {/* Mobile Explainer List */}
+      <div className="w-full max-w-xl px-6 lg:hidden">
+        <ol className="workflow-mobile-list mt-8 w-full">
           {WORKFLOW_STAGES.map((stage, index) => {
             const Icon = stage.icon
             return (
