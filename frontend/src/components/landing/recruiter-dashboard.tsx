@@ -40,20 +40,20 @@ const ACTIVITY = [
 
 export function RecruiterDashboard() {
   return (
-    <section className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
+    <section className="relative mx-auto max-w-6xl px-6 py-4 md:py-6">
       <Reveal className="max-w-2xl">
         <SectionLabel>The recruiter&apos;s morning</SectionLabel>
-        <h2 className="mt-5 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+        <h2 className="mt-3 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
           One workspace that already did the hard part.
         </h2>
-        <p className="mt-4 max-w-xl text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
+        <p className="mt-2 max-w-xl text-pretty text-[14.5px] leading-relaxed text-zinc-600 font-medium">
           Sarah opens SmartOnboard. Overnight, the AI screened every new
           applicant, scheduled the day&apos;s interviews and surfaced the people
           worth her time.
         </p>
       </Reveal>
 
-      <Reveal delay={0.1} className="mt-12">
+      <Reveal delay={0.1} className="mt-5">
         <div className="overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-white shadow-float">
           <WindowChrome label="app.smartonboard.com/dashboard" />
 
@@ -131,7 +131,7 @@ export function RecruiterDashboard() {
               </div>
 
               {/* Stats */}
-              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {STATS.map((s) => (
                   <div key={s.label} className="rounded-2xl border border-[#e4d9ce] bg-white p-4 shadow-soft">
                     <p className="text-[12px] text-zinc-500 font-semibold">{s.label}</p>
@@ -145,7 +145,7 @@ export function RecruiterDashboard() {
                 ))}
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr]">
+              <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr]">
                 {/* Open jobs */}
                 <div className="rounded-2xl border border-[#e4d9ce] bg-white shadow-soft">
                   <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
@@ -153,7 +153,7 @@ export function RecruiterDashboard() {
                     <span className="text-[12px] text-zinc-500 font-medium">View all</span>
                   </div>
                   <ul className="divide-y divide-[#e4d9ce]/60">
-                    {JOBS.map((j) => (
+                    {JOBS.slice(0, 3).map((j) => (
                       <li key={j.role} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
                           <p className="truncate text-[13.5px] font-bold text-zinc-800">{j.role}</p>
@@ -174,8 +174,8 @@ export function RecruiterDashboard() {
                     <span className="text-[12px] text-zinc-500 font-medium">6 scheduled</span>
                   </div>
                   <ul className="p-2">
-                    {INTERVIEWS.map((it) => (
-                      <li key={it.time} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-secondary/50">
+                    {INTERVIEWS.slice(0, 3).map((it) => (
+                       <li key={it.time} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-secondary/50">
                         <span className="w-10 text-[12px] font-semibold text-zinc-500">{it.time}</span>
                         <Avatar name={it.name} tone={it.tone} size="sm" />
                         <div className="min-w-0">
@@ -188,7 +188,7 @@ export function RecruiterDashboard() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {/* AI recommendations */}
                 <div className="rounded-2xl border border-[#4a1f2c]/15 bg-[#4a1f2c]/[0.02] p-4">
                   <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export function RecruiterDashboard() {
                 <div className="rounded-2xl border border-[#e4d9ce] bg-white p-4 shadow-soft">
                   <p className="text-[13px] font-bold text-zinc-800">Recent activity</p>
                   <ul className="mt-3 space-y-3">
-                    {ACTIVITY.map((a, i) => (
+                    {ACTIVITY.slice(0, 3).map((a, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Avatar name={a.who} tone={a.tone} size="sm" />
                         <p className="text-[12.5px] leading-snug text-zinc-700">

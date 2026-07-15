@@ -106,18 +106,18 @@ export function HiringWorkspace() {
   const workflowStyle = { '--workflow-progress': progress } as CSSProperties
 
   return (
-    <section ref={sectionRef} className="workflow-section relative flex flex-col items-center justify-start bg-transparent py-20" aria-labelledby="workflow-title">
+    <section ref={sectionRef} className="workflow-section relative flex flex-col items-center justify-start bg-transparent py-6 md:py-8" aria-labelledby="workflow-title">
       <div className="workflow-scroll-space w-full max-w-6xl mx-auto px-6 flex flex-col items-center">
         {/* Top Header */}
-        <div className="text-center max-w-2xl mb-8">
+        <div className="text-center max-w-2xl mb-4">
           <SectionLabel className="justify-center">A considered hiring workflow</SectionLabel>
-          <h2 id="workflow-title" className="mt-5 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+          <h2 id="workflow-title" className="mt-3 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
             The system keeps moving.<br />Your team stays in control.
           </h2>
         </div>
 
         {/* Sticky viewport area for circular orbit */}
-        <div className="workflow-sticky w-full flex items-center justify-center relative min-h-[600px] md:min-h-[650px] overflow-visible" style={workflowStyle}>
+        <div className="workflow-sticky w-full flex items-center justify-center relative min-h-[480px] md:min-h-[520px] overflow-visible" style={workflowStyle}>
           
           {/* Centered Orbit */}
           <div className="workflow-orbit relative" aria-live="polite" aria-atomic="true">

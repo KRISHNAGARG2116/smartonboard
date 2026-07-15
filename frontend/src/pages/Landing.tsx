@@ -5,7 +5,7 @@ import { EmmaApplies } from '../components/landing/emma-applies'
 import { HiringWorkspace } from '../components/landing/hiring-workspace'
 import { BusinessOutcomes } from '../components/landing/business-outcomes'
 import { EnterpriseTrust } from '../components/landing/enterprise-trust'
-import { Pricing } from '../components/landing/pricing'
+import { Capabilities } from '../components/landing/pricing'
 import { SiteFooter } from '../components/landing/site-footer'
 import { BlueprintGrid } from '../components/landing/blueprint-grid'
 import { StoryConnector } from '../components/landing/story-connector'
@@ -16,7 +16,7 @@ export default function Landing() {
       <BlueprintGrid />
       <SiteHeader />
       <StoryConnector />
-      <main className="space-y-8 md:space-y-16 py-8 md:py-16">
+      <main className="space-y-4 md:space-y-6 py-4 md:py-6">
         <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10">
           <Hero />
         </div>
@@ -36,7 +36,7 @@ export default function Landing() {
           <EnterpriseTrust />
         </div>
         <div className="mx-auto max-w-6xl w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10" id="pricing">
-          <Pricing />
+          <Capabilities />
         </div>
       </main>
       <SiteFooter />

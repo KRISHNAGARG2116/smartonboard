@@ -43,7 +43,7 @@ export function Hero() {
       <div className="fog-radial pointer-events-none absolute inset-0" />
       <div className="grid-faint pointer-events-none absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(60%_50%_at_50%_0%,black,transparent)]" />
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-16 md:pt-24">
+      <div className="relative mx-auto max-w-6xl px-6 pb-4 pt-10 md:pb-6 md:pt-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -80,7 +80,7 @@ export function Hero() {
         </motion.div>
 
         {/* Floating product widgets */}
-        <div className="relative mx-auto mt-14 h-[360px] max-w-5xl md:h-[400px]">
+        <div className="relative mx-auto mt-8 h-[320px] max-w-5xl md:h-[350px]">
           {/* Center stage line */}
           <div className="absolute left-1/2 top-1/2 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e4d9ce]/40 [mask-image:radial-gradient(circle,black,transparent_72%)]" />
 

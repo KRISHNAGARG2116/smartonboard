@@ -38,22 +38,22 @@ const TILES = [
 
 export function BusinessOutcomes() {
   return (
-    <section className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
+    <section className="relative mx-auto max-w-6xl px-6 py-4 md:py-6">
       <div className="mx-auto max-w-6xl">
         <Reveal className="max-w-2xl">
           <SectionLabel>
             Business outcomes
           </SectionLabel>
-          <h2 className="mt-5 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+          <h2 className="mt-3 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
             The numbers leadership actually asks about.
           </h2>
-          <p className="mt-4 max-w-xl text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
+          <p className="mt-2 max-w-xl text-pretty text-[14.5px] leading-relaxed text-zinc-600 font-medium">
             Every action in SmartOnboard rolls up into a single executive view —
             faster hiring, higher acceptance, and a pipeline you can forecast.
           </p>
         </Reveal>
 
-        <Reveal delay={0.1} className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Reveal delay={0.1} className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
           {/* Velocity chart */}
           <div className="rounded-[24px] border border-[#e4d9ce] bg-white p-6 shadow-soft">
             <div className="flex items-end justify-between">
@@ -67,7 +67,7 @@ export function BusinessOutcomes() {
                 ↓ 50% in 6 months
               </span>
             </div>
-            <div className="mt-6 h-44">
+            <div className="mt-4 h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={VELOCITY} margin={{ top: 6, right: 6, left: 6, bottom: 0 }}>
                   <defs>
@@ -101,7 +101,7 @@ export function BusinessOutcomes() {
           <div className="rounded-[24px] border border-[#e4d9ce] bg-white p-6 shadow-soft">
             <p className="text-[13px] text-zinc-500 font-semibold">Pipeline conversion</p>
             <p className="mt-1 font-heading text-3xl leading-none text-[#1f090b]">12% applied → hired</p>
-            <div className="mt-5 h-44">
+            <div className="mt-4 h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={FUNNEL} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                   <XAxis

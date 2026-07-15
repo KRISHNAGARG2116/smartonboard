@@ -16,26 +16,24 @@ export function EmmaApplies() {
   return (
     <section className="relative overflow-hidden">
       <div className="fog-radial pointer-events-none absolute inset-0 opacity-60" />
-      <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
+      <div className="relative mx-auto max-w-6xl px-6 py-4 md:py-6">
         <div className="max-w-2xl">
           <SectionLabel>Emma applies</SectionLabel>
-          <h2 className="mt-5 text-balance font-heading text-4xl leading-tight text-[#1f090b] md:text-5xl">
+          <h2 className="mt-3 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
             A resume becomes a decision in seconds.
           </h2>
-          <p className="mt-4 max-w-xl text-pretty text-[16px] leading-relaxed text-zinc-600 font-medium">
+          <p className="mt-2 max-w-xl text-pretty text-[14.5px] leading-relaxed text-zinc-600 font-medium">
             The moment Emma applies, SmartOnboard reads her resume, extracts her
             skills, finds the gaps and shows its work — so you trust the score.
           </p>
-        </div>
-
-        <div className="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.1fr]">
+        </div>        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.1fr]">
           {/* Resume */}
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-white p-7 shadow-float"
+            className="relative overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-white p-5 shadow-float"
           >
             {/* scan line */}
             <motion.div
@@ -45,28 +43,28 @@ export function EmmaApplies() {
               transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
               className="pointer-events-none absolute inset-x-0 h-16 bg-gradient-to-b from-transparent via-[#4a1f2c]/10 to-transparent"
             />
-            <div className="flex items-center gap-3 border-b border-[#e4d9ce] pb-5">
+            <div className="flex items-center gap-3 border-b border-[#e4d9ce] pb-4">
               <Avatar name="Emma Johnson" tone="green" size="lg" />
               <div>
                 <p className="font-heading text-2xl leading-none text-[#1f090b]">Emma Johnson</p>
                 <p className="mt-1.5 text-[13px] text-zinc-500 font-semibold">Senior Product Designer · San Francisco, CA</p>
               </div>
             </div>
-            <div className="space-y-5 pt-5">
+            <div className="space-y-4 pt-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">Experience</p>
-                <div className="mt-2.5 space-y-1">
+                <div className="mt-2 space-y-0.5">
                   <p className="text-[13.5px] font-bold text-zinc-800">Lead Product Designer — Lumen</p>
                   <p className="text-[12.5px] text-zinc-600 leading-relaxed">2020 — Present · Built and scaled the design system used across 14 products.</p>
                 </div>
-                <div className="mt-3.5 space-y-1">
+                <div className="mt-3 space-y-0.5">
                   <p className="text-[13.5px] font-bold text-zinc-800">Product Designer — Atlas</p>
                   <p className="text-[12.5px] text-zinc-600 leading-relaxed">2017 — 2020 · Led research and prototyping for the core onboarding flow.</p>
                 </div>
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">Highlighted skills</p>
-                <p className="mt-2.5 text-[13px] leading-relaxed text-zinc-700 font-medium">
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-700 font-medium">
                   <mark className="rounded bg-success/15 px-1.5 py-0.5 text-emerald-950 font-bold">Figma</mark>,{' '}
                   <mark className="rounded bg-success/15 px-1.5 py-0.5 text-emerald-950 font-bold">design systems</mark>,{' '}
                   <mark className="rounded bg-success/15 px-1.5 py-0.5 text-emerald-950 font-bold">prototyping</mark>,{' '}
@@ -83,7 +81,7 @@ export function EmmaApplies() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[24px] border border-[#e4d9ce] bg-white p-7 shadow-float"
+            className="rounded-[24px] border border-[#e4d9ce] bg-white p-5 shadow-float"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -98,12 +96,12 @@ export function EmmaApplies() {
             </div>
 
             {/* Confidence */}
-            <div className="mt-6">
+            <div className="mt-4">
               <div className="flex items-center justify-between text-[12.5px] font-medium">
                 <span className="text-zinc-500">Match confidence</span>
                 <span className="font-bold text-[#1f090b]">94%</span>
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#faf7f2] border border-[#e4d9ce]/60">
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#faf7f2] border border-[#e4d9ce]/60">
                 <motion.div
                   initial={{ width: 0 }}
                   whileInView={{ width: '94%' }}
@@ -115,9 +113,9 @@ export function EmmaApplies() {
             </div>
 
             {/* Matched skills */}
-            <div className="mt-6">
+            <div className="mt-4">
               <p className="text-[12px] font-semibold text-zinc-500">Skills matched to role</p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {MATCHED.map((s) => (
                   <span key={s} className="inline-flex items-center gap-1 rounded-full bg-[#faf7f2] px-2.5 py-1 text-[12px] text-zinc-800 border border-[#e4d9ce] font-medium">
                     <svg viewBox="0 0 24 24" className="size-2.5 text-[#3c5e43]" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -130,9 +128,9 @@ export function EmmaApplies() {
             </div>
 
             {/* Missing skills */}
-            <div className="mt-5">
+            <div className="mt-4">
               <p className="text-[12px] font-semibold text-zinc-500">Gaps to explore</p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {MISSING.map((s) => (
                   <span key={s} className="rounded-full border border-dashed border-[#e4d9ce] bg-white px-2.5 py-1 text-[12px] text-zinc-500 font-medium">
                     {s}
@@ -142,9 +140,9 @@ export function EmmaApplies() {
             </div>
 
             {/* Reasoning */}
-            <div className="mt-6 rounded-2xl bg-[#4a1f2c]/[0.02] p-4 border border-[#4a1f2c]/10">
+            <div className="mt-4 rounded-2xl bg-[#4a1f2c]/[0.02] p-4 border border-[#4a1f2c]/10">
               <p className="text-[12px] font-bold text-[#4a1f2c]">Why SmartOnboard recommends Emma</p>
-              <ul className="mt-2.5 space-y-2">
+              <ul className="mt-2 space-y-1.5">
                 {REASONS.map((r) => (
                   <li key={r} className="flex items-start gap-2 text-[12.5px] leading-snug text-zinc-700">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#4a1f2c]" />

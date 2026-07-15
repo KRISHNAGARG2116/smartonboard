@@ -26,24 +26,24 @@ const ITEMS = [
 
 export function EnterpriseTrust() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+    <section className="mx-auto max-w-6xl px-6 py-4 md:py-6">
       <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
         <div className="max-w-md">
           <SectionLabel>Enterprise trust</SectionLabel>
-          <h2 className="mt-5 text-balance font-heading text-3xl leading-tight text-[#1f090b] md:text-4xl">
+          <h2 className="mt-5 text-balance font-heading text-2xl leading-tight text-[#1f090b] md:text-3xl">
             Quietly secure, by default.
           </h2>
         </div>
-        <p className="max-w-sm text-pretty text-[15px] leading-relaxed text-zinc-600 font-medium">
+        <p className="max-w-sm text-pretty text-[14px] leading-relaxed text-zinc-600 font-medium">
           The controls your security and compliance teams expect — without the
           friction your recruiters notice.
         </p>
       </Reveal>
 
-      <Reveal delay={0.1} className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-[#e4d9ce] sm:grid-cols-2 lg:grid-cols-4">
+      <Reveal delay={0.1} className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-[24px] border border-[#e4d9ce] bg-[#e4d9ce] sm:grid-cols-2 lg:grid-cols-4">
         {ITEMS.map((item) => (
-          <div key={item.title} className="bg-white p-6">
-            <span className="grid size-9 place-items-center rounded-xl bg-[#faf7f2] text-[#4a1f2c] border border-[#e4d9ce]/40">
+          <div key={item.title} className="bg-white p-4.5">
+            <span className="grid size-8 place-items-center rounded-xl bg-[#faf7f2] text-[#4a1f2c] border border-[#e4d9ce]/40">
               <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d={item.icon} />
               </svg>
