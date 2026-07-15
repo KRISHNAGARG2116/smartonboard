@@ -2,14 +2,14 @@ import { cn } from '@/lib/utils'
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <span className="grid size-7 place-items-center rounded-[9px] bg-foreground text-background">
+    <div className={cn('flex items-center gap-2.5 text-foreground', className)}>
+      <span className="grid size-7 place-items-center rounded-[9px] bg-[#faf7f2] text-[#4a1f2c] border border-[#e4d9ce]/10">
         <svg
           viewBox="0 0 24 24"
           className="size-4"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.3"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -18,7 +18,7 @@ export function Logo({ className }: { className?: string }) {
           <path d="M4 7.5 7 10.5" opacity="0.45" />
         </svg>
       </span>
-      <span className="text-[15px] font-semibold tracking-tight text-foreground">
+      <span className="text-[15px] font-semibold tracking-tight text-current">
         SmartOnboard
       </span>
     </div>
