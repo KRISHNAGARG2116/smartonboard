@@ -5,7 +5,6 @@ import { RecruiterDashboard } from '../components/landing/recruiter-dashboard'
 import { EmmaApplies } from '../components/landing/emma-applies'
 import { HiringWorkspace } from '../components/landing/hiring-workspace'
 import { BusinessOutcomes } from '../components/landing/business-outcomes'
-import { EnterpriseTrust } from '../components/landing/enterprise-trust'
 import { Capabilities } from '../components/landing/pricing'
 import { BlueprintGrid } from '../components/landing/blueprint-grid'
 import { SiteHeader } from '../components/landing/site-header'
@@ -74,16 +73,7 @@ export default function Landing() {
         >
           <BusinessOutcomes />
         </motion.div>
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="enterprise"
-        >
-          <EnterpriseTrust />
-        </motion.div>
+
         <motion.div
           initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
