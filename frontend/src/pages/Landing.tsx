@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import { Hero } from '../components/landing/hero'
 import { RecruiterDashboard } from '../components/landing/recruiter-dashboard'
@@ -9,9 +10,16 @@ import { Capabilities } from '../components/landing/pricing'
 import { BlueprintGrid } from '../components/landing/blueprint-grid'
 import { SiteHeader } from '../components/landing/site-header'
 import { StoryConnector } from '../components/landing/story-connector'
-import { SiteFooter } from '../components/landing/site-footer'
+import { SiteFooter, FooterNav } from '../components/landing/site-footer'
 
 export default function Landing() {
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+    window.scrollTo(0, 0)
+  }, [])
+
   return (
     <div className="relative min-h-screen bg-[#faf7f2] font-sans selection:bg-[#4a1f2c]/10 selection:text-[#4a1f2c]">
       <BlueprintGrid />
@@ -71,7 +79,7 @@ export default function Landing() {
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
+          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
           id="enterprise"
         >
           <EnterpriseTrust />
@@ -82,11 +90,12 @@ export default function Landing() {
           viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="pricing"
+          id="capabilities"
         >
           <Capabilities />
         </motion.div>
       </main>
+      <FooterNav />
       <SiteFooter />
     </div>
   )

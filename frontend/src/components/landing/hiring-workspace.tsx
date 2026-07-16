@@ -116,19 +116,38 @@ export function HiringWorkspace() {
     return () => window.removeEventListener('scroll', handleScrollCheck)
   }, [isPinned])
 
-  // Body scroll lock state coordinator
+  const pinnedScrollY = useRef(0)
+
+  // Body scroll lock state coordinator & absolute centering lock
   useEffect(() => {
     if (isPinned) {
+      const section = sectionRef.current
+      if (section) {
+        const rect = section.getBoundingClientRect()
+        const currentScrollY = window.scrollY
+        pinnedScrollY.current = currentScrollY + rect.top - (window.innerHeight - rect.height) / 2
+        window.scrollTo({ top: pinnedScrollY.current, behavior: 'instant' })
+      }
+
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
       document.body.style.overflow = 'hidden'
       if (scrollbarWidth > 0) {
         document.body.style.paddingRight = `${scrollbarWidth}px`
       }
+
+      const forceCenterScroll = () => {
+        if (Math.abs(window.scrollY - pinnedScrollY.current) > 0.5) {
+          window.scrollTo(0, pinnedScrollY.current)
+        }
+      }
+
+      window.addEventListener('scroll', forceCenterScroll, { passive: false })
+      return () => {
+        window.removeEventListener('scroll', forceCenterScroll)
+        document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
+      }
     } else {
-      document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
-    }
-    return () => {
       document.body.style.overflow = ''
       document.body.style.paddingRight = ''
     }

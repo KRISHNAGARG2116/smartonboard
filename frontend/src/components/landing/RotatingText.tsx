@@ -34,6 +34,7 @@ interface RotatingTextProps {
   mainClassName?: string
   splitLevelClassName?: string
   elementLevelClassName?: string
+  layout?: boolean
 }
 
 export const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>((props, ref) => {
@@ -55,6 +56,7 @@ export const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>((prop
     mainClassName,
     splitLevelClassName,
     elementLevelClassName,
+    layout = false,
     ...rest
   } = props
 
@@ -172,13 +174,13 @@ export const RotatingText = forwardRef<RotatingTextRef, RotatingTextProps>((prop
   }, [next, rotationInterval, auto])
 
   return (
-    <motion.span className={cn('text-rotate', mainClassName)} {...rest} layout transition={transition}>
+    <motion.span className={cn('text-rotate', mainClassName)} {...rest} layout={layout} transition={transition}>
       <span className="text-rotate-sr-only">{texts[currentTextIndex]}</span>
       <AnimatePresence mode={animatePresenceMode} initial={animatePresenceInitial}>
         <motion.span
           key={currentTextIndex}
           className={cn(splitBy === 'lines' ? 'text-rotate-lines' : 'text-rotate')}
-          layout
+          layout={layout}
           aria-hidden="true"
         >
           {elements.map((wordObj, wordIndex, array) => {

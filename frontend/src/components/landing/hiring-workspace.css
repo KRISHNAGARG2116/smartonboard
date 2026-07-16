@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 580px;
+  min-height: 660px;
 }
 .workflow-orbit {
   position: absolute;
@@ -86,7 +86,7 @@
 }
 .workflow-progress {
   position: absolute;
-  bottom: 1.5rem;
+  bottom: 0.75rem;
   left: 50%;
   transform: translateX(-50%);
   color: #4a1f2c;

@@ -36,7 +36,7 @@ export function SiteHeader() {
           </Link>
           <Link
             to="/recruiter/register"
-            className="rounded-full bg-[#faf7f2] px-4 py-2 text-[14px] font-semibold text-[#250e15] shadow-soft transition-transform hover:-translate-y-px hover:bg-white"
+            className="rounded-full bg-white px-5 py-2 text-[14px] font-bold !text-[#250e15] shadow-soft transition-all hover:bg-[#faf7f2] hover:scale-105 active:scale-95"
           >
             Start Recruiting
           </Link>

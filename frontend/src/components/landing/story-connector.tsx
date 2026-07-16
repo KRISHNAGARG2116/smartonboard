@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './story-connector.css'
 
-const CHAPTERS = ['product', 'workspace', 'outcomes', 'enterprise', 'pricing']
+const CHAPTERS = ['product', 'workspace', 'outcomes', 'enterprise', 'capabilities']
 
 export function StoryConnector() {
   const [active, setActive] = useState(0)

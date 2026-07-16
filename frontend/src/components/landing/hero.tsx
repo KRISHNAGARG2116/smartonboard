@@ -58,31 +58,36 @@ export function Hero() {
             people.
           </h1>
 
-          <p className="mx-auto mt-6 max-w-xl text-pretty text-[17px] leading-relaxed text-zinc-600 font-medium">
+          <p className="mx-auto mt-10 max-w-2xl text-center text-[17px] leading-relaxed text-zinc-600 font-medium">
             SmartOnboard{' '}
-            <span className="relative inline-flex flex-col items-start align-baseline select-none">
+            <span className="relative inline-flex flex-col items-center align-baseline select-none mx-1.5">
               {['reads every resume', 'ranks every candidate', 'verifies every identity'].map((text, idx) => (
-                <span key={idx} className="invisible h-0 select-none pointer-events-none font-bold whitespace-nowrap block text-[#4a1f2c] opacity-0" aria-hidden="true">
+                <span
+                  key={idx}
+                  className={`invisible select-none pointer-events-none font-bold whitespace-nowrap text-[#4a1f2c] opacity-0 text-center ${
+                    idx === 0 ? 'block' : 'h-0 block'
+                  }`}
+                  aria-hidden="true"
+                >
                   {text}
                 </span>
               ))}
-              <span className="absolute inset-0 select-text flex items-center">
+              <span className="absolute inset-0 select-text flex items-center justify-center">
                 <RotatingText
                   texts={['reads every resume', 'ranks every candidate', 'verifies every identity']}
-                  mainClassName="inline-flex overflow-hidden text-[#4a1f2c] font-bold"
+                  mainClassName="inline-flex whitespace-nowrap text-[#4a1f2c] font-bold text-center justify-center"
                   staggerFrom="first"
                   initial={{ y: '100%', opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: '-120%', opacity: 0 }}
-                  staggerDuration={0.02}
-                  splitLevelClassName="overflow-hidden pb-0.5"
+                  staggerDuration={0.015}
+                  splitLevelClassName="overflow-hidden pb-0.5 justify-center"
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  rotationInterval={2500}
+                  rotationInterval={2800}
                 />
               </span>
             </span>{' '}
-            — so your team spends time on conversations, not
-            screening.
+            — so your team spends time on conversations, not screening.
           </p>
 
           <div className="mt-9 flex items-center justify-center gap-3">
@@ -140,7 +145,7 @@ export function Hero() {
             </div>
           </Float>
 
-          {/* Verified Candidate */}
+          {/* Recruiter Recommendation */}
           <Float
             delay={0.25}
             drift={9}
@@ -158,17 +163,27 @@ export function Hero() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 space-y-2">
-                {['Email verified', 'Phone verified', 'Identity confirmed'].map(
-                  (t) => (
-                    <div key={t} className="flex items-center gap-2">
-                      <span className="grid size-4 place-items-center rounded-full bg-[#3c5e43]/12 text-[#3c5e43]">
+              <div className="mt-4 pt-3 border-t border-[#e4d9ce]/60 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Recommendation</span>
+                  <span className="rounded-full bg-[#3c5e43]/12 px-2 py-0.5 text-[10px] font-bold text-[#3c5e43]">
+                    Top Match
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    'Matches 8 of 9 role skills',
+                    'Verified history at Lumen',
+                    'Move to final round interview'
+                  ].map((text) => (
+                    <div key={text} className="flex items-start gap-2">
+                      <span className="mt-0.5 grid size-3.5 shrink-0 place-items-center rounded-full bg-[#4a1f2c]/10 text-[#4a1f2c]">
                         <svg
                           viewBox="0 0 24 24"
-                          className="size-2.5"
+                          className="size-2 text-[#4a1f2c]"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="3.5"
+                          strokeWidth="4"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           aria-hidden="true"
@@ -176,12 +191,12 @@ export function Hero() {
                           <path d="M5 13l4 4L19 7" />
                         </svg>
                       </span>
-                      <span className="text-[12.5px] text-zinc-700 font-medium">
-                        {t}
+                      <span className="text-[12px] text-zinc-600 font-medium leading-snug">
+                        {text}
                       </span>
                     </div>
-                  ),
-                )}
+                  ))}
+                </div>
               </div>
             </div>
           </Float>
