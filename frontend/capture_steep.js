@@ -1,92 +1,72 @@
 import puppeteer from 'puppeteer-core';
-import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-async function getBrowserWs() {
-  return new Promise((resolve, reject) => {
-    http.get('http://localhost:9222/json/version', (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          resolve(json.webSocketDebuggerUrl);
-        } catch (e) {
-          reject(new Error(`Failed to parse debugging JSON: ${e.message}`));
-        }
-      });
-    }).on('error', (e) => {
-      reject(new Error(`Failed to contact debugging port: ${e.message}`));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const OUTPUT_DIR = path.resolve(__dirname, '..', 'scratch');
+
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+async function autoScroll(page) {
+    await page.evaluate(async () => {
+        await new Promise((resolve) => {
+            let totalHeight = 0;
+            const distance = 100;
+            const timer = setInterval(() => {
+                const scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+
+                if (totalHeight >= scrollHeight - window.innerHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 100);
+        });
     });
-  });
 }
 
 async function run() {
-  const outputDir = path.resolve('/Users/krishnagarg/smartonboard-main/docs/reports/steep-captures');
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  let wsUrl;
+  let browser;
   try {
-    wsUrl = await getBrowserWs();
-    console.log(`Connected to WS: ${wsUrl}`);
+    browser = await puppeteer.launch({
+      executablePath: '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
+    });
+    console.log('Browser launched successfully');
   } catch (e) {
-    console.error(e.message);
+    console.error('Failed to launch browser:', e.message);
     process.exit(1);
   }
 
-  const browser = await puppeteer.connect({
-    browserWSEndpoint: wsUrl,
-    defaultViewport: { width: 1280, height: 800 }
-  });
-
   const page = await browser.newPage();
-  
-  console.log('Navigating to https://steep.app...');
-  await page.goto('https://steep.app', { waitUntil: 'networkidle2', timeout: 30000 });
-  await new Promise(r => setTimeout(r, 2000)); // Let any entry animations finish
+  const url = 'https://steep.app/';
 
-  // Capture hero/landing page top
-  console.log('Capturing Steep Hero...');
-  await page.screenshot({ path: path.join(outputDir, 'steep_hero.png') });
-
-  // Let's scroll to features
-  console.log('Scrolling to feature section...');
-  await page.evaluate(() => {
-    window.scrollTo(0, 1000);
-  });
-  await new Promise(r => setTimeout(r, 1000));
-  await page.screenshot({ path: path.join(outputDir, 'steep_features.png') });
-
-  // Let's scroll to product showcase
-  console.log('Scrolling to product showcase section...');
-  await page.evaluate(() => {
-    window.scrollTo(0, 2200);
-  });
-  await new Promise(r => setTimeout(r, 1000));
-  await page.screenshot({ path: path.join(outputDir, 'steep_showcase.png') });
-
-  // Let's scroll to dashboard example
-  console.log('Scrolling to dashboard section...');
-  await page.evaluate(() => {
-    window.scrollTo(0, 3600);
-  });
-  await new Promise(r => setTimeout(r, 1000));
-  await page.screenshot({ path: path.join(outputDir, 'steep_dashboard.png') });
-
-  // Let's scroll to pricing / footer / navigation area
-  console.log('Scrolling to footer section...');
-  await page.evaluate(() => {
-    window.scrollTo(0, 4800);
-  });
-  await new Promise(r => setTimeout(r, 1000));
-  await page.screenshot({ path: path.join(outputDir, 'steep_footer.png') });
-
-  console.log('Steep screenshot capture completed!');
-  await page.close();
-  await browser.disconnect();
+  try {
+    console.log(`Navigating to ${url}...`);
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    
+    console.log('Scrolling down the page to trigger animations and lazy loading...');
+    await autoScroll(page);
+    
+    // Scroll back to top before screenshot
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await new Promise(r => setTimeout(r, 1000));
+    
+    const screenshotPath = path.join(OUTPUT_DIR, `steep_desktop.png`);
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    console.log(`Saved screenshot to ${screenshotPath}`);
+  } catch (err) {
+    console.error('Error during capture:', err);
+  } finally {
+    await page.close();
+    await browser.close();
+  }
 }
 
 run().catch(console.error);

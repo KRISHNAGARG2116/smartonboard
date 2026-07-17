@@ -1,92 +1,46 @@
-import { useEffect } from 'react'
-import { motion } from 'motion/react'
-import { Hero } from '../components/landing/hero'
-import { RecruiterDashboard } from '../components/landing/recruiter-dashboard'
-import { EmmaApplies } from '../components/landing/emma-applies'
-import { HiringWorkspace } from '../components/landing/hiring-workspace'
-import { BusinessOutcomes } from '../components/landing/business-outcomes'
-import { Capabilities } from '../components/landing/pricing'
-import { BlueprintGrid } from '../components/landing/blueprint-grid'
-import { SiteHeader } from '../components/landing/site-header'
-import { StoryConnector } from '../components/landing/story-connector'
-import { SiteFooter, FooterNav } from '../components/landing/site-footer'
+import { useEffect } from 'react';
+import { HeroSignature } from '../components/landing/HeroSignature';
+import { PainAgitation } from '../components/landing/PainAgitation';
+import { AIIntelligence } from '../components/landing/AIIntelligence';
+import { ProductShowcase } from '../components/landing/ProductShowcase';
+import { OSFooter } from '../components/landing/OSFooter';
+import { Link } from 'react-router-dom';
 
 export default function Landing() {
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual'
+      window.history.scrollRestoration = 'manual';
     }
-    window.scrollTo(0, 0)
-  }, [])
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#faf7f2] font-sans selection:bg-[#4a1f2c]/10 selection:text-[#4a1f2c]">
-      <BlueprintGrid />
-      <SiteHeader />
-      <StoryConnector />
-      <main className="space-y-6 md:space-y-10 lg:space-y-12 py-8 md:py-12">
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-        >
-          <Hero />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="product"
-        >
-          <RecruiterDashboard />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-        >
-          <EmmaApplies />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="workspace"
-        >
-          <HiringWorkspace />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="outcomes"
-        >
-          <BusinessOutcomes />
-        </motion.div>
+    <div className="bg-black font-sans selection:bg-white selection:text-black">
+      {/* Permanent, Lightweight White Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-black/5">
+        <div className="max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 h-16 flex items-center justify-between">
+          <Link to="/" className="font-bold text-lg tracking-tighter uppercase text-black">
+            SmartOnboard
+          </Link>
+          <div className="flex gap-6 items-center">
+            <Link to="/login" className="text-sm font-medium text-black/60 hover:text-black transition-colors">
+              Log In
+            </Link>
+            <Link to="/register" className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-black text-white hover:bg-zinc-800 transition-all">
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </header>
 
-        <motion.div
-          initial={{ opacity: 0.3, y: 30, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: false, amount: 0.2, margin: "-12% 0px -12% 0px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto w-[92vw] lg:w-[90vw] max-w-[1440px] border border-[#e4d9ce] rounded-[24px] md:rounded-[32px] bg-[#faf7f2] shadow-soft relative z-10 min-h-[75vh] lg:min-h-[85vh] flex flex-col justify-center py-6 md:py-10 lg:py-14"
-          id="capabilities"
-        >
-          <Capabilities />
-        </motion.div>
+      <main className="relative z-10">
+        <HeroSignature />
+        <PainAgitation />
+        <AIIntelligence />
+        <ProductShowcase />
       </main>
-      <FooterNav />
-      <SiteFooter />
+
+      <OSFooter />
     </div>
-  )
+  );
 }
