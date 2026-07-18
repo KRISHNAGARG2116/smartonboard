@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { HeroSignature } from '../components/landing/HeroSignature';
-import { PainAgitation } from '../components/landing/PainAgitation';
-import { AIIntelligence } from '../components/landing/AIIntelligence';
+import { KeywordTrap } from '../components/landing/KeywordTrap';
+import { VerificationAnatomy } from '../components/landing/VerificationAnatomy';
 import { ProductShowcase } from '../components/landing/ProductShowcase';
 import { OSFooter } from '../components/landing/OSFooter';
 import { Link } from 'react-router-dom';
@@ -35,8 +35,8 @@ export default function Landing() {
 
       <main className="relative z-10">
         <HeroSignature />
-        <PainAgitation />
-        <AIIntelligence />
+        <KeywordTrap />
+        <VerificationAnatomy />
         <ProductShowcase />
       </main>
 
