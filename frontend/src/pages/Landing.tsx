@@ -5,6 +5,9 @@ import { VerificationAnatomy } from '../components/landing/VerificationAnatomy';
 import { ProductShowcase } from '../components/landing/ProductShowcase';
 import { OSFooter } from '../components/landing/OSFooter';
 import { Link } from 'react-router-dom';
+import { HiringCrisis } from '../components/landing/HiringCrisis';
+import { SolutionJourney } from '../components/landing/SolutionJourney';
+import { CustomerProof } from '../components/landing/CustomerProof';
 
 // Global Editorial Details
 import { EditorialOverlay } from '../components/landing/EditorialOverlay';
@@ -39,12 +42,29 @@ export default function Landing() {
       <EditorialOverlay />
 
       <main className="relative z-10">
+        {/* 1. Hero */}
         <HeroSignature />
+        
+        {/* 2. Hiring Crisis */}
+        <HiringCrisis />
+        
+        {/* 3. Keyword Trap */}
         <KeywordTrap />
+        
+        {/* 4. Solution Journey */}
+        <SolutionJourney />
+        
+        {/* 5. Verification Anatomy (Workspace Experience) */}
         <VerificationAnatomy />
+        
+        {/* 6. Product Showcase */}
         <ProductShowcase />
+        
+        {/* 7. Customer Proof */}
+        <CustomerProof />
       </main>
 
+      {/* 8. CTA / Footer */}
       <OSFooter />
     </div>
   );
