@@ -24,13 +24,42 @@ export function KeywordTrap() {
   const titleY = useTransform(scrollYProgress, [0.7, 0.9], [20, 0]);
 
   return (
-    <section ref={containerRef} className="h-[250vh] bg-white relative selection:bg-slate-200 selection:text-black">
+    <section ref={containerRef} className="h-[250vh] bg-[#FCFBF9] relative selection:bg-slate-200 selection:text-black border-y border-slate-200">
       
-      {/* Editorial Richness: Background Details */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
-        <div className="absolute top-[30%] left-[-5%] w-[110%] h-[1px] bg-slate-200 -rotate-2" />
-        <div className="absolute top-[70%] left-[-5%] w-[110%] h-[1px] bg-slate-200 rotate-1" />
+      {/* Editorial Richness: Background Details & Paper Texture */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Subtle Paper Grain Overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:24px_24px] opacity-40 mix-blend-multiply" />
         
+        {/* Structural Document Bounds */}
+        <div className="absolute left-6 lg:left-24 top-0 bottom-0 w-[1px] bg-slate-300/30" />
+        <div className="absolute right-6 lg:right-24 top-0 bottom-0 w-[1px] bg-slate-300/30" />
+        
+        {/* Crop Marks */}
+        <div className="absolute top-12 left-6 lg:left-24 w-4 h-4 border-t border-l border-slate-400/50" />
+        <div className="absolute top-12 right-6 lg:right-24 w-4 h-4 border-t border-r border-slate-400/50" />
+        <div className="absolute bottom-12 left-6 lg:left-24 w-4 h-4 border-b border-l border-slate-400/50" />
+        <div className="absolute bottom-12 right-6 lg:right-24 w-4 h-4 border-b border-r border-slate-400/50" />
+
+        {/* ATS Investigator Annotations */}
+        <div className="absolute top-[25%] left-[5%] rotate-[-2deg] opacity-70 hidden md:block">
+           <div className="px-2 py-1 bg-red-50 border border-red-200 text-red-600 text-[10px] font-mono font-bold uppercase shadow-sm">
+             ATS_MATCH: 98% (FALSE POSITIVE)
+           </div>
+        </div>
+        
+        <div className="absolute bottom-[25%] right-[5%] rotate-[3deg] opacity-70 hidden md:block">
+           <div className="px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-mono font-bold uppercase shadow-sm">
+             Keyword Density Detected
+           </div>
+        </div>
+        
+        <div className="absolute top-[60%] left-6 lg:left-24 rotate-[-90deg] translate-y-[-50%] transform-gpu opacity-40">
+           <div className="text-[9px] font-mono text-slate-500 uppercase tracking-widest whitespace-nowrap">
+             // MISSING_EVIDENCE_FLAGS
+           </div>
+        </div>
+
         <div className="absolute top-1/3 right-12 lg:right-32 font-mono text-[8px] text-slate-400 uppercase tracking-widest text-right">
            INPUT_STREAM: RAW_RESUME<br/>
            PARSER_STATUS: DETECTING NOISE<br/>

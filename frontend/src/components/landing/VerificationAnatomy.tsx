@@ -35,73 +35,119 @@ export function VerificationAnatomy() {
         
         <div className="w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-24 mt-16">
           
-          {/* LEFT SIDE: The Intelligence Report Anchor */}
-          <div className="w-full lg:w-1/2 relative">
-             <div className="w-full bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] border border-slate-200 rounded-sm overflow-hidden flex flex-col z-20">
+          {/* LEFT SIDE: The Recruiter Workspace Focal Point */}
+          <div className="w-full lg:w-1/2 relative h-[500px]">
+             
+             {/* The Workspace Container */}
+             <div className="absolute inset-0 bg-slate-50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-200/50 rounded-lg overflow-hidden flex flex-col z-20">
                 
-                {/* Section 1: Identity */}
-                <div className="relative flex flex-col md:flex-row border-b border-slate-100 overflow-hidden">
-                   <motion.div style={{ opacity: identityHighlight }} className="absolute inset-0 bg-blue-50/40 -z-10" />
-                   <div className="p-7 md:w-1/2 border-r border-slate-100 flex flex-col justify-center">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-3">Verified Identity</div>
-                      <div className="text-2xl font-serif font-bold text-slate-900 leading-none">Alex Rivera</div>
-                      <div className="flex items-center gap-2 mt-3">
-                         <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
-                         <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Identity Confirmed</span>
-                      </div>
-                   </div>
-                   <div className="p-7 md:w-1/2 flex flex-col justify-center">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-3">Target Alignment</div>
-                      <div className="text-base font-semibold text-slate-800">Senior Product Designer</div>
-                   </div>
+                {/* Mock Browser/App Header */}
+                <div className="h-10 border-b border-slate-200 bg-white flex items-center px-4 shrink-0 justify-between z-30">
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                  </div>
+                  <div className="text-[9px] font-medium text-slate-400 font-mono tracking-widest">smartonboard.os</div>
+                  <div className="w-10" />
                 </div>
 
-                {/* Section 2: Experience */}
-                <div className="relative p-7 border-b border-slate-100 overflow-hidden flex flex-col">
-                   <motion.div style={{ opacity: evidenceHighlight }} className="absolute inset-0 bg-blue-50/40 -z-10" />
-                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-4">Evidence: Velocity & Impact</div>
-                   <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-sm bg-emerald-100 flex items-center justify-center shrink-0">
-                           <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                <div className="flex-1 flex relative overflow-hidden bg-white">
+                  
+                  {/* Candidate List (Always visible, background) */}
+                  <div className="w-1/3 border-r border-slate-100 bg-slate-50/30 p-3 flex flex-col gap-2 z-10 shrink-0 hidden sm:flex">
+                    <div className="h-4 w-16 bg-slate-200 rounded mb-2" />
+                    
+                    {/* Selected Candidate */}
+                    <div className="p-2.5 bg-white border border-blue-100 shadow-sm rounded relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500" />
+                      <div className="text-xs font-bold text-slate-800">Alex Rivera</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">Senior Designer</div>
+                    </div>
+                    
+                    {/* Unselected Candidates */}
+                    <div className="p-2.5 opacity-50">
+                      <div className="text-xs font-medium text-slate-600">Jordan Smith</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">Product Manager</div>
+                    </div>
+                    <div className="p-2.5 opacity-50">
+                      <div className="text-xs font-medium text-slate-600">Taylor Swift</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">Frontend Dev</div>
+                    </div>
+                  </div>
+
+                  {/* Main Profile Area */}
+                  <div className="flex-1 relative flex flex-col z-10">
+                     
+                     {/* Phase 1: Candidate Selected & Identity Confirmed */}
+                     <motion.div 
+                        style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [0, 1]) }}
+                        className="p-6 border-b border-slate-100"
+                     >
+                        <div className="flex justify-between items-start">
+                           <div>
+                              <div className="text-lg font-bold text-slate-900 mb-1">Alex Rivera</div>
+                              <div className="text-xs text-slate-500">San Francisco, CA</div>
+                           </div>
+                           <div className="flex gap-2">
+                              <span className="text-[9px] px-2 py-1 bg-emerald-50 text-emerald-700 rounded-sm font-bold uppercase tracking-wider">Identity Confirmed</span>
+                           </div>
                         </div>
-                        <div className="text-sm font-medium text-slate-700">Shipped 4 major fintech products</div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-sm bg-emerald-100 flex items-center justify-center shrink-0">
-                           <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500" />
+                     </motion.div>
+
+                     {/* Phase 2: Evidence Drawer Sliding In */}
+                     <motion.div 
+                       style={{ 
+                         x: useTransform(scrollYProgress, [0.3, 0.45], ["100%", "0%"]),
+                         opacity: useTransform(scrollYProgress, [0.25, 0.4], [0, 1])
+                       }}
+                       className="absolute inset-y-0 right-0 w-full sm:w-[280px] bg-white border-l border-slate-100 p-5 shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] z-20 flex flex-col"
+                     >
+                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Evidence Review</div>
+                       
+                       <div className="flex flex-col gap-5">
+                          {[
+                            "Employment Verified",
+                            "Portfolio Reviewed",
+                            "LinkedIn Consistent",
+                            "Reference Available",
+                            "Timeline Confirmed"
+                          ].map((item, i) => (
+                            <motion.div 
+                              key={i} 
+                              className="flex gap-3 items-center"
+                            >
+                               <div className="w-4 h-4 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                               </div>
+                               <div className="text-xs font-semibold text-slate-700">{item}</div>
+                            </motion.div>
+                          ))}
+                       </div>
+                     </motion.div>
+
+                     {/* Phase 3: Decision Ready */}
+                     <motion.div
+                       style={{
+                         opacity: decisionHighlight,
+                         y: useTransform(scrollYProgress, [0.7, 0.8], [20, 0])
+                       }}
+                       className="absolute bottom-6 left-6 right-6 p-4 bg-slate-900 rounded shadow-xl z-30 flex items-center justify-between"
+                     >
+                        <div className="flex flex-col gap-1.5">
+                           <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-blue-500" style={{ boxShadow: '0 0 10px rgba(59,130,246,0.5)' }} />
+                              <div className="text-[10px] font-bold text-white uppercase tracking-widest">Decision Ready</div>
+                           </div>
+                           <div className="text-[10px] text-slate-400">Evidence Reviewed. Ready for next steps.</div>
                         </div>
-                        <div className="text-sm font-medium text-slate-700">Velocity &lt; 18 months</div>
-                      </div>
-                   </div>
+                        <button className="px-4 py-2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-widest rounded-sm transition-colors cursor-pointer border border-blue-500">
+                           Schedule Interview
+                        </button>
+                     </motion.div>
+                     
+                  </div>
                 </div>
-
-                {/* Section 3: Leadership & Scale */}
-                <div className="relative flex flex-col md:flex-row border-b border-slate-100 overflow-hidden">
-                   <motion.div style={{ opacity: evidenceHighlight }} className="absolute inset-0 bg-blue-50/40 -z-10" />
-                   <div className="p-7 md:w-1/2 border-r border-slate-100 flex flex-col justify-center">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-3">Evidence: Leadership</div>
-                      <div className="text-sm font-semibold text-slate-800">Led Series B Design Team</div>
-                   </div>
-                   <div className="p-7 md:w-1/2 flex flex-col justify-center">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-3">Evidence: Scale</div>
-                      <div className="text-sm font-semibold text-slate-800">Verified $10M+ Scale</div>
-                   </div>
-                </div>
-
-                {/* Section 4: Decision Ready */}
-                <div className="relative p-7 bg-slate-900 text-white flex items-center justify-between overflow-hidden">
-                   <motion.div style={{ opacity: decisionHighlight }} className="absolute inset-0 bg-blue-900/40 -z-10" />
-                   <div className="flex items-center gap-3">
-                      <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" style={{ boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)' }} />
-                      <span className="text-sm font-bold tracking-widest uppercase">Decision Ready</span>
-                   </div>
-                   <div className="flex gap-3 relative z-10">
-                      <button className="px-5 py-2.5 bg-white/10 text-white rounded-sm text-[10px] uppercase font-bold tracking-widest pointer-events-none">Dismiss</button>
-                      <button className="px-5 py-2.5 bg-emerald-500 text-white rounded-sm text-[10px] uppercase font-bold tracking-widest pointer-events-none">Interview</button>
-                   </div>
-                </div>
-
              </div>
           </div>
 
