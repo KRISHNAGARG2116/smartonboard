@@ -26,13 +26,29 @@ export function KeywordTrap() {
   return (
     <section ref={containerRef} className="h-[250vh] bg-white relative selection:bg-slate-200 selection:text-black">
       
+      {/* Editorial Richness: Background Details */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
+        <div className="absolute top-[30%] left-[-5%] w-[110%] h-[1px] bg-slate-200 -rotate-2" />
+        <div className="absolute top-[70%] left-[-5%] w-[110%] h-[1px] bg-slate-200 rotate-1" />
+        
+        <div className="absolute top-1/3 right-12 lg:right-32 font-mono text-[8px] text-slate-400 uppercase tracking-widest text-right">
+           INPUT_STREAM: RAW_RESUME<br/>
+           PARSER_STATUS: DETECTING NOISE<br/>
+           confidence_level: LOW
+        </div>
+        
+        <div className="absolute bottom-1/3 left-12 lg:left-32 font-mono text-[8px] text-slate-400 uppercase tracking-widest">
+           FIG 1.0 — THE KEYWORD ILLUSION
+        </div>
+      </div>
+
       {/* Sticky Container */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6">
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6 z-10">
         
         {/* Section Context */}
-        <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-          <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">The Problem</span>
+        <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-50 border border-slate-200 shadow-sm">
+          <div className="w-1.5 h-1.5 rounded-sm bg-slate-400" />
+          <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">The Problem</span>
         </div>
 
         {/* The Claim */}
@@ -42,23 +58,27 @@ export function KeywordTrap() {
             {/* ATS Layer */}
             <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
             {/* SmartOnboard Layer */}
-            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200">
+            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
               Identity Unauthenticated
             </motion.div>
           </span>
           {' '}engineering team to build{' '}
           <span className="relative inline-block whitespace-nowrap">
             scalable
+            {/* ATS Layer */}
             <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
-            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200">
+            {/* SmartOnboard Layer */}
+            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
               Metrics Unverified
             </motion.div>
           </span>
           {' '}React{' '}
           <span className="relative inline-block whitespace-nowrap">
             architecture.
+            {/* ATS Layer */}
             <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
-            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200">
+            {/* SmartOnboard Layer */}
+            <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
               Impact Missing
             </motion.div>
           </span>
@@ -82,7 +102,7 @@ export function KeywordTrap() {
            style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [1, 0]) }}
            className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400"
         >
-           <span className="text-[10px] font-bold uppercase tracking-widest">Scroll to scan</span>
+           <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Scroll to scan</span>
            <div className="w-[1px] h-8 bg-gradient-to-b from-slate-400 to-transparent" />
         </motion.div>
 

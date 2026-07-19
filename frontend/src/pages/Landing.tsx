@@ -6,6 +6,9 @@ import { ProductShowcase } from '../components/landing/ProductShowcase';
 import { OSFooter } from '../components/landing/OSFooter';
 import { Link } from 'react-router-dom';
 
+// Global Editorial Details
+import { EditorialOverlay } from '../components/landing/EditorialOverlay';
+
 export default function Landing() {
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
@@ -32,6 +35,8 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      <EditorialOverlay />
 
       <main className="relative z-10">
         <HeroSignature />
