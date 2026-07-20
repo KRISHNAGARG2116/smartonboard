@@ -16,6 +16,13 @@ export function HiringCrisis() {
   // Pull content up during entry to eliminate the 50vh top gap
   const enterY = useTransform(enterProgress, [0, 1], [-500, 0]);
 
+  const { scrollYProgress: exitProgress } = useScroll({
+    target: containerRef,
+    offset: ["end end", "end start"]
+  });
+  // Pull content down during exit to synchronize the gap with KeywordTrap
+  const exitY = useTransform(exitProgress, [0, 1], [0, 800]);
+
   // Modified to keep elements within the viewport at the end of the scroll
   // so that the section doesn't become an empty white block before it un-sticks.
   const y1 = useTransform(scrollYProgress, [0, 1], [100, 0]);
@@ -28,8 +35,10 @@ export function HiringCrisis() {
   const rotate3 = useTransform(scrollYProgress, [0, 1], [-15, -2]);
 
   return (
-    <section ref={containerRef} className="h-[200vh] bg-[#F4F4F5] relative overflow-hidden border-b border-slate-200 z-10 shadow-[inset_0_20px_40px_-20px_rgba(0,0,0,0.05)]">
-       <motion.div style={{ y: enterY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+    <section ref={containerRef} className="h-[200vh] bg-[#F4F4F5] relative border-b border-slate-200 z-10 shadow-[inset_0_20px_40px_-20px_rgba(0,0,0,0.05)]">
+       <div className="sticky top-0 h-screen w-full overflow-hidden">
+          <motion.div style={{ y: enterY }} className="w-full h-full">
+            <motion.div style={{ y: exitY }} className="w-full h-full flex flex-col items-center justify-center relative">
           
           {/* Background Context */}
           <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-white border border-slate-200 shadow-sm z-50">
@@ -141,7 +150,9 @@ export function HiringCrisis() {
              </motion.div>
 
           </div>
-       </motion.div>
+            </motion.div>
+          </motion.div>
+       </div>
     </section>
   );
 }

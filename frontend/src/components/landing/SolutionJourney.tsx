@@ -27,15 +27,15 @@ export function SolutionJourney() {
   // 0.30 -> 0.40: GAP (Clean screen)
   // 0.40 -> 0.50: Phase 2 Enter
   
-  const opacityA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3], [0, 1, 1, 0]);
-  const yA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3], [40, 0, 0, -40]);
+  const opacityA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3, 1], [0, 1, 1, 0, 0]);
+  const yA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3, 1], [40, 0, 0, -40, -40]);
   
-  const opacityB = useTransform(scrollYProgress, [0.4, 0.5], [0, 1]);
-  const yB = useTransform(scrollYProgress, [0.4, 0.5], [40, 0]);
+  const opacityB = useTransform(scrollYProgress, [0, 0.4, 0.5, 1], [0, 0, 1, 1]);
+  const yB = useTransform(scrollYProgress, [0, 0.4, 0.5, 1], [40, 40, 0, 0]);
 
   // Stretch the evidence cards across the remainder of the scroll
-  const scaleEvidence = useTransform(scrollYProgress, [0.55, 0.95], [0.9, 1]);
-  const opacityEvidence = useTransform(scrollYProgress, [0.55, 0.95], [0, 1]);
+  const scaleEvidence = useTransform(scrollYProgress, [0, 0.55, 0.95, 1], [0.9, 0.9, 1, 1]);
+  const opacityEvidence = useTransform(scrollYProgress, [0, 0.55, 0.95, 1], [0, 0, 1, 1]);
 
   return (
     <section ref={containerRef} className="h-[300vh] bg-[#0F172A] relative selection:bg-blue-500 selection:text-white">
@@ -46,7 +46,8 @@ export function SolutionJourney() {
          <div className="absolute right-6 lg:right-24 top-0 bottom-0 w-[1px] bg-slate-700/50" />
       </div>
 
-      <motion.div style={{ y: exitY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6">
+      <div className="sticky top-0 h-screen w-full overflow-hidden px-6">
+        <motion.div style={{ y: exitY }} className="w-full h-full flex flex-col items-center justify-center relative">
         
         <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-800/50 border border-slate-700 shadow-sm backdrop-blur">
           <div className="w-1.5 h-1.5 rounded-sm bg-blue-500" />
@@ -129,7 +130,8 @@ export function SolutionJourney() {
               </motion.div>
            </div>
         </motion.div>
-      </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }

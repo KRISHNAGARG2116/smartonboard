@@ -14,15 +14,15 @@ export function VerificationAnatomy() {
   });
 
   // Entrance animations that happen while the section scrolls into the viewport
-  const initialOpacity = useTransform(enterProgress, [0, 0.5], [0, 1]);
+  const initialOpacity = useTransform(enterProgress, [0, 0.5, 1], [0, 1, 1]);
 
   // Pull content up during entry to eliminate the 50vh top gap
   const enterY = useTransform(enterProgress, [0, 1], [-500, 0]);
 
   // Highlighting specific rows of the Intelligence Report as the user scrolls
-  const identityHighlight = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [1, 1, 1, 0]);
-  const evidenceHighlight = useTransform(scrollYProgress, [0.4, 0.5, 0.7, 0.8], [0, 1, 1, 0]);
-  const decisionHighlight = useTransform(scrollYProgress, [0.7, 0.8, 1, 1], [0, 1, 1, 1]);
+  const identityHighlight = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5, 1], [1, 1, 1, 0, 0]);
+  const evidenceHighlight = useTransform(scrollYProgress, [0, 0.4, 0.5, 0.7, 0.8, 1], [0, 0, 1, 1, 0, 0]);
+  const decisionHighlight = useTransform(scrollYProgress, [0, 0.7, 0.8, 1], [0, 0, 1, 1]);
 
   return (
     <section ref={containerRef} className="h-[350vh] bg-[#0F172A] relative selection:bg-blue-500 selection:text-white">
@@ -37,7 +37,8 @@ export function VerificationAnatomy() {
          </div>
       </div>
 
-      <motion.div style={{ y: enterY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6 max-w-7xl mx-auto">
+      <div className="sticky top-0 h-screen w-full overflow-hidden px-6">
+        <motion.div style={{ y: enterY }} className="w-full h-full flex flex-col items-center justify-center relative max-w-7xl mx-auto">
         
         {/* The Section Header */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-800/50 border border-slate-700 shadow-sm backdrop-blur">
@@ -208,7 +209,8 @@ export function VerificationAnatomy() {
           </div>
 
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }

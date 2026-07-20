@@ -10,18 +10,24 @@ export function KeywordTrap() {
     offset: ["start start", "end end"]
   });
 
+  const { scrollYProgress: enterProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "start start"]
+  });
+  const enterY = useTransform(enterProgress, [0, 1], [-800, 0]);
+
   // Phases:
   // 0.0 -> 0.3: Legacy ATS phase (Green highlights fade in)
   // 0.4 -> 0.6: Transition phase (Green fades out, Red fades in)
   // 0.6 -> 1.0: SmartOnboard phase (Red flags lock in, Headline appears)
 
-  const atsOpacity = useTransform(scrollYProgress, [0.1, 0.3, 0.4, 0.5], [0, 1, 1, 0]);
-  const smartOpacity = useTransform(scrollYProgress, [0.4, 0.6], [0, 1]);
-  const smartY = useTransform(scrollYProgress, [0.4, 0.6], [10, 0]);
+  const atsOpacity = useTransform(scrollYProgress, [0, 0.1, 0.3, 0.4, 0.5, 1], [0, 0, 1, 1, 0, 0]);
+  const smartOpacity = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], [0, 0, 1, 1]);
+  const smartY = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], [10, 10, 0, 0]);
 
   // Headline opacity
-  const titleOpacity = useTransform(scrollYProgress, [0.7, 0.9], [0, 1]);
-  const titleY = useTransform(scrollYProgress, [0.7, 0.9], [20, 0]);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.7, 0.9, 1], [0, 0, 1, 1]);
+  const titleY = useTransform(scrollYProgress, [0, 0.7, 0.9, 1], [20, 20, 0, 0]);
 
   return (
     <section ref={containerRef} className="h-[250vh] bg-[#FCFBF9] relative selection:bg-slate-200 selection:text-black border-y border-slate-200">
@@ -72,7 +78,8 @@ export function KeywordTrap() {
       </div>
 
       {/* Sticky Container */}
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6 z-10">
+      <div className="sticky top-0 h-screen w-full overflow-hidden z-10">
+        <motion.div style={{ y: enterY }} className="w-full h-full flex flex-col items-center justify-center relative px-6">
         
         {/* Section Context */}
         <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-50 border border-slate-200 shadow-sm">
@@ -136,6 +143,7 @@ export function KeywordTrap() {
            <div className="w-[1px] h-8 bg-gradient-to-b from-slate-400 to-transparent" />
         </motion.div>
 
+        </motion.div>
       </div>
     </section>
   );
