@@ -46,40 +46,58 @@ export function CustomerProof() {
              <div className="flex flex-col gap-10 border-t border-slate-900 pt-10">
                 
                 {/* Metric 1 */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4"
+                >
                    <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Traditional ATS Funnel</div>
-                      <div className="text-slate-800 font-medium">42 Interviews <span className="mx-2 text-slate-300">→</span> 6 Offers</div>
+                      <div className="text-slate-800 font-medium">42 Interviews <span className="mx-2 text-blue-300">→</span> 6 Offers</div>
                    </div>
                    <div className="md:text-right">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">SmartOnboard Funnel</div>
-                      <div className="text-3xl font-serif font-bold text-slate-900">28 Interviews <span className="mx-2 text-slate-300">→</span> 16 Offers</div>
+                      <div className="text-3xl font-serif font-bold text-slate-900">28 Interviews <span className="mx-2 text-blue-300">→</span> <span className="text-blue-600">16 Offers</span></div>
                    </div>
-                </div>
+                </motion.div>
 
                 {/* Metric 2 */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-t border-slate-200 pt-10">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-t border-slate-200 pt-10"
+                >
                    <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Recruiter Screening Time</div>
                       <div className="text-slate-800 font-medium">20+ Hours / Week</div>
                    </div>
                    <div className="md:text-right">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">Evidence-Backed Screening</div>
-                      <div className="text-3xl font-serif font-bold text-slate-900">4 Hours / Week</div>
+                      <div className="text-3xl font-serif font-bold text-slate-900"><span className="text-blue-600">4 Hours</span> / Week</div>
                    </div>
-                </div>
+                </motion.div>
                 
                 {/* Metric 3 */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-t border-slate-200 pt-10">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-t border-slate-200 pt-10"
+                >
                    <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">False Positives (Passed Screen)</div>
                       <div className="text-slate-800 font-medium">~35% Keyword Matches</div>
                    </div>
                    <div className="md:text-right">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">SmartOnboard Pipeline</div>
-                      <div className="text-3xl font-serif font-bold text-slate-900">&lt; 2% False Positives</div>
+                      <div className="text-3xl font-serif font-bold text-slate-900"><span className="text-blue-600">&lt; 2%</span> False Positives</div>
                    </div>
-                </div>
+                </motion.div>
 
              </div>
           </motion.div>

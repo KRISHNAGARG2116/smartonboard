@@ -8,8 +8,16 @@ export function VerificationAnatomy() {
     offset: ["start start", "end end"]
   });
 
+  const { scrollYProgress: enterProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "start start"]
+  });
+
+  // Entrance animations that happen while the section scrolls into the viewport
+  const initialOpacity = useTransform(enterProgress, [0.5, 1], [0, 1]);
+
   // Highlighting specific rows of the Intelligence Report as the user scrolls
-  const identityHighlight = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [0, 1, 1, 0]);
+  const identityHighlight = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [1, 1, 1, 0]);
   const evidenceHighlight = useTransform(scrollYProgress, [0.4, 0.5, 0.7, 0.8], [0, 1, 1, 0]);
   const decisionHighlight = useTransform(scrollYProgress, [0.7, 0.8, 1, 1], [0, 1, 1, 1]);
 
@@ -81,7 +89,7 @@ export function VerificationAnatomy() {
                      
                      {/* Phase 1: Candidate Selected & Identity Confirmed */}
                      <motion.div 
-                        style={{ opacity: useTransform(scrollYProgress, [0, 0.1], [0, 1]) }}
+                        style={{ opacity: initialOpacity }}
                         className="p-6 border-b border-slate-100"
                      >
                         <div className="flex justify-between items-start">
@@ -156,7 +164,7 @@ export function VerificationAnatomy() {
              
              {/* 1. Identity Explainer */}
              <motion.div 
-               style={{ opacity: identityHighlight, y: useTransform(scrollYProgress, [0, 0.4], [20, -20]) }}
+               style={{ opacity: identityHighlight, y: useTransform(scrollYProgress, [0, 0.4], [0, -20]) }}
                className="absolute inset-0 flex flex-col justify-center"
              >
                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white mb-5 tracking-tight">

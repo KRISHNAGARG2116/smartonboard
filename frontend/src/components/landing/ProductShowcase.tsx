@@ -23,7 +23,7 @@ export function ProductShowcase() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-xl text-black/50 font-light max-w-2xl mx-auto"
+            className="text-xl text-black/50 font-light max-w-2xl mx-auto text-center"
           >
             A cohesive environment combining sourcing, AI intelligence, and interview management into a single, beautiful flow.
           </motion.p>
@@ -54,13 +54,17 @@ export function ProductShowcase() {
         </div>
 
         {/* CSS Rendered UI Preview container */}
-        <motion.div 
-          key={activeTab} // Force re-render on tab change for entry animation
-          initial={{ opacity: 0, y: 20, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full aspect-[16/11] md:aspect-[16/9] bg-zinc-50 border border-black/10 rounded-2xl md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative"
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
         >
+          <motion.div 
+            key={activeTab} // Force re-render on tab change for entry animation
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full aspect-[16/11] md:aspect-[16/9] bg-zinc-50 border border-black/10 rounded-2xl md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col relative"
+          >
           {/* Subtle AI Glow in Workspace */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
 
@@ -84,7 +88,7 @@ export function ProductShowcase() {
             {activeTab === 3 && <MockResumeIntel />}
             {activeTab === 4 && <MockJobManagement />}
           </div>
-
+          </motion.div>
         </motion.div>
 
       </div>

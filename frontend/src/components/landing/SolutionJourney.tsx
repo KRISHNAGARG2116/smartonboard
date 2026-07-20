@@ -20,7 +20,9 @@ export function SolutionJourney() {
   const yB = useTransform(scrollYProgress, [0.3, 0.4], [40, 0]);
 
   const scaleEvidence = useTransform(scrollYProgress, [0.6, 0.7], [0.9, 1]);
-  const opacityEvidence = useTransform(scrollYProgress, [0.6, 0.7, 0.9, 1], [0, 1, 1, 0]);
+  // Evidence cards fade in after stages
+  // They stay fully visible at the end so they naturally scroll up and out of the viewport
+  const opacityEvidence = useTransform(scrollYProgress, [0.6, 0.7], [0, 1]);
 
   return (
     <section ref={containerRef} className="h-[300vh] bg-[#0F172A] relative selection:bg-blue-500 selection:text-white">

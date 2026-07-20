@@ -82,33 +82,34 @@ export function KeywordTrap() {
 
         {/* The Claim */}
         <div className="relative text-[2rem] md:text-[3.5rem] lg:text-[4.5rem] font-serif max-w-5xl text-center leading-[1.2] text-slate-800 tracking-tight">
+          The resume is perfectly{' '}
           <span className="relative inline-block whitespace-nowrap">
-            Led
+            optimized
             {/* ATS Layer */}
-            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
+            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 md:top-6 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
             {/* SmartOnboard Layer */}
             <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
-              Identity Unauthenticated
+              Impact Missing
             </motion.div>
           </span>
-          {' '}engineering team to build{' '}
+          {' '}for an{' '}
           <span className="relative inline-block whitespace-nowrap">
-            scalable
+            ATS
             {/* ATS Layer */}
-            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
+            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 md:top-6 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
             {/* SmartOnboard Layer */}
             <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
               Metrics Unverified
             </motion.div>
           </span>
-          {' '}React{' '}
+          {' '}but tells you nothing about the{' '}
           <span className="relative inline-block whitespace-nowrap">
-            architecture.
+            real person.
             {/* ATS Layer */}
-            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
+            <motion.span style={{ opacity: atsOpacity }} className="absolute inset-x-[-4px] bottom-1 top-4 md:top-6 bg-emerald-100 border-b-2 border-emerald-500 rounded-sm -z-10" />
             {/* SmartOnboard Layer */}
             <motion.div style={{ opacity: smartOpacity, y: smartY }} className="absolute -bottom-8 md:-bottom-12 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-bold uppercase tracking-widest text-red-500 whitespace-nowrap bg-red-50 px-2 py-1 rounded border border-red-200 shadow-sm">
-              Impact Missing
+              Identity Unauthenticated
             </motion.div>
           </span>
         </div>

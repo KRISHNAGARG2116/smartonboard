@@ -19,7 +19,7 @@ export function HiringCrisis() {
   const rotate3 = useTransform(scrollYProgress, [0, 1], [-15, -2]);
 
   return (
-    <section ref={containerRef} className="h-[200vh] bg-slate-50 relative overflow-hidden border-b border-slate-200">
+    <section ref={containerRef} className="h-[200vh] bg-[#F4F4F5] relative overflow-hidden border-b border-slate-200 z-10 shadow-[inset_0_20px_40px_-20px_rgba(0,0,0,0.05)]">
        <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
           
           {/* Background Context */}
@@ -28,11 +28,35 @@ export function HiringCrisis() {
              <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase font-mono">The Reality</span>
           </div>
 
-          {/* Editorial Grid Texture */}
+          {/* Editorial Grid Texture & Marks */}
           <div className="absolute inset-0 pointer-events-none z-0">
-             <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
-             <div className="absolute left-6 lg:left-24 top-0 bottom-0 w-[1px] bg-slate-200" />
-             <div className="absolute right-6 lg:right-24 top-0 bottom-0 w-[1px] bg-slate-200" />
+             {/* Paper Texture Overlay */}
+             <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-50 mix-blend-multiply" />
+             
+             {/* Structural Lines */}
+             <div className="absolute left-6 lg:left-24 top-0 bottom-0 w-[1px] bg-slate-300/50" />
+             <div className="absolute right-6 lg:right-24 top-0 bottom-0 w-[1px] bg-slate-300/50" />
+             
+             {/* Crop Marks */}
+             <div className="absolute top-24 left-6 lg:left-24 w-4 h-4 border-t border-l border-slate-400/50" />
+             <div className="absolute top-24 right-6 lg:right-24 w-4 h-4 border-t border-r border-slate-400/50" />
+             <div className="absolute bottom-24 left-6 lg:left-24 w-4 h-4 border-b border-l border-slate-400/50" />
+             <div className="absolute bottom-24 right-6 lg:right-24 w-4 h-4 border-b border-r border-slate-400/50" />
+
+             {/* Technical Annotations */}
+             <div className="absolute top-[30%] left-[8%] rotate-[-90deg] opacity-30 hidden md:block">
+               <div className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500">
+                 SYS_STATE: FRAGMENTATION_DETECTED
+               </div>
+             </div>
+             
+             <div className="absolute bottom-[20%] right-[10%] opacity-40 hidden md:block">
+               <div className="text-[8px] font-mono uppercase tracking-widest text-slate-500 text-right">
+                 FIG 2.0 <br/>
+                 THE HIRING WORKFLOW <br/>
+                 (DISCONNECTED)
+               </div>
+             </div>
           </div>
 
           {/* Title - Static */}
