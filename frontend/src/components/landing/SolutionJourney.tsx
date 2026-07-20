@@ -8,21 +8,34 @@ export function SolutionJourney() {
     offset: ["start start", "end end"]
   });
 
+  const { scrollYProgress: exitProgress } = useScroll({
+    target: containerRef,
+    offset: ["end end", "end start"]
+  });
+
+  // Pull content down during exit to bridge the gap to the next section
+  const exitY = useTransform(exitProgress, [0, 1], [0, 500]);
+
   // Phases
   // 0 -> 0.3: Candidate A (Keywords)
   // 0.3 -> 0.6: Candidate B (Evidence)
   // 0.6 -> 1.0: Evidence Collection Details
   
-  const opacityA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.35], [0, 1, 1, 0]);
-  const yA = useTransform(scrollYProgress, [0, 0.1], [40, 0]);
+  // 0.00 -> 0.10: Phase 1 Enter
+  // 0.10 -> 0.25: Phase 1 Hold
+  // 0.25 -> 0.30: Phase 1 Exit
+  // 0.30 -> 0.40: GAP (Clean screen)
+  // 0.40 -> 0.50: Phase 2 Enter
   
-  const opacityB = useTransform(scrollYProgress, [0.3, 0.4, 0.8, 0.9], [0, 1, 1, 0]);
-  const yB = useTransform(scrollYProgress, [0.3, 0.4], [40, 0]);
+  const opacityA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3], [0, 1, 1, 0]);
+  const yA = useTransform(scrollYProgress, [0, 0.1, 0.25, 0.3], [40, 0, 0, -40]);
+  
+  const opacityB = useTransform(scrollYProgress, [0.4, 0.5], [0, 1]);
+  const yB = useTransform(scrollYProgress, [0.4, 0.5], [40, 0]);
 
-  const scaleEvidence = useTransform(scrollYProgress, [0.6, 0.7], [0.9, 1]);
-  // Evidence cards fade in after stages
-  // They stay fully visible at the end so they naturally scroll up and out of the viewport
-  const opacityEvidence = useTransform(scrollYProgress, [0.6, 0.7], [0, 1]);
+  // Stretch the evidence cards across the remainder of the scroll
+  const scaleEvidence = useTransform(scrollYProgress, [0.55, 0.95], [0.9, 1]);
+  const opacityEvidence = useTransform(scrollYProgress, [0.55, 0.95], [0, 1]);
 
   return (
     <section ref={containerRef} className="h-[300vh] bg-[#0F172A] relative selection:bg-blue-500 selection:text-white">
@@ -33,7 +46,7 @@ export function SolutionJourney() {
          <div className="absolute right-6 lg:right-24 top-0 bottom-0 w-[1px] bg-slate-700/50" />
       </div>
 
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6">
+      <motion.div style={{ y: exitY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6">
         
         <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-800/50 border border-slate-700 shadow-sm backdrop-blur">
           <div className="w-1.5 h-1.5 rounded-sm bg-blue-500" />
@@ -74,9 +87,9 @@ export function SolutionJourney() {
 
         {/* Stage 2 & 3: Candidate B & Evidence Collection */}
         <motion.div style={{ opacity: opacityB, y: yB }} className="absolute inset-0 flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24 max-w-7xl mx-auto px-6 pointer-events-none">
-           <div className="w-full lg:w-1/2 relative z-10">
-              <h3 className="text-4xl lg:text-5xl font-serif text-white mb-6 tracking-tight">The Evidence Truth</h3>
-              <p className="text-slate-400 text-lg md:text-xl font-medium max-w-md leading-relaxed">
+           <div className="w-full lg:w-1/2 relative z-10 lg:pr-12">
+              <h3 className="text-4xl lg:text-5xl font-serif text-white mb-6 tracking-tight leading-[1.1]">The Evidence Truth</h3>
+              <p className="text-slate-400 text-lg md:text-xl font-medium max-w-lg leading-relaxed">
                  Candidate B wrote a simple resume. But their claims are backed by verifiable history, consistent timelines, and reviewed portfolios.
               </p>
            </div>
@@ -116,7 +129,7 @@ export function SolutionJourney() {
               </motion.div>
            </div>
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }

@@ -14,6 +14,7 @@ export function OSFooter() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
+          className="w-full max-w-4xl flex flex-col items-center text-center"
         >
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
@@ -22,9 +23,9 @@ export function OSFooter() {
             </span>
           </div>
           
-          <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-6">
+          <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.1] mb-6 w-full text-center">
             Stop reading resumes. <br/>
-            <span className="text-white/40 italic font-serif">Start meeting your <span className="text-emerald-500 font-bold not-italic">next hire.</span></span>
+            Start meeting your next hire.
           </h2>
           <p className="text-xl font-light text-white/50 max-w-2xl mx-auto text-center mb-16">
             Join the forward-thinking hiring teams using SmartOnboard to cut screening time by 90% and make confident decisions instantly.

@@ -8,11 +8,20 @@ export function HiringCrisis() {
     offset: ["start end", "end start"]
   });
 
-  // Dispersal transforms for various UI fragments to create "organized chaos"
-  const y1 = useTransform(scrollYProgress, [0, 1], [100, -200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [300, -100]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, -300]);
-  const y4 = useTransform(scrollYProgress, [0, 1], [200, -250]);
+  const { scrollYProgress: enterProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "start start"]
+  });
+
+  // Pull content up during entry to eliminate the 50vh top gap
+  const enterY = useTransform(enterProgress, [0, 1], [-500, 0]);
+
+  // Modified to keep elements within the viewport at the end of the scroll
+  // so that the section doesn't become an empty white block before it un-sticks.
+  const y1 = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [300, 100]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [0, -50]);
+  const y4 = useTransform(scrollYProgress, [0, 1], [200, 50]);
   
   const rotate1 = useTransform(scrollYProgress, [0, 1], [-5, 10]);
   const rotate2 = useTransform(scrollYProgress, [0, 1], [12, -8]);
@@ -20,7 +29,7 @@ export function HiringCrisis() {
 
   return (
     <section ref={containerRef} className="h-[200vh] bg-[#F4F4F5] relative overflow-hidden border-b border-slate-200 z-10 shadow-[inset_0_20px_40px_-20px_rgba(0,0,0,0.05)]">
-       <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+       <motion.div style={{ y: enterY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
           
           {/* Background Context */}
           <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-white border border-slate-200 shadow-sm z-50">
@@ -132,7 +141,7 @@ export function HiringCrisis() {
              </motion.div>
 
           </div>
-       </div>
+       </motion.div>
     </section>
   );
 }

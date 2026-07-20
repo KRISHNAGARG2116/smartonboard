@@ -14,7 +14,10 @@ export function VerificationAnatomy() {
   });
 
   // Entrance animations that happen while the section scrolls into the viewport
-  const initialOpacity = useTransform(enterProgress, [0.5, 1], [0, 1]);
+  const initialOpacity = useTransform(enterProgress, [0, 0.5], [0, 1]);
+
+  // Pull content up during entry to eliminate the 50vh top gap
+  const enterY = useTransform(enterProgress, [0, 1], [-500, 0]);
 
   // Highlighting specific rows of the Intelligence Report as the user scrolls
   const identityHighlight = useTransform(scrollYProgress, [0, 0.2, 0.4, 0.5], [1, 1, 1, 0]);
@@ -34,9 +37,10 @@ export function VerificationAnatomy() {
          </div>
       </div>
 
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6 max-w-7xl mx-auto">
+      <motion.div style={{ y: enterY }} className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden px-6 max-w-7xl mx-auto">
         
-        <div className="absolute top-24 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-800/50 border border-slate-700 shadow-sm backdrop-blur">
+        {/* The Section Header */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-800/50 border border-slate-700 shadow-sm backdrop-blur">
           <div className="w-1.5 h-1.5 rounded-sm bg-blue-500" />
           <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase font-mono">The Solution</span>
         </div>
@@ -204,7 +208,7 @@ export function VerificationAnatomy() {
           </div>
 
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

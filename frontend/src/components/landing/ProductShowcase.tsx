@@ -10,12 +10,12 @@ export function ProductShowcase() {
     <section className="bg-white py-32 md:py-48 text-black selection:bg-black selection:text-white border-t border-black/10 overflow-hidden">
       <div className="max-w-[1440px] px-6 md:px-12 lg:px-24 mx-auto">
         
-        <div className="text-center mb-24">
+        <div className="flex flex-col items-center text-center mb-24 w-full">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-5xl md:text-7xl font-bold tracking-tighter leading-[1.1] mb-8"
+            className="text-5xl md:text-7xl font-bold tracking-tighter leading-[1.1] mb-8 w-full text-center"
           >
             The Workspace.
           </motion.h2>
