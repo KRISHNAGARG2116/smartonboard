@@ -32,7 +32,7 @@ export default function Landing() {
             <Link to="/login" className="text-sm font-medium text-black/60 hover:text-black transition-colors">
               Log In
             </Link>
-            <Link to="/register" className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-black text-white hover:bg-zinc-800 transition-all">
+            <Link to="/register" className="px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-800 transition-all" style={{ backgroundColor: '#000000', color: '#ffffff' }}>
               Get Started
             </Link>
           </div>

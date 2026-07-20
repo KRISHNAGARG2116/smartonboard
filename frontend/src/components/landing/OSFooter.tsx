@@ -14,7 +14,7 @@ export function OSFooter() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="w-full max-w-4xl flex flex-col items-center text-center"
+          className="w-full flex flex-col items-center text-center"
         >
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
@@ -23,11 +23,11 @@ export function OSFooter() {
             </span>
           </div>
           
-          <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.1] mb-6 w-full text-center">
+          <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-10 w-full text-center">
             Stop reading resumes. <br/>
-            Start meeting your next hire.
+            <span className="text-white/40 italic font-serif">Start </span><span className="text-emerald-500 font-bold not-italic">meeting your next hire.</span>
           </h2>
-          <p className="text-xl font-light text-white/50 max-w-2xl mx-auto text-center mb-16">
+          <p className="text-xl font-light text-white/50 max-w-2xl mx-auto text-center mb-24">
             Join the forward-thinking hiring teams using SmartOnboard to cut screening time by 90% and make confident decisions instantly.
           </p>
         </motion.div>
@@ -38,8 +38,8 @@ export function OSFooter() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="flex flex-col sm:flex-row gap-6 mb-32 w-full max-w-md justify-center"
         >
-          <Link to="/register" className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white text-black font-bold text-lg hover:bg-zinc-200 transition-colors shadow-[0_0_40px_rgba(255,255,255,0.2)] text-center">
-            Start Free Trial
+          <Link to="/register" className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white text-black font-bold text-lg hover:bg-zinc-200 transition-colors shadow-[0_0_40px_rgba(255,255,255,0.2)] text-center" style={{ backgroundColor: '#ffffff', color: '#000000' }}>
+            Get Started
           </Link>
           <Link to="/demo" className="w-full sm:w-auto px-10 py-5 rounded-xl border border-white/20 bg-transparent text-white font-medium text-lg hover:bg-white/10 hover:border-white/40 transition-colors text-center">
             Book a Demo
