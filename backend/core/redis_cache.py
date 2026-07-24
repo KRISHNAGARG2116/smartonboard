@@ -14,6 +14,11 @@ settings = get_settings()
 # Initialize Redis client
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
+
+def get_redis_client():
+    """Returns the singleton Redis client instance."""
+    return redis_client
+
 # Metrics tracking
 CACHE_METRICS = {
     "hits": 0,
